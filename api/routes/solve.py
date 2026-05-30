@@ -56,6 +56,11 @@ def _unwrap_output(output: Any) -> Dict[str, Any]:
 def solve(request: Request, body: SolveRequest) -> Dict[str, Any]:
     solver = getattr(request.app.state, "solver", None)
     if solver is None:
+        detail = getattr(request.app.state, "solver_error", None)
+        if detail:
+            raise HTTPException(
+                status_code=503, detail=f"Solver is not available: {detail}"
+            )
         raise HTTPException(status_code=503, detail="Solver is not available.")
 
     result = solver.solve(body.input)

@@ -24,7 +24,6 @@ def _resolve_model_path() -> str:
             root / "checkpoints" / "final" / "best.pt",
             root / "checkpoints" / "sft" / "best.pt",
             root / "checkpoints" / "pretrain" / "best.pt",
-            root / "model" / "model.pkl",
         ]
     )
 
@@ -33,22 +32,28 @@ def _resolve_model_path() -> str:
             return str(path)
 
     raise FileNotFoundError(
-        "No model checkpoint or model artifact found. Tried: "
+        "No model checkpoint found. Tried: "
         + ", ".join(str(p) for p in candidate_paths)
     )
 
 
 @app.on_event("startup")
 async def startup_event():
-    model_path = _resolve_model_path()
-    app.state.solver = CalculusSolverInference(
-        model_path=model_path,
-        vocab_path=str(
-            Path(__file__).resolve().parents[1] / "tokenizer" / "vocab.json"
-        ),
-        beam_size=5,
-        max_len=256,
-    )
+    try:
+        model_path = _resolve_model_path()
+        app.state.solver = CalculusSolverInference(
+            model_path=model_path,
+            vocab_path=str(
+                Path(__file__).resolve().parents[1] / "tokenizer" / "vocab.json"
+            ),
+            beam_size=5,
+            max_len=256,
+        )
+        app.state.solver_error = None
+    except Exception as exc:
+        app.state.solver = None
+        app.state.solver_error = str(exc)
+        print(f"CalculusSolver API started without solver: {exc}", flush=True)
 
 
 @app.on_event("shutdown")
