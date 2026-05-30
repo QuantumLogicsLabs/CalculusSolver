@@ -28,9 +28,10 @@ class CalculusSolverInference:
         config = self.model_data["config"]
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        rule_labels = self._load_rule_labels(vocab_path)
         self.model = CalculusModel(
             vocab_size=config["vocab_size"],
-            num_rules=config.get("num_rules"),
+            rule_labels=rule_labels,
             hidden_dim=config.get("hidden_dim", 512),
             num_heads=config.get("num_heads", 8),
             num_layers=config.get("num_layers", 8),
@@ -53,6 +54,17 @@ class CalculusSolverInference:
 
     def close(self) -> None:
         self.node_pool.close()
+
+    def _load_rule_labels(self, vocab_path: str) -> List[str]:
+        with open(vocab_path, "r", encoding="utf-8") as f:
+            vocab_json = json.load(f)
+        rule_labels = []
+        for token in vocab_json.get("rule_tokens", {}).keys():
+            if token.startswith("RULE:"):
+                rule_labels.append(token.split("RULE:", 1)[-1])
+            else:
+                rule_labels.append(token)
+        return rule_labels
 
     def _serialize_input(self, input_env: Dict[str, Any]) -> List[str]:
         script = os.path.join(os.path.dirname(__file__), "serialize_input.js")

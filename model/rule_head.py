@@ -1,26 +1,17 @@
 import torch
 import torch.nn as nn
-
-RULE_LABELS = [
-    "quotient_rule",
-    "product_rule",
-    "chain_rule",
-    "power_rule",
-    "sum_rule",
-    "partial_x",
-    "partial_y",
-    "form_lagrangian",
-    "solve_system",
-    "evaluate_objective",
-    "simplify",
-    "undefined",
-]
+from typing import List, Optional
 
 
 class RuleHead(nn.Module):
-    def __init__(self, hidden_dim, num_rules=None):
+    def __init__(
+        self,
+        hidden_dim: int,
+        rule_labels: Optional[List[str]] = None,
+    ):
         super().__init__()
-        self.num_rules = num_rules or len(RULE_LABELS)
+        self.rule_labels = rule_labels or []
+        self.num_rules = len(self.rule_labels)
         self.classifier = nn.Linear(hidden_dim, self.num_rules)
         self.rule_embeddings = nn.Embedding(self.num_rules, hidden_dim)
 
@@ -39,6 +30,5 @@ class RuleHead(nn.Module):
     def embed_rules(self, rule_ids):
         return self.rule_embeddings(rule_ids)
 
-    @classmethod
-    def labels(cls):
-        return list(RULE_LABELS)
+    def labels(self) -> List[str]:
+        return list(self.rule_labels)

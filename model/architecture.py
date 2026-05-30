@@ -11,7 +11,7 @@ class CalculusModel(nn.Module):
     def __init__(
         self,
         vocab_size,
-        num_rules=None,
+        rule_labels=None,
         hidden_dim=512,
         num_heads=8,
         num_layers=8,
@@ -29,7 +29,7 @@ class CalculusModel(nn.Module):
             dropout=dropout,
             position_dim=position_dim,
         )
-        self.rule_head = RuleHead(hidden_dim=hidden_dim, num_rules=num_rules)
+        self.rule_head = RuleHead(hidden_dim=hidden_dim, rule_labels=rule_labels)
         self.decoder = TreeDecoder(
             vocab_size=vocab_size,
             hidden_dim=hidden_dim,
@@ -38,9 +38,8 @@ class CalculusModel(nn.Module):
             ffn_dim=ffn_dim,
             dropout=dropout,
         )
-        self.step_tracer = StepTracer(
-            hidden_dim=hidden_dim, num_templates=self.rule_head.num_rules
-        )
+        templates = [f"Describe {label}." for label in self.rule_head.labels()]
+        self.step_tracer = StepTracer(hidden_dim=hidden_dim, templates=templates)
 
     def forward(
         self,

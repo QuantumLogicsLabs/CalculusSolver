@@ -1,0 +1,16 @@
+model:
+  hidden_dim: 512
+  num_heads: 8
+  num_layers: 6
+  ffn_dim: 2048
+  dropout: 0.1
+  max_len: 256
+
+training:
+  batch_size: 32
+  lr: 1e-4
+  max_epochs: 5
+  rule_loss_weight: 1.0
+  step_loss_weight: 0.25
+  log_every_steps: 100
+  hard_sample_size: 200
