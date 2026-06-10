@@ -68,6 +68,7 @@ function classifyRule(expr, variable) {
 }
 
 function numericallyEqual(exprA, exprB, variables, tol = 1e-9, points = 50) {
+  let validCount = 0;
   for (let i = 0; i < points; i++) {
     const pt = {};
     for (const v of variables) pt[v] = (Math.random() * 9.6 - 4.8) + 0.01;
@@ -75,9 +76,14 @@ function numericallyEqual(exprA, exprB, variables, tol = 1e-9, points = 50) {
       const a = evaluateFraction(exprA, pt);
       const b = evaluateFraction(exprB, pt);
       if (!isFinite(a) || !isFinite(b)) continue;
+      
+      validCount++;
+      
       if (Math.abs(a - b) > tol) return false;
     } catch { continue; }
   }
+  
+  if (validCount === 0) return false;
   return true;
 }
 

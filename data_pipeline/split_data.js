@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 const inputPath = 'data/slang_dataset.jsonl';
 const lines = fs.readFileSync(inputPath, 'utf8').trim().split('\n');
@@ -21,7 +20,7 @@ const splits = {
 
 fs.mkdirSync('data/splits', { recursive: true });
 for (const [filePath, data] of Object.entries(splits)) {
-  fs.writeFileSync(filePath, data.join('\n'));
+  fs.writeFileSync(filePath, data.join('\n') + '\n');
   console.log(`${filePath}: ${data.length} examples`);
 }
 console.log(`\nTotal: ${total} examples split into train/val/test`);
