@@ -320,3 +320,10 @@ tmp/
 temp/
 scratch/
 sandbox/
+__pycache__/
+*.pyc
+*.pyo
+checkpoints/
+*.pt
+*.bin
+wandb/
