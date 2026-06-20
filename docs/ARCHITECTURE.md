@@ -873,3 +873,27 @@ eval/step_accuracy.js
 **Trade-off:** Subprocess communication adds ~1–2ms per decoding step. Keeping a pool of Node processes alive adds memory overhead.
 
 **Reason:** Rewriting `slangmath`'s structural rules in Python would create a duplicate implementation that would diverge from `slangmath` every time `slangmath` is updated. The subprocess approach means the validity mask is always exactly as strict as `slangmath` itself — no more, no less.
+
+
+---
+
+## 4. Systems Architecture Enhancements (Task B5 Addendum)
+
+### 4.1 Four-Component Pipeline Flow
+The execution framework cascades expressions deterministically across a tightly-integrated stack:
+$$\text{Abstract Syntax Tree Data Input} \longrightarrow \text{Tree Encoder (Structural Relational Bias)}$$
+$$\text{Tree Encoder Output Maps} \longrightarrow \text{Rule Head Dense Classifier Logits}$$
+$$\text{Conditioned Rule Embeddings + Memory} \longrightarrow \text{Tree Decoder Autoregressive Beam Search Loop}$$
+$$\text{Decoder States Space} \longrightarrow \text{Step Tracer Template Vector String Decoders}$$
+
+### 4.2 Symbolic Verification Loop Subprocess
+Every multi-candidate path extracted out of the target token spaces evaluates dynamically against isolated validation micro-interpreters. The operational cycle instantiates structured JSON expressions inside separate OS subprocess instances running `python -m slang.verifier` parameters, protecting interface systems from syntactic structural hallucinations.
+
+### 4.3 Standard 3-Stage Structural Training Mechanics
+Optimizations evolve linearly using segmented validation layers:
+1. **Stage 1 (Sequence Pre-training)**: Baseline mapping optimization maximizing exact-token retrieval probability weights.
+2. **Stage 2 (Teacher Forcing Adjustment)**: Conditioning hidden decoders directly over golden rule labels to safely evaluate gradients during architectural adjustments.
+3. **Stage 3 (Constraint-Reinforced Verification)**: Tuning generation scores using verifier feedback passes.
+
+### 4.4 Cross-Repository Architecture Layout
+The engine bridges foundational syntax configurations from external structural token modules down to core model parameters. The model matches incoming tokens directly with dynamic reverse mappings ensuring complete system integration during downstream data validation cycles.
