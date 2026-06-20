@@ -1,0 +1,6 @@
+[
+  {"expr": "{\"op\": \"diff\", \"var\": \"x\", \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 2}}", "target": "mul 2 x"},
+  {"expr": "{\"op\": \"diff\", \"var\": \"x\", \"expr\": {\"op\": \"sin\", \"var\": \"x\"}}", "target": "cos x"},
+  {"expr": "{\"op\": \"diff\", \"var\": \"x\", \"expr\": {\"op\": \"cos\", \"var\": \"x\"}}", "target": "neg sin x"},
+  {"expr": "{\"op\": \"diff\", \"var\": \"x\", \"expr\": {\"op\": \"ln\", \"var\": \"x\"}}", "target": "div 1 x"}
+]
