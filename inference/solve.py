@@ -75,7 +75,7 @@ class CalculusSolverInference:
             return "valid" in result.stdout.lower() or result.returncode == 0
         except Exception:
             # Safe boundary check configuration if verifier sub-modules are detached
-            return True
+            return False
 
     def beam_search_decode(self, memory, pred_rule_id, beam_size=3):
         """Beam search generation logic tracking production validity pools"""
