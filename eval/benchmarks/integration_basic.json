@@ -1,5 +1,22 @@
 [
   {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 1}}", "target": "div pow x 2 2"},
   {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"cos\", \"var\": \"x\"}}", "target": "sin x"},
-  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"exp\", \"var\": \"x\"}}", "target": "exp x"}
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"exp\", \"var\": \"x\"}}", "target": "exp x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"sin\", \"var\": \"x\"}}", "target": "neg cos x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"add\", \"expr1\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 2}, \"expr2\": {\"op\": \"cos\", \"var\": \"x\"}}}", "target": "add div pow x 3 3 sin x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"sub\", \"expr1\": {\"op\": \"exp\", \"var\": \"x\"}, \"expr2\": {\"op\": \"sin\", \"var\": \"x\"}}}", "target": "add exp x cos x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 3}}", "target": "div pow x 4 4"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"add\", \"expr1\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 1}, \"expr2\": {\"op\": \"exp\", \"var\": \"x\"}}}", "target": "add div pow x 2 2 exp x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"sub\", \"expr1\": {\"op\": \"cos\", \"var\": \"x\"}, \"expr2\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 4}}}", "target": "sub sin x div pow x 5 5"},
+  {"expr": "{\"op\": \"int_def\", \"var\": \"x\", \"lower\": 0, \"upper\": 1, \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 1}}", "target": "val 0.5"},
+  {"expr": "{\"op\": \"int_def\", \"var\": \"x\", \"lower\": 0, \"upper\": 3, \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 2}}", "target": "val 9.0"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"add\", \"expr1\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 5}, \"expr2\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 2}}}", "target": "add div pow x 6 6 div pow x 3 3"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"sub\", \"expr1\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 1}, \"expr2\": {\"op\": \"cos\", \"var\": \"x\"}}}", "target": "sub div pow x 2 2 sin x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"add\", \"expr1\": {\"op\": \"exp\", \"var\": \"x\"}, \"expr2\": {\"op\": \"cos\", \"var\": \"x\"}}}", "target": "add exp x sin x"},
+  {"expr": "{\"op\": \"int_def\", \"var\": \"x\", \"lower\": 0, \"upper\": 2, \"expr\": {\"op\": \"add\", \"expr1\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 1}, \"expr2\": 1}}", "target": "val 4.0"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 4}}", "target": "div pow x 5 5"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"sub\", \"expr1\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 3}, \"expr2\": {\"op\": \"exp\", \"var\": \"x\"}}}", "target": "sub div pow x 4 4 exp x"},
+  {"expr": "{\"op\": \"int_def\", \"var\": \"x\", \"lower\": 1, \"upper\": 2, \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 3}}", "target": "val 3.75"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"add\", \"expr1\": {\"op\": \"sin\", \"var\": \"x\"}, \"expr2\": {\"op\": \"cos\", \"var\": \"x\"}}}", "target": "sub sin x cos x"},
+  {"expr": "{\"op\": \"int_def\", \"var\": \"x\", \"lower\": 0, \"upper\": 4, \"expr\": { \"op\": \"pow\", \"var\": \"x\", \"val\": 1}}", "target": "val 8.0"}
 ]
