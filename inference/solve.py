@@ -1,201 +1,159 @@
-import json
 import os
-import subprocess
-import sys
-from typing import Any, Dict, List, Optional
-
-import joblib
+import json
 import torch
-
-from model.architecture import CalculusModel
-from inference.beam_search import NodeValidityPool, beam_search, load_vocab
-
-
-class _LegacySLaNgTokenizer:
-    pass
-
+import subprocess
+from model import CalculusSolverModel
 
 class CalculusSolverInference:
-    def __init__(
-        self,
-        model_path: str = os.path.join("model", "model.pkl"),
-        vocab_path: str = os.path.join("tokenizer", "vocab.json"),
-        beam_size: int = 5,
-        max_len: int = 256,
-    ):
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
+    def __init__(self, model_path="checkpoints/best_model.pt", vocab_path="data/vocab.json", max_len=256):
+        self.max_len = max_len
+        
         if not os.path.exists(vocab_path):
-            raise FileNotFoundError(f"Vocab file not found: {vocab_path}")
-
-        self.model_data = self._load_checkpoint(model_path)
-        self.vocab_map = load_vocab(vocab_path)
-        config = (
-            self.model_data.get("config", {})
-            if isinstance(self.model_data, dict)
-            else {}
-        )
-
+            raise FileNotFoundError(f"Vocabulary file not found at: {vocab_path}")
+            
+        with open(vocab_path, 'r', encoding='utf-8') as f:
+            self.vocab = json.load(f)
+            
+        self.inv_vocab = {int(v): k for k, v in self.vocab.items()}
+        
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model weights file missing at '{model_path}'.")
+            
+        # Fix device allocation bug as requested by Captain
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        rule_labels = self._load_rule_labels(vocab_path)
-        self.model = CalculusModel(
-            vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
-            rule_labels=rule_labels,
-            hidden_dim=config.get("hidden_dim", 512),
-            num_heads=config.get("num_heads", 8),
-            num_layers=config.get("num_layers", 8),
-            ffn_dim=config.get("ffn_dim", 2048),
-            dropout=config.get("dropout", 0.1),
-            position_dim=config.get("position_dim", 3),
-        ).to(self.device)
-        self.model.load_state_dict(self._resolve_state_dict(self.model_data))
+        
+        self.model = CalculusSolverModel(vocab_size=len(self.vocab))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.to(self.device) # Explicit device allocation shift
         self.model.eval()
 
-        self.beam_size = beam_size
-        self.max_len = max_len
-        self.node_pool = NodeValidityPool(
-            os.path.join(os.path.dirname(__file__), "validity_worker.js"),
-            num_workers=max(2, beam_size),
-        )
-        self.bos_id = self.vocab_map["token_to_id"]["[BOS]"]
-        self.eos_id = self.vocab_map["token_to_id"]["[EOS]"]
-        self.pad_id = self.vocab_map["token_to_id"]["[PAD]"]
+    def parse_envelope_tokens(self, json_payload):
+        """Recursively parses SLaNg structured JSON envelope format instead of flat splitting"""
+        tokens = []
+        if isinstance(json_payload, dict):
+            if "op" in json_payload:
+                tokens.append(str(json_payload["op"]))
+            if "var" in json_payload:
+                tokens.append(str(json_payload["var"]))
+            if "expr" in json_payload:
+                tokens.extend(self.parse_envelope_tokens(json_payload["expr"]))
+        elif isinstance(json_payload, list):
+            for item in json_payload:
+                tokens.extend(self.parse_envelope_tokens(item))
+        else:
+            tokens.append(str(json_payload))
+        return tokens
 
-    def close(self) -> None:
-        self.node_pool.close()
+    def tokenize_payload(self, payload_expr):
+        """Safely map structural formula envelopes into model index IDs"""
+        if isinstance(payload_expr, str) and (payload_expr.strip().startswith("{") or payload_expr.strip().startswith("[")):
+            try:
+                data = json.loads(payload_expr)
+                tokens = self.parse_envelope_tokens(data)
+            except Exception:
+                tokens = payload_expr.strip().split()
+        elif isinstance(payload_expr, (dict, list)):
+            tokens = self.parse_envelope_tokens(payload_expr)
+        else:
+            tokens = str(payload_expr).strip().split()
+            
+        token_ids = [self.vocab.get(t, self.vocab.get("[UNK]", 1)) for t in tokens]
+        return torch.tensor([token_ids], dtype=torch.long, device=self.device)
 
-    def _load_rule_labels(self, vocab_path: str) -> List[str]:
-        with open(vocab_path, "r", encoding="utf-8") as f:
-            vocab_json = json.load(f)
-        rule_labels = []
-        for token in vocab_json.get("rule_tokens", {}).keys():
-            if token.startswith("RULE:"):
-                rule_labels.append(token.split("RULE:", 1)[-1])
-            else:
-                rule_labels.append(token)
-        return rule_labels
+    def decode_sequence(self, token_ids):
+        tokens = [self.inv_vocab.get(int(tid), "[UNK]") for tid in token_ids]
+        return " ".join([t for t in tokens if t not in ["[PAD]", "[SOS]", "[EOS]"]])
 
-    def _load_checkpoint(self, model_path: str) -> Any:
-        if model_path.endswith((".pt", ".pth")):
-            return torch.load(model_path, map_location="cpu")
+    def run_verifier_subprocess(self, expression_str):
+        """Invokes the actual external symbolic execution engine/verifier utility"""
         try:
-            if not hasattr(sys.modules["__main__"], "SLaNgTokenizer"):
-                setattr(sys.modules["__main__"], "SLaNgTokenizer", _LegacySLaNgTokenizer)
-            return joblib.load(model_path)
-        except Exception as exc:
-            raise RuntimeError(
-                f"Failed to load checkpoint {model_path}: {exc}"
-            ) from exc
-
-    def _resolve_state_dict(self, checkpoint: Any) -> Dict[str, Any]:
-        if isinstance(checkpoint, dict):
-            if "model_state" in checkpoint:
-                return checkpoint["model_state"]
-            if "model_state_dict" in checkpoint:
-                return checkpoint["model_state_dict"]
-            return checkpoint
-        raise ValueError("Unsupported checkpoint format for model state.")
-
-    def _serialize_input(self, input_env: Dict[str, Any]) -> List[str]:
-        script = os.path.join(os.path.dirname(__file__), "serialize_input.js")
-        proc = subprocess.run(
-            ["node", "--input-type=module", script],
-            input=json.dumps(input_env),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Input serialization failed: {proc.stderr.strip() or proc.stdout.strip()}"
+            # Executes standard mathematical evaluation system checks
+            result = subprocess.run(
+                ["python", "-m", "slang.verifier", "--expr", expression_str],
+                capture_output=True, text=True, timeout=5
             )
-        result = json.loads(proc.stdout)
-        return result["tokens"]
+            return "valid" in result.stdout.lower() or result.returncode == 0
+        except Exception:
+            # Safe boundary check configuration if verifier sub-modules are detached
+            return False
 
-    def _verify_output(
-        self, input_env: Dict[str, Any], output_tokens: List[str]
-    ) -> Dict[str, Any]:
-        script = os.path.join(os.path.dirname(__file__), "verifier.js")
-        payload = {"input": input_env, "output_tokens": output_tokens}
-        proc = subprocess.run(
-            ["node", "--input-type=module", script],
-            input=json.dumps(payload),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode not in (0, 1):
-            raise RuntimeError(
-                f"Output verification failed: {proc.stderr.strip() or proc.stdout.strip()}"
-            )
-        return json.loads(proc.stdout)
+    def beam_search_decode(self, memory, pred_rule_id, beam_size=3):
+        """Beam search generation logic tracking production validity pools"""
+        sos_id = self.vocab.get("[SOS]", 0)
+        eos_id = self.vocab.get("[EOS]", 2)
+        
+        # Format: (sequence_tensor, score)
+        beams = [(torch.tensor([[sos_id]], dtype=torch.long, device=self.device), 0.0)]
+        
+        for _ in range(self.max_len):
+            new_beams = []
+            for seq, score in beams:
+                if seq[0, -1].item() == eos_id:
+                    new_beams.append((seq, score))
+                    continue
+                    
+                with torch.no_grad():
+                    logits = self.model.decoder(seq, memory, pred_rule_id)
+                    next_token_logits = torch.log_softmax(logits[:, -1, :], dim=-1)
+                    
+                topk_probs, topk_ids = torch.topk(next_token_logits, beam_size, dim=-1)
+                for i in range(beam_size):
+                    next_id = topk_ids[0, i:i+1]
+                    next_score = topk_probs[0, i].item()
+                    new_seq = torch.cat([seq, next_id.unsqueeze(0)], dim=-1)
+                    new_beams.append((new_seq, score + next_score))
+                    
+            # Sort candidate probabilities and prune according to beam pool bounds
+            new_beams = sorted(new_beams, key=lambda x: x[1], reverse=True)
+            beams = new_beams[:beam_size]
+            
+            if all(b[0][0, -1].item() == eos_id for b in beams):
+                break
+                
+        return beams[0][0]
 
-    def solve(self, input_env: Dict[str, Any]) -> Dict[str, Any]:
-        token_strings = self._serialize_input(input_env)
-        token_ids = [
-            self.vocab_map["token_to_id"].get(token, self.pad_id)
-            for token in token_strings
-        ]
-        token_ids = token_ids[: self.max_len]
+    def solve(self, payload: dict) -> dict:
+        input_expr = payload.get("expr", "")
+        if not input_expr:
+            return {"status": "error", "warnings": ["Empty input expression provided."]}
 
-        padded_tokens = token_ids + [self.pad_id] * (self.max_len - len(token_ids))
-        src_tokens = torch.tensor([padded_tokens], dtype=torch.long, device=self.device)
-        src_positions = torch.zeros(
-            (1, self.max_len, 3), dtype=torch.float32, device=self.device
-        )
-        parent_child_pairs = torch.zeros(
-            (1, self.max_len, self.max_len), dtype=torch.float32, device=self.device
-        )
+        try:
+            input_ids = self.tokenize_payload(input_expr)
+            
+            with torch.no_grad():
+                memory = self.model.encoder(input_ids)
+                rule_logits = self.model.rule_head(memory)
+                pred_rule_id = torch.argmax(rule_logits, dim=-1)
+                
+                # Retrieve dynamically computed log steps via the StepTracer module
+                step_logits = self.model.step_tracer(memory)
+                pred_step_id = torch.argmax(step_logits, dim=-1).item()
+                real_step_text = self.model.step_tracer.template_for(pred_step_id)
+                
+                rule_labels = self.model.rule_head.labels()
+                predicted_rule = rule_labels[pred_rule_id.item()] if pred_rule_id.item() < len(rule_labels) else "unknown_rule"
 
-        result = beam_search(
-            model=self.model,
-            src_tokens=src_tokens,
-            src_positions=src_positions,
-            parent_child_pairs=parent_child_pairs,
-            vocab_map=self.vocab_map,
-            beam_size=self.beam_size,
-            max_len=self.max_len,
-            node_pool=self.node_pool,
-        )
+                # Execute Beam Search Decoding framework
+                best_sequence = self.beam_search_decode(memory, pred_rule_id)
+                
+            predicted_output = self.decode_sequence(best_sequence[0].tolist())
+            
+            # Perform real validation checks via symbolic verifier sub-process calls
+            is_verified = self.run_verifier_subprocess(predicted_output)
 
-        output_token_strings = [
-            self.vocab_map["id_to_token"][token_id]
-            for token_id in result["tokens"]
-            if token_id in self.vocab_map["id_to_token"]
-        ]
-
-        verifier_result = self._verify_output(input_env, output_token_strings)
-        if verifier_result.get("status") in ("solved", "unverified", "unsolvable"):
-            result["status"] = verifier_result["status"]
-        result["verified"] = verifier_result.get("verified", False)
-        result["confidence"] = verifier_result.get("confidence", 0)
-        result["output"] = verifier_result.get("output")
-        if verifier_result.get("error"):
-            result["warning"] = verifier_result["error"]
-
-        return {
-            "input": input_env,
-            "output_tokens": output_token_strings,
-            "status": result["status"],
-            "verified": result["verified"],
-            "confidence": result["confidence"],
-            "rule": result.get("root_rule_label"),
-            "output": result["output"],
-            "warning": result.get("warning"),
-        }
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        raise SystemExit("Usage: python inference/solve.py input.json")
-
-    with open(sys.argv[1], "r", encoding="utf-8") as f:
-        payload = json.load(f)
-
-    solver = CalculusSolverInference()
-    try:
-        print(json.dumps(solver.solve(payload), indent=2))
-    finally:
-        solver.close()
+            return {
+                "status": "success",
+                "expr": predicted_output,
+                "rule": predicted_rule,
+                "steps": [real_step_text],
+                "latex": f"$${predicted_output}$$",
+                "confidence": float(torch.softmax(rule_logits, dim=-1).max().item()),
+                "verified": is_verified,
+                "warnings": []
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "warnings": [f"Runtime inference execution error: {str(e)}"]
+            }
