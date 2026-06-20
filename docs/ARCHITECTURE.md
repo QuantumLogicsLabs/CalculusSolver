@@ -905,8 +905,8 @@ The application passes expressions cleanly across repositories and independent r
 [ FastAPI Server Backend ]
 │  (Wraps expression into structured JSON payload)
 ▼
-[ SLaNg (npm package / tokenizer module) ]
-│  (Parses JSON structure into structural token IDs)
+[ SLaNg (npm package / math engine ) ]
+│  (Performs differentiation, integration, and numerical verification)
 ▼
 [ Core Neural Network Pipeline ] ──► [ External Python Subprocess Verifier ]
 │  (Processes data and matches best candidate token outputs)
