@@ -1,0 +1,5 @@
+[
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"pow\", \"var\": \"x\", \"val\": 1}}", "target": "div pow x 2 2"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"cos\", \"var\": \"x\"}}", "target": "sin x"},
+  {"expr": "{\"op\": \"int\", \"var\": \"x\", \"expr\": {\"op\": \"exp\", \"var\": \"x\"}}", "target": "exp x"}
+]
