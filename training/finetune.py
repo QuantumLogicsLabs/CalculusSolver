@@ -1,6 +1,7 @@
 import argparse
 import sys
 import time
+import json
 from pathlib import Path
 from typing import Any, Dict
 
@@ -72,12 +73,17 @@ def evaluate(model, dataloader, device, criterion, pad_id):
     total_tokens = 0
     total_rule_loss = 0.0
     total_steps = 0
+    
+    correct_rules = 0
+    correct_steps = 0
+    total_samples = 0
+
     with torch.no_grad():
         for batch in dataloader:
             batch = {
                 k: v.to(device) for k, v in batch.items() if isinstance(v, torch.Tensor)
             }
-            logits, rule_logits, _ = model(
+            logits, rule_logits, step_logits = model(
                 src_tokens=batch["src_tokens"],
                 src_positions=batch["src_positions"],
                 parent_child_pairs=None,
@@ -93,11 +99,30 @@ def evaluate(model, dataloader, device, criterion, pad_id):
                 batch["tgt_output_tokens"].view(-1),
             )
             rule_loss = nn.CrossEntropyLoss()(rule_logits, batch["rule_ids"])
+            
             total_loss += token_loss.item() * batch["tgt_output_tokens"].numel()
             total_rule_loss += rule_loss.item() * batch["rule_ids"].size(0)
             total_tokens += batch["tgt_output_tokens"].numel()
             total_steps += batch["rule_ids"].size(0)
-    return total_loss / max(total_tokens, 1), total_rule_loss / max(total_steps, 1)
+
+            # Accuracy logic generation against the ground truth rule targets
+            if rule_logits is not None:
+                rule_preds = torch.argmax(rule_logits, dim=-1)
+                correct_rules += (rule_preds == batch["rule_ids"]).sum().item()
+            
+            if step_logits is not None:
+                step_preds = torch.argmax(step_logits, dim=-1)
+                correct_steps += (step_preds == batch["rule_ids"]).sum().item()
+                
+            total_samples += batch["rule_ids"].size(0)
+
+    avg_token_loss = total_loss / max(total_tokens, 1)
+    avg_rule_loss = total_rule_loss / max(total_steps, 1)
+    
+    rule_accuracy = correct_rules / max(total_samples, 1)
+    step_accuracy = correct_steps / max(total_samples, 1)
+
+    return avg_token_loss, avg_rule_loss, rule_accuracy, step_accuracy
 
 
 def main():
@@ -202,17 +227,18 @@ def main():
                 print(
                     f"[Epoch {epoch}] step={step} loss={loss.item():.4f} "
                     f"token={token_loss.item():.4f} rule={rule_loss.item():.4f} "
-                    f"step={step_loss.item():.4f} time={elapsed:.1f}s"
+                    f"step_loss={step_loss.item():.4f} time={elapsed:.1f}s"
                 )
                 start_time = time.time()
 
-        val_token_loss, val_rule_loss = evaluate(
+        val_token_loss, val_rule_loss, val_rule_acc, val_step_acc = evaluate(
             model, val_loader, device, criterion, train_dataset.pad_id
         )
         val_score = val_token_loss + val_rule_loss
         print(
             f"Validation after epoch {epoch}: token_loss={val_token_loss:.4f} "
-            f"rule_loss={val_rule_loss:.4f} total={val_score:.4f}"
+            f"rule_loss={val_rule_loss:.4f} total={val_score:.4f} "
+            f"rule_acc={val_rule_acc:.4f} step_acc={val_step_acc:.4f}"
         )
 
         if val_score < best_val_loss:
@@ -234,24 +260,22 @@ def main():
             )
             print(f"Saved best finetune checkpoint to {args.checkpoint_dir}")
 
+            # --- METRICS PLACEMENT INSIDE THE BEST CHECKPOINT REGION ---
+            checkpoint_path = Path(args.checkpoint_dir)
+            checkpoint_path.mkdir(parents=True, exist_ok=True)
+            metrics_file = checkpoint_path / "metrics.json"
+            
+            metrics_data = {
+                "val/numerical_equiv": float(val_score),
+                "val/rule_accuracy": float(val_rule_acc),
+                "val/step_accuracy": float(val_step_acc),
+                "training_steps": int(step)
+            }
+            metrics_file.write_text(json.dumps(metrics_data, indent=2))
+            print(f"Metrics written successfully to {metrics_file}")
+
     print("Fine-tuning complete.")
 
 
 if __name__ == "__main__":
     main()
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
-import json, pathlib
-metrics = {
-    'val/numerical_equiv': float(best_num_equiv),
-    'val/rule_accuracy': float(best_rule_acc),
-    'val/step_accuracy': float(best_step_acc),
-    'training_steps': int(global_step)
-}
-<<<<<<< Updated upstream
-(pathlib.Path(output_dir) / 'metrics.json').write_text(json.dumps(metrics, indent=2))
-=======
-(pathlib.Path(output_dir) / 'metrics.json').write_text(json.dumps(metrics, indent=2))
->>>>>>> Stashed changes
