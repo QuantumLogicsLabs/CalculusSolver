@@ -360,4 +360,5 @@ metrics = {
     'train/hard_pool_size': int(hard_pool_size),
     'training_steps': int(global_step)
 }
+pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
 (pathlib.Path(output_dir) / 'metrics.json').write_text(json.dumps(metrics, indent=2))
