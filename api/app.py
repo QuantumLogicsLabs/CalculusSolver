@@ -19,6 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+except ImportError:
+    pass
+
 from api._shared import get_solver, get_solver_status, normalize_solver_result
 from tokenizer.slang_serializer import serialize_slang_math
 
@@ -34,6 +40,8 @@ async def lifespan(app):
 
 # ── Route Handlers ────────────────────────────────────────────────────────────
 
+async def root_handler(request: Request) -> JSONResponse:
+    return JSONResponse({"message": "CalculusSolver API is running. Use POST /api/solve to solve equations."})
 
 async def health_handler(request: Request) -> JSONResponse:
     return JSONResponse(get_solver_status())
@@ -92,6 +100,11 @@ ALLOWED_ORIGINS = os.getenv(
 app = Starlette(
     debug=False,
     routes=[
+        Route("/", root_handler),
+        Route("/api/health", health_handler),
+        Route("/api/solve", solve_handler, methods=["POST"]),
+        Route("/api/validate", validate_handler, methods=["POST"]),
+        # Also support without /api for local fallback if needed
         Route("/health", health_handler),
         Route("/solve", solve_handler, methods=["POST"]),
         Route("/validate", validate_handler, methods=["POST"]),

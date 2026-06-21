@@ -117,39 +117,31 @@ def get_solver():
     if _solver is not None:
         return _solver, _solver_mode
 
-    model_path, stage = _resolve_model_path()
-
-    if model_path:
+    # 1. Try to load GroqSolver (Intelligent model)
+    api_key = os.environ.get("GROQ_API_KEY")
+    if api_key:
         try:
-            from inference.solve import CalculusSolverInference
+            from inference.groq_solver import GroqSolver
 
-            _solver = CalculusSolverInference(
-                model_path=model_path,
-                vocab_path=str(ROOT / "tokenizer" / "vocab.json"),
-                beam_size=5,
-                max_len=256,
-            )
-            _solver_mode = "neural"
+            _solver = GroqSolver()
+            _solver_mode = "groq"
             _solver_error = None
             print(
-                f"[CalculusSolver] Neural model loaded — stage={stage}, path={model_path}",
+                f"[CalculusSolver] Groq model loaded — using {os.environ.get('GROQ_MODEL', 'llama3-70b-8192')}",
                 flush=True,
             )
             return _solver, _solver_mode
         except Exception as exc:
             _solver_error = str(exc)
-            print(f"[CalculusSolver] Neural load failed: {exc}", flush=True)
+            print(f"[CalculusSolver] Groq load failed: {exc}", flush=True)
 
-    # Fall back to deterministic solver (pure Python, no torch)
+    # 2. Fall back to deterministic solver (pure Python, no model)
     from inference.fallback_solver import FallbackSolver
 
     _solver = FallbackSolver()
     _solver_mode = "fallback"
     if not _solver_error:
-        _solver_error = (
-            "No checkpoint found. Tried: "
-            + ", ".join(str(p) for _, p in CHECKPOINT_PRIORITY)
-        )
+        _solver_error = "No GROQ_API_KEY provided. Falling back to deterministic solver."
     print(
         "[CalculusSolver] Running in FALLBACK mode — "
         "supports diff, partial, integrate, gradient, tangent_line.",
@@ -165,7 +157,7 @@ def get_solver_status() -> Dict[str, Any]:
         "status": "ok",
         "solver_mode": mode,
         "solver_loaded": solver is not None,
-        "checkpoint_error": _solver_error if mode != "neural" else None,
+        "checkpoint_error": _solver_error if mode != "groq" else None,
     }
 
 
@@ -248,6 +240,6 @@ def normalize_solver_result(result: dict, mode: str) -> dict:
             "mode": "neural",
         }
     else:
-        # Fallback solver result already has the correct structure
-        return {**result, "mode": "fallback"}
+        # Fallback and Groq solver results already have the correct structure
+        return {**result, "mode": mode}
 
