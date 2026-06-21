@@ -207,9 +207,17 @@ def main():
 
 if __name__ == "__main__":
     main()
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 import json, pathlib
 metrics = {
     'val/reconstruction_loss': float(best_loss),
     'training_steps': int(global_step)
 }
+<<<<<<< Updated upstream
 (pathlib.Path(output_dir) / 'metrics.json').write_text(json.dumps(metrics, indent=2))
+=======
+(pathlib.Path(output_dir) / 'metrics.json').write_text(json.dumps(metrics, indent=2))
+>>>>>>> Stashed changes

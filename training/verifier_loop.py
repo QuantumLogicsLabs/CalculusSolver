@@ -353,3 +353,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+import json, pathlib
+metrics = {
+    'val/numerical_equiv': float(final_num_equiv),
+    'val/rule_accuracy': float(final_rule_acc),
+    'train/hard_pool_size': int(hard_pool_size),
+    'training_steps': int(global_step)
+}
+(pathlib.Path(output_dir) / 'metrics.json').write_text(json.dumps(metrics, indent=2))
