@@ -1,0 +1,7 @@
+{
+  "learning_rate": 0.001,
+  "batch_size": 32,
+  "max_steps": 1500,
+  "embedding_dim": 64,
+  "hidden_dim": 128
+}
