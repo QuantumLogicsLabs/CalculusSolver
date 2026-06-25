@@ -1,23 +1,11 @@
 import sys
+import json
 import torch
-import torch.nn as nn
+from model import CalculusSolverModel  # Shared architecture import
 
-class CalculusSolverModel(nn.Module):
-    def __init__(self, vocab_size=256, embedding_dim=64, hidden_dim=128, num_rules=4):
-        super().__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.TreeEncoder = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
-        self.TreeDecoder = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
-        self.seq_generation_head = nn.Linear(hidden_dim, vocab_size)
-        self.RuleHead = nn.Linear(hidden_dim, num_rules)
-        self.StepTracer = nn.Linear(hidden_dim, 1)
-        
-    def forward(self, src_seq, tgt_in_seq):
-        embedded_src = self.embedding(src_seq)
-        enc_out, (hn, cn) = self.TreeEncoder(embedded_src)
-        embedded_tgt = self.embedding(tgt_in_seq)
-        dec_out, _ = self.TreeDecoder(embedded_tgt, (hn, cn))
-        return self.seq_generation_head(dec_out), self.RuleHead(enc_out[:, -1, :]), self.StepTracer(enc_out[:, -1, :])
+# Load dynamic configs
+with open("config.json", "r") as cfg_file:
+    config = json.load(cfg_file)
 
 def evaluate_cli_input():
     if len(sys.argv) < 2:
@@ -27,14 +15,17 @@ def evaluate_cli_input():
     user_input = sys.argv[1]
     print(f"📥 Real Prompt Parsed: {user_input}")
     
-    encoded_src = [((ord(c) % 253) + 3) for c in user_input]
+    v_size = config["vocab_size"]
+    
+    # Bound dynamic character indexes within configuration safe-limits
+    encoded_src = [((ord(c) % (v_size - 3)) + 3) for c in user_input]
     if len(encoded_src) < 20:
         encoded_src += [0] * (20 - len(encoded_src))
     src_tensor = torch.tensor([encoded_src[:20]], dtype=torch.long)
     dummy_tgt = torch.zeros((1, 20), dtype=torch.long)
     
     rules_inverse = {0: "power rule", 1: "trig derivative", 2: "exponential rule", 3: "logarithmic rule"}
-    model = CalculusSolverModel()
+    model = CalculusSolverModel(vocab_size=v_size)
     
     try:
         model.load_state_dict(torch.load("checkpoints/checkpoint_epoch_1.pt"))
