@@ -1,9 +1,9 @@
 import sys
 import json
 import torch
-from model import CalculusSolverModel  # Shared architecture import
+from model import CalculusSolverModel  # Shared architecture alignment module
 
-# Load dynamic configs
+# Load configurations securely
 with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
 
@@ -17,7 +17,7 @@ def evaluate_cli_input():
     
     v_size = config["vocab_size"]
     
-    # Bound dynamic character indexes within configuration safe-limits
+    # Character indexing tracking bounded within configuration limits
     encoded_src = [((ord(c) % (v_size - 3)) + 3) for c in user_input]
     if len(encoded_src) < 20:
         encoded_src += [0] * (20 - len(encoded_src))
