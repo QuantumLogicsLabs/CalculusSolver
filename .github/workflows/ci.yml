@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run all test suites (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ────────────────────────────────────────────────────
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # ── 3. Install runtime dependencies ───────────────────────────────────
+      - name: Install runtime dependencies
+        run: pip install -r requirements.txt
+
+      # ── 4. Install test dependencies ───────────────────────────────────────
+      # pytest     — test runner
+      # httpx      — required internally by starlette.testclient.TestClient
+      # These are not in requirements.txt (they are dev/test only).
+      - name: Install test dependencies
+        run: pip install pytest httpx
+
+      # ── 5. Unit tests ──────────────────────────────────────────────────────
+      # Tests tokenizer/slang_serializer.py round-trip.
+      # No network, no solver, no env vars needed.
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --tb=short
+        env:
+          GROQ_API_KEY: ""
+
+      # ── 6. Integration tests ───────────────────────────────────────────────
+      # Tests POST /solve against the live Starlette app using TestClient.
+      # GROQ_API_KEY must be empty so FallbackSolver is always selected.
+      - name: Run integration tests
+        run: pytest tests/integration/ -v --tb=short
+        env:
+          GROQ_API_KEY: ""
+
+      # ── 7. Regression tests ────────────────────────────────────────────────
+      # Loads every .json fixture from tests/regression/fixtures/ and
+      # runs solver.solve() against it, comparing to the golden output.
+      # GROQ_API_KEY must be empty so FallbackSolver is always selected.
+      - name: Run regression tests
+        run: pytest tests/regression/ -v --tb=short
+        env:
+          GROQ_API_KEY: ""
+
+      # ── 8. Full suite run (all three together) ─────────────────────────────
+      # Runs all suites in one pytest process to catch any cross-suite
+      # singleton leakage that the per-suite runs would not detect.
+      # conftest.py's autouse fixture handles singleton reset between tests.
+      - name: Run full test suite
+        run: pytest tests/ -v --tb=short
+        env:
+          GROQ_API_KEY: ""

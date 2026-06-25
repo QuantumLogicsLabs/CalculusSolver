@@ -136,18 +136,31 @@ def get_solver():
             _solver_error = str(exc)
             print(f"[CalculusSolver] Groq load failed: {exc}", flush=True)
 
-    # 2. Fall back to deterministic solver (pure Python, no model)
-    from inference.fallback_solver import FallbackSolver
+    # 2. Load B's real solver
+    try:
+        from inference.solve import CalculusSolverInference
+        _solver = CalculusSolverInference()
+        _solver_mode = "inference"
+        _solver_error = None
+        print(
+            "[CalculusSolver] B's solver loaded successfully.",
+            flush=True,
+        )
+    except Exception as exc:
+        _solver_error = str(exc)
+        print(f"[CalculusSolver] B's solver load failed: {exc}", flush=True)
+        # Final fallback — always available
+        from inference.fallback_solver import FallbackSolver
 
-    _solver = FallbackSolver()
-    _solver_mode = "fallback"
-    if not _solver_error:
-        _solver_error = "No GROQ_API_KEY provided. Falling back to deterministic solver."
-    print(
-        "[CalculusSolver] Running in FALLBACK mode — "
-        "supports diff, partial, integrate, gradient, tangent_line.",
-        flush=True,
-    )
+        _solver = FallbackSolver()
+        _solver_mode = "fallback"
+        if not _solver_error:
+            _solver_error = "B's solver failed to load. Using deterministic fallback."
+        print(
+            "[CalculusSolver] Running in FALLBACK mode — "
+            "supports diff, partial, integrate, gradient, tangent_line.",
+            flush=True,
+        )
     return _solver, _solver_mode
 
 
@@ -220,7 +233,7 @@ def fraction_to_latex(expr: dict) -> str:
 
 def normalize_solver_result(result: dict, mode: str) -> dict:
     """Normalize/unwrap solver output into the standard API response format."""
-    if mode == "neural":
+    if mode in ("neural", "inference"):
         output = result.get("output") or {}
         if isinstance(output, dict) and "expr" in output:
             expr = output["expr"]
@@ -235,10 +248,10 @@ def normalize_solver_result(result: dict, mode: str) -> dict:
             "steps": steps,
             "latex": latex,
             "confidence": float(result.get("confidence", 0.0)),
-            "verified": result.get("verified"),
+            "verified": bool(result.get("verified")),
             "warning": result.get("warning"),
             "rule": result.get("rule"),
-            "mode": "neural",
+            "mode": mode,
         }
     else:
         # Fallback and Groq solver results already have the correct structure
