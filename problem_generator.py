@@ -2,60 +2,107 @@ import json
 import random
 from pathlib import Path
 
-def generate_slang_data():
+def generate_slang_dataset():
+    print("⏳ [Dataset Engine] Programmatically synthesizing 100k-row canonical SLaNg dataset...")
+    
+    # Base configuration directories matching schema tracking specifications
     splits_dir = Path("data/splits")
     splits_dir.mkdir(parents=True, exist_ok=True)
     
-    # 🎯 FIX 1 & 2: Generate scalable dataset using structural FRAC envelope layouts matching regression fixtures
-    def create_frac_node(coeff, power):
+    # Rule labels mapped according to classification head specifications
+    # 0: power_rule, 1: trig, 2: exponential, 3: logarithmic, 4: sum_difference
+    
+    dataset = []
+    
+    # 1. Helper function to generate clean canonical FRAC nodes
+    def make_frac(terms):
         return {
-            "numi": {
-                "terms": [
-                    {
-                        "coeff": coeff,
-                        "var": {"name": "x", "pow": power}
-                    }
-                ]
-            },
+            "numi": {"terms": terms},
             "deno": 1
         }
+        
+    # Generate 100,000 highly diverse samples
+    for i in range(100000):
+        # Pick a rule class randomly to maintain perfect target feature distribution
+        rule = random.randint(0, 4)
+        var_name = "x"
+        
+        if rule == 0: # Power Rule
+            coeff = random.randint(1, 20)
+            power = random.randint(2, 8)
+            
+            src_expr = make_frac([{"coeff": coeff, "var": {var_name: power}}])
+            ans_expr = make_frac([{"coeff": coeff * power, "var": {var_name: power - 1}}])
+            rule_id = 0
+            
+        elif rule == 1: # Trig Derivatives (sin/cos representation within strict keys)
+            # Modeling sin(x) -> cos(x) inside a standardized term wrapper
+            src_expr = make_frac([{"coeff": 1, "var": {"sin_x": 1}}])
+            ans_expr = make_frac([{"coeff": 1, "var": {"cos_x": 1}}])
+            rule_id = 1
+            
+        elif rule == 2: # Exponential Rule (e^x derivatives representation)
+            coeff = random.randint(1, 5)
+            src_expr = make_frac([{"coeff": coeff, "var": {"e_x": 1}}])
+            ans_expr = make_frac([{"coeff": coeff, "var": {"e_x": 1}}])
+            rule_id = 2
+            
+        elif rule == 3: # Logarithmic Rule (ln(x) mapped tracking)
+            src_expr = make_frac([{"coeff": 1, "var": {"ln_x": 1}}])
+            ans_expr = make_frac([{"coeff": 1, "var": {"x": -1}}]) # 1/x representation
+            rule_id = 3
+            
+        else: # Sum/Difference of Terms
+            c1, c2 = random.randint(1, 15), random.randint(1, 15)
+            p1, p2 = random.randint(2, 5), random.randint(2, 5)
+            
+            src_expr = make_frac([
+                {"coeff": c1, "var": {var_name: p1}},
+                {"coeff": -c2, "var": {var_name: p2}}
+            ])
+            ans_expr = make_frac([
+                {"coeff": c1 * p1, "var": {var_name: p1 - 1}},
+                {"coeff": -c2 * p2, "var": {var_name: p2 - 1}}
+            ])
+            rule_id = 4
 
-    dataset = []
-    # Generation loop to build a diverse mathematical structure dataset instead of hardcoded rows
-    for i in range(2500):
-        # Sample 1: Power Rule Patterns
-        c1 = random.randint(1, 10)
-        p1 = random.randint(2, 6)
+        # Wrap problem into a fully qualified valid OP node envelope
+        src_op_node = {
+            "op": "diff",
+            "var": var_name,
+            "expr": src_expr
+        }
+        
+        # 🎯 FIX: Set verification_state = 1 explicitly for true data patterns ONLY. 
+        # No intentionally corrupted targets injected into teacher forcing token matrices.
         dataset.append({
-            "src_tokens": {"op": "diff", "var": "x", "expr": create_frac_node(c1, p1)},
-            "tgt_input_tokens": {"op": "ans", "expr": create_frac_node(c1 * p1, p1 - 1)},
-            "tgt_output_tokens": {"op": "ans", "expr": create_frac_node(c1 * p1, p1 - 1)},
-            "rule_ids": 0,
+            "src_tokens": src_op_node,
+            "tgt_input_tokens": ans_expr,
+            "tgt_output_tokens": ans_expr,
+            "rule_ids": rule_id,
             "verification_state": 1
         })
-        
-        # Sample 2: Deliberately incorrect patterns for sequence training head masking check
-        dataset.append({
-            "src_tokens": {"op": "diff", "var": "x", "expr": create_frac_node(c1, p1)},
-            "tgt_input_tokens": {"op": "ans", "expr": create_frac_node(c1, p1)}, # Wrong output tracking
-            "tgt_output_tokens": {"op": "ans", "expr": create_frac_node(c1, p1)},
-            "rule_ids": 0,
-            "verification_state": 0
-        })
 
-    # Distribute the generated samples cleanly into splits
-    splits = {
-        "train": dataset[:3000],
-        "val": dataset[3000:4000],
-        "test": dataset[4000:]
-    }
+    # Shuffle to eliminate sequence bias before splitting
+    random.shuffle(dataset)
     
-    for split_name, split_data in splits.items():
-        with open(splits_dir / f"{split_name}.jsonl", "w", encoding="utf-8") as f:
+    # Split distributions: 90% Train, 5% Val, 5% Test
+    train_split = dataset[:90000]
+    val_split = dataset[90000:95000]
+    test_split = dataset[95000:]
+    
+    # Save combined master baseline log
+    with open("data/slang_dataset.jsonl", "w", encoding="utf-8") as f:
+        for item in dataset:
+            f.write(json.dumps(item) + "\n")
+            
+    # Save partitioned splits tracking blocks
+    for name, split_data in [("train", train_split), ("val", val_split), ("test", test_split)]:
+        with open(splits_dir / f"{name}.jsonl", "w", encoding="utf-8") as f:
             for item in split_data:
                 f.write(json.dumps(item) + "\n")
                 
-    print(f"🎯 [Dataset Engine] Generated {len(dataset)} structural FRAC validation row items.")
+    print(f"✨ [Dataset Engine] Successfully completed! 100,000 structural canonical rows generated.")
 
 if __name__ == "__main__":
     generate_slang_data()
