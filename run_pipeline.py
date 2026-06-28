@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import glob
 from model.checkpoint_utils import create_dummy_checkpoint, validate_checkpoint
@@ -25,8 +26,7 @@ def load_benchmark_data(benchmark_dir="eval/benchmarks"):
                 
     return inputs, ground_truths
 
-def run_end_to_end_pipeline():
-    checkpoint_path = "checkpoints/dummy_model.pt"
+def run_end_to_end_pipeline(checkpoint_path):
     is_dummy = "dummy" in checkpoint_path
     
     if is_dummy:
@@ -51,9 +51,9 @@ def run_end_to_end_pipeline():
     predictions = []
     
     for x in inputs:
-        output = standalone_inference(checkpoint_path, x, strategy="beam")
+        output = standalone_inference(checkpoint_path, {"expr": x}, strategy="beam")
         if isinstance(output, dict):
-            predictions.append(output.get("prediction", ""))
+            predictions.append(output.get("expr", ""))
         else:
             predictions.append(output)
             
@@ -64,4 +64,5 @@ def run_end_to_end_pipeline():
     print(f"Errors: {error_report}")
 
 if __name__ == "__main__":
-    run_end_to_end_pipeline()
+    target_path = sys.argv[1] if len(sys.argv) > 1 else "checkpoints/dummy_model.pt"
+    run_end_to_end_pipeline(target_path)
