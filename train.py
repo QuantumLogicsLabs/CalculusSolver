@@ -6,13 +6,13 @@ from pathlib import Path
 from solver_model import CalculusSolverModel
 from tokenizer.slang_serializer import serialize_slang_math
 
-with open("config.json", "r") as cfg_file:
-    config = json.load(cfg_file)
-
-# 🎯 FIX 3: Dynamic vocab alignment from central vocab.json
+# 🎯 FIX: Read configurations and real vocabulary scale sizes directly
 with open("vocab.json", "r", encoding="utf-8") as f:
     vocab_mapping = json.load(f)
 REAL_VOCAB_SIZE = len(vocab_mapping)
+
+with open("config.json", "r") as cfg_file:
+    config = json.load(cfg_file)
 
 class SlangTrainingDataset(Dataset):
     def __init__(self, file_path):
@@ -25,14 +25,13 @@ class SlangTrainingDataset(Dataset):
         return len(self.data)
         
     def _tokenize_envelope_to_ids(self, envelope_dict, max_len=20):
-        # 🎯 FIX 1 & 2: Call serialize_slang_math on envelope dict to get real tokens (e.g. NODE:FRAC)
+        # Safely invoke serialize_slang_math on canonical fraction dict structures
         token_strings = serialize_slang_math(envelope_dict)
         if isinstance(token_strings, str):
             token_list = token_strings.split()
         else:
             token_list = token_strings
             
-        # Map tokens to real vocab IDs safely falling back to <unk>
         encoded = [vocab_mapping.get(t, vocab_mapping.get("<unk>", 3)) for t in token_list]
         
         if len(encoded) < max_len:
@@ -50,12 +49,9 @@ class SlangTrainingDataset(Dataset):
         }
 
 def main():
-    print(f"--- 🏋️ Running Tokenizer-Aligned Pipeline (Vocab Size: {REAL_VOCAB_SIZE}) ---")
+    print(f"--- 🏋️ Running Production Slang Architecture System (Vocab: {REAL_VOCAB_SIZE}) ---")
     
-    # Run data generator before building loader to guarantee fresh schema paths
-    import problem_generator
-    problem_generator.generate_slang_data()
-    
+    # 🎯 FIX: Removed automatic problem_generator execution script step to decouple operations
     train_loader = DataLoader(
         SlangTrainingDataset("data/splits/train.jsonl"), 
         batch_size=config["batch_size"], 
@@ -98,7 +94,7 @@ def main():
             
     Path("checkpoints").mkdir(exist_ok=True)
     torch.save(model.state_dict(), "checkpoints/checkpoint_epoch_1.pt")
-    print("✨ SLaNg Checkpoint successfully saved.")
+    print("✨ Checkpoint successfully synced.")
 
 if __name__ == "__main__":
     main()
