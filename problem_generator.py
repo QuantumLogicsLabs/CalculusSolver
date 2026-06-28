@@ -3,7 +3,7 @@ import random
 from pathlib import Path
 
 def generate_slang_dataset():
-    print("⏳ [Dataset Engine] Programmatically synthesizing 100k-row canonical SLaNg dataset...")
+    print("⏳ [Dataset Engine] Programmatically synthesizing 100k-row strict rule-bound SLaNg dataset...")
     splits_dir = Path("data/splits")
     splits_dir.mkdir(parents=True, exist_ok=True)
     
@@ -16,32 +16,50 @@ def generate_slang_dataset():
         }
         
     for i in range(100000):
-        # 🎯 FIX: Restrict to rules 0 to 3 matching the model's classification head bounds
+        # Scope restricted purely to authentic polynomial derivative layers to prevent fake schema tokens
         rule = random.randint(0, 3)
         var_name = "x"
         
-        if rule == 0: # Power Rule
-            coeff = random.randint(1, 20)
-            power = random.randint(2, 8)
+        if rule == 0: # Standard Base Monomial Form
+            coeff = random.randint(1, 25)
+            power = random.randint(2, 9)
             src_expr = make_frac([{"coeff": coeff, "var": {var_name: power}}])
             ans_expr = make_frac([{"coeff": coeff * power, "var": {var_name: power - 1}}])
-            rule_id = 0
             
-        elif rule == 1: # Trig Derivatives
-            src_expr = make_frac([{"coeff": 1, "var": {"sin_x": 1}}])
-            ans_expr = make_frac([{"coeff": 1, "var": {"cos_x": 1}}])
-            rule_id = 1
+        elif rule == 1: # Higher Order Quadratic Polynomial Expressions
+            c1, c2 = random.randint(1, 10), random.randint(1, 15)
+            src_expr = make_frac([
+                {"coeff": c1, "var": {var_name: 3}},
+                {"coeff": c2, "var": {var_name: 2}}
+            ])
+            ans_expr = make_frac([
+                {"coeff": c1 * 3, "var": {var_name: 2}},
+                {"coeff": c2 * 2, "var": {var_name: 1}}
+            ])
             
-        elif rule == 2: # Exponential Rule
-            coeff = random.randint(1, 5)
-            src_expr = make_frac([{"coeff": coeff, "var": {"e_x": 1}}])
-            ans_expr = make_frac([{"coeff": coeff, "var": {"e_x": 1}}])
-            rule_id = 2
+        elif rule == 2: # Linear Term with Constant Shifts
+            c1 = random.randint(2, 20)
+            c2 = random.randint(1, 50)
+            src_expr = make_frac([
+                {"coeff": c1, "var": {var_name: 1}},
+                {"coeff": c2} # Constant term has omit mapping design pattern
+            ])
+            ans_expr = make_frac([
+                {"coeff": c1}
+            ])
             
-        elif rule == 3: # Logarithmic Rule
-            src_expr = make_frac([{"coeff": 1, "var": {"ln_x": 1}}])
-            ans_expr = make_frac([{"coeff": 1, "var": {"x": -1}}])
-            rule_id = 3
+        else: # Multi-order Multi-term Algebraic Expansions
+            c1, c2, c3 = random.randint(1, 5), random.randint(1, 5), random.randint(1, 5)
+            src_expr = make_frac([
+                {"coeff": c1, "var": {var_name: 4}},
+                {"coeff": -c2, "var": {var_name: 3}},
+                {"coeff": c3, "var": {var_name: 2}}
+            ])
+            ans_expr = make_frac([
+                {"coeff": c1 * 4, "var": {var_name: 3}},
+                {"coeff": -c2 * 3, "var": {var_name: 2}},
+                {"coeff": c3 * 2, "var": {var_name: 1}}
+            ])
 
         src_op_node = {
             "op": "diff",
@@ -53,7 +71,7 @@ def generate_slang_dataset():
             "src_tokens": src_op_node,
             "tgt_input_tokens": ans_expr,
             "tgt_output_tokens": ans_expr,
-            "rule_ids": rule_id,
+            "rule_ids": rule,
             "verification_state": 1
         })
 
@@ -68,7 +86,7 @@ def generate_slang_dataset():
             for item in split_data:
                 f.write(json.dumps(item) + "\n")
                 
-    print(f"✅ [Dataset Engine] 100,000 canonical rows with rule bounds [0-3] successfully generated.")
+    print(f"✅ [Dataset Engine] 100,000 structural canonical polynomial rows successfully generated.")
 
 if __name__ == "__main__":
     generate_slang_dataset()

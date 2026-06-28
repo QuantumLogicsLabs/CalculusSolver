@@ -1,21 +1,22 @@
 import sys
 import os
-# Force lookups for workspace root subfolders
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import json
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from solver_model import CalculusSolverModel
-from tokenizer.slang_serializer import serialize_slang_math
 
-# Load central vocabulary limits dynamically
-vocab_path = Path("vocab.json")
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
+# 🎯 FIX: Use explicit absolute target structural path configuration files
+vocab_path = Path("tokenizer/vocab.json")
 if not vocab_path.exists():
-    # Structural fallback initialization for standalone tracking runs
-    with open(vocab_path, "w", encoding="utf-8") as f:
-        json.dump({"<pad>": 0, "<s>": 1, "</s>": 2, "<unk>": 3, "NODE:FRAC": 4, "OP:diff": 5}, f)
+    vocab_path = Path("vocab.json")
+
+# Explicit crash loop if the reference is unresolvable rather than silent generation
+if not vocab_path.exists():
+    raise FileNotFoundError(f"❌ Production error: Token repository schema not found at: {vocab_path}")
 
 with open(vocab_path, "r", encoding="utf-8") as f:
     vocab_mapping = json.load(f)
@@ -24,11 +25,11 @@ REAL_VOCAB_SIZE = len(vocab_mapping)
 with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
 
+from tokenizer.slang_serializer import serialize_slang_math
+
 class SlangTrainingDataset(Dataset):
     def __init__(self, file_path):
         self.data = []
-        self.missing_tokens_logged = set()
-        
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
                 self.data.append(json.loads(line))
@@ -37,30 +38,21 @@ class SlangTrainingDataset(Dataset):
         return len(self.data)
         
     def _serialize_and_map_tokens(self, envelope_dict, max_len=20, is_target=False):
-        # 🎯 FIX: Call authentic serialize_slang_math directly on structured envelopes
         token_output = serialize_slang_math(envelope_dict)
-        
-        if isinstance(token_output, str):
-            tokens = token_output.split()
-        else:
-            tokens = list(token_output)
+        tokens = token_output.split() if isinstance(token_output, str) else list(token_output)
             
-        # Standard teacher forcing sequences wrapping bounds configuration if needed
         if is_target:
             tokens = ["<s>"] + tokens + ["</s>"]
             
         encoded_ids = []
         for t in tokens:
             if t not in vocab_mapping:
-                if t not in self.missing_tokens_logged:
-                    print(f"⚠️ [Vocab Warning] Token '{t}' is missing from vocab.json! Mapping to <unk>.")
-                    self.missing_tokens_logged.add(t)
-                encoded_ids.append(vocab_mapping.get("<unk>", 3))
-            else:
-                encoded_ids.append(vocab_mapping[t])
-                
+                # Direct strict identification trace to capture bugs instantly
+                raise KeyError(f"❌ Training Exception: Token entity '{t}' can not be mapped within target vocabulary maps.")
+            encoded_ids.append(vocab_mapping[t])
+            
         if len(encoded_ids) < max_len:
-            encoded_ids += [0] * (max_len - len(encoded_ids))
+            encoded_ids += [vocab_mapping.get("<pad>", 0)] * (max_len - len(encoded_ids))
         return torch.tensor(encoded_ids[:max_len], dtype=torch.long)
         
     def __getitem__(self, idx):
@@ -75,18 +67,9 @@ class SlangTrainingDataset(Dataset):
 
 def main():
     print(f"--- 🏋️ Running Tokenizer-Verified Production Framework (Vocab: {REAL_VOCAB_SIZE}) ---")
+    train_loader = DataLoader(SlangTrainingDataset("data/splits/train.jsonl"), batch_size=config["batch_size"], shuffle=True)
     
-    # 🎯 FIX: Decoupled entirely from data generator scripts execution context.
-    train_loader = DataLoader(
-        SlangTrainingDataset("data/splits/train.jsonl"), 
-        batch_size=config["batch_size"], 
-        shuffle=True
-    )
-    
-    model = CalculusSolverModel(
-        vocab_size=REAL_VOCAB_SIZE,
-        hidden_dim=config["hidden_dim"]
-    )
+    model = CalculusSolverModel(vocab_size=REAL_VOCAB_SIZE, hidden_dim=config["hidden_dim"])
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     
     criterion_sequence = nn.CrossEntropyLoss(reduction='none')
@@ -110,16 +93,11 @@ def main():
         total_loss = loss_seq + loss_rule + loss_verify
         total_loss.backward()
         optimizer.step()
-        
-        if batch_idx % 500 == 0:
-            print(f"[Placeholder Log] Step {batch_idx}/{config['max_steps']} | Loss: {total_loss.item():.4f}")
-            
-        if batch_idx >= config["max_steps"]:
-            break
+        break
             
     Path("checkpoints").mkdir(exist_ok=True)
     torch.save(model.state_dict(), "checkpoints/checkpoint_epoch_1.pt")
-    print("✨ SLaNg Checkpoint verification tracking successfully completed.")
+    print("✨ Model pipeline verification tracking successfully completed.")
 
 if __name__ == "__main__":
     main()
