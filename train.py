@@ -8,17 +8,42 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
-    vocab_mapping = json.load(f)
-REAL_VOCAB_SIZE = len(vocab_mapping)
+from tokenizer.slang_serializer import serialize_slang_math
+from model.architecture import CalculusModel
 
 with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
 
-from tokenizer.slang_serializer import serialize_slang_math
-from solver_model import CalculusSolverModel
 
-NUM_RULES = config.get("num_rules", 15)
+def flatten_vocab(raw_vocab):
+    """
+    Same flattening rule as inference/beam_search.flatten_vocab on org main:
+    merge every sub-dict, skip keys starting with '_' (e.g. _comment, _version).
+    Keeping this identical to beam_search's version on purpose, so training-time
+    token IDs and inference-time token IDs can never drift apart again.
+    """
+    flat = {}
+    for key, value in raw_vocab.items():
+        if key.startswith("_"):
+            continue
+        if isinstance(value, dict):
+            flat.update(value)
+    return flat
+
+
+with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
+    _raw_vocab = json.load(f)
+
+vocab_mapping = flatten_vocab(_raw_vocab)
+
+# IDs are NOT contiguous (gaps by design — see docs/KNOWN_ISSUES.md, STRUCT:OPEN @ 23).
+# len(vocab_mapping) undercounts; embedding table must cover the highest real ID.
+REAL_VOCAB_SIZE = max(vocab_mapping.values()) + 1
+
+# Rule labels for RuleHead, derived from vocab's rule_tokens, ordered by ID.
+_rule_items = sorted(_raw_vocab.get("rule_tokens", {}).items(), key=lambda kv: kv[1])
+RULE_LABELS = [name.split("RULE:", 1)[1] for name, _ in _rule_items]
+
 MAX_LEN = config.get("max_len", 32)
 
 
@@ -34,11 +59,10 @@ class SlangDatasetLoader(Dataset):
         return len(self.data)
 
     def _tokenize(self, envelope, add_boundaries=False):
-        tokens, parent_ids, child_ids = serialize_slang_math(envelope)
+        # serialize_slang_math returns a single List[str] — no parent/child tuple.
+        tokens = serialize_slang_math(envelope)
         if add_boundaries:
-            tokens = ["<s>"] + tokens + ["</s>"]
-            parent_ids = [-1] + parent_ids + [-1]
-            child_ids = [-1] + child_ids + [-1]
+            tokens = ["[BOS]"] + tokens + ["[EOS]"]
 
         ids = []
         for t in tokens:
@@ -47,28 +71,20 @@ class SlangDatasetLoader(Dataset):
             else:
                 raise KeyError(f"CRITICAL: Token '{t}' missing from vocab.json!")
 
-        pad_idx = vocab_mapping["<pad>"]
+        pad_idx = vocab_mapping["[PAD]"]
         pad_len = self.max_len - len(ids)
         if pad_len > 0:
             ids += [pad_idx] * pad_len
-            parent_ids += [-1] * pad_len
-            child_ids += [-1] * pad_len
 
-        return (
-            torch.tensor(ids[: self.max_len], dtype=torch.long),
-            torch.tensor(parent_ids[: self.max_len], dtype=torch.long),
-            torch.tensor(child_ids[: self.max_len], dtype=torch.long),
-        )
+        return torch.tensor(ids[: self.max_len], dtype=torch.long)
 
     def __getitem__(self, idx):
         item = self.data[idx]
-        src_ids, src_parents, src_children = self._tokenize(item["src_tokens"], add_boundaries=False)
-        tgt_in_ids, _, _ = self._tokenize(item["tgt_input_tokens"], add_boundaries=True)
-        tgt_out_ids, _, _ = self._tokenize(item["tgt_output_tokens"], add_boundaries=True)
+        src_ids = self._tokenize(item["src_tokens"], add_boundaries=False)
+        tgt_in_ids = self._tokenize(item["tgt_input_tokens"], add_boundaries=True)
+        tgt_out_ids = self._tokenize(item["tgt_output_tokens"], add_boundaries=True)
         return {
             "src_seq": src_ids,
-            "src_parent_ids": src_parents,
-            "src_child_ids": src_children,
             "tgt_in_seq": tgt_in_ids,
             "tgt_out_seq": tgt_out_ids,
             "rule_id": torch.tensor(item["rule_ids"], dtype=torch.long),
@@ -77,7 +93,7 @@ class SlangDatasetLoader(Dataset):
 
 
 def run_training_pipeline():
-    print(f"--- Training (vocab size: {REAL_VOCAB_SIZE}) ---")
+    print(f"--- Training (vocab size: {REAL_VOCAB_SIZE}, {len(RULE_LABELS)} rules) ---")
 
     train_file = Path("data/splits/train.jsonl")
     if not train_file.exists():
@@ -86,7 +102,11 @@ def run_training_pipeline():
 
     train_loader = DataLoader(SlangDatasetLoader(train_file), batch_size=config["batch_size"], shuffle=True)
 
-    model = CalculusSolverModel(vocab_size=REAL_VOCAB_SIZE, num_rules=NUM_RULES, hidden_dim=config["hidden_dim"])
+    model = CalculusModel(
+        vocab_size=REAL_VOCAB_SIZE,
+        rule_labels=RULE_LABELS,
+        hidden_dim=config["hidden_dim"],
+    )
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
 
     criterion_sequence = nn.CrossEntropyLoss(reduction='none')
@@ -97,16 +117,30 @@ def run_training_pipeline():
     for batch in train_loader:
         optimizer.zero_grad()
 
-        token_logits, rule_logits, verifier_logits = model(
-            input_ids=batch["src_seq"],
-            tgt_ids=batch["tgt_in_seq"],
-            parent_ids=batch["src_parent_ids"],
-            child_ids=batch["src_child_ids"],
-            gold_rule_labels=batch["rule_id"],
+        batch_size, seq_len = batch["src_seq"].shape
+
+        # NOTE: parent_child_pairs and src_positions are real tree-derived features
+        # that nothing in the codebase computes yet (the serializer returns a flat
+        # token list only — no tree/position info). TreeEncoder.forward already
+        # treats parent_child_pairs=None as "no bias" and substitutes zeros itself,
+        # so we pass None rather than building our own placeholder tensor.
+        # src_positions has no such None-default, so it's an explicit zero tensor
+        # for now — this is a known gap, not a fix, and should be replaced once
+        # someone builds real tree-position extraction on top of the serializer.
+        src_positions = torch.zeros(batch_size, seq_len, 3)
+
+        decoder_logits, rule_logits, verifier_logits = model(
+            src_tokens=batch["src_seq"],
+            src_positions=src_positions,
+            parent_child_pairs=None,
+            tgt_tokens=batch["tgt_in_seq"],
+            rule_ids=batch["rule_id"],
         )
 
-        raw_loss_seq = criterion_sequence(token_logits.view(-1, REAL_VOCAB_SIZE), batch["tgt_out_seq"].view(-1))
-        raw_loss_seq = raw_loss_seq.view(batch["src_seq"].size(0), -1).mean(dim=-1)
+        raw_loss_seq = criterion_sequence(
+            decoder_logits.reshape(-1, REAL_VOCAB_SIZE), batch["tgt_out_seq"].reshape(-1)
+        )
+        raw_loss_seq = raw_loss_seq.view(batch_size, -1).mean(dim=-1)
 
         mask = (batch["v_state"] == 1.0).float()
         loss_seq = (raw_loss_seq * mask).sum() / (mask.sum() + 1e-8)
