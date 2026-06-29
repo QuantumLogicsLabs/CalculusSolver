@@ -25,8 +25,5 @@
   "STRUCT:OPEN": 23,
   "STRUCT:CLOSE": 24,
   "OP:DIFF": 25,
-  "OP:INT": 26,
-  "OP:LOG": 27,
-  "OP:EXP": 28,
-  "VAR:z": 29
+  "OP:INT": 26
 }

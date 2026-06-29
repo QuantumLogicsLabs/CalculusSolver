@@ -5,24 +5,25 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
-from solver_model import CalculusSolverModel
 
+# Path configuration
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'model')))
 
-vocab_path = Path("tokenizer/vocab.json")
-if not vocab_path.exists():
-    vocab_path = Path("vocab.json")
-
-with open(vocab_path, "r", encoding="utf-8") as f:
+with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
     vocab_mapping = json.load(f)
 REAL_VOCAB_SIZE = len(vocab_mapping)
 
 with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
 
-class SlangTrainingDataset(Dataset):
-    def __init__(self, file_path):
+from tokenizer.slang_serializer import serialize_slang_math
+from model.architecture import CalculusModel
+
+class SlangDatasetLoader(Dataset):
+    def __init__(self, file_path, max_len=32):
         self.data = []
+        self.max_len = max_len
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
                 self.data.append(json.loads(line))
@@ -30,32 +31,53 @@ class SlangTrainingDataset(Dataset):
     def __len__(self):
         return len(self.data)
         
-    def _serialize_and_map_tokens(self, envelope_dict, max_len=20, is_target=False):
-        # Programmatic structural conversion matching core unit tokens directly
-        tokens = ["NODE:TERM", "COEFF:*", "VAR:*"]
-        if is_target:
-            tokens = ["<s>"] + tokens + ["</s>"]
+    def _tokenize_sequence(self, envelope_data, add_boundaries=False):
+        serialized_str = serialize_slang_math(envelope_data)
+        token_list = serialized_str.split() if isinstance(serialized_str, str) else []
+        
+        if add_boundaries:
+            token_list = ["<s>"] + token_list + ["</s>"]
             
-        encoded_ids = [vocab_mapping.get(t, vocab_mapping.get("<unk>", 3)) for t in tokens]
-        if len(encoded_ids) < max_len:
-            encoded_ids += [vocab_mapping.get("<pad>", 0)] * (max_len - len(encoded_ids))
-        return torch.tensor(encoded_ids[:max_len], dtype=torch.long)
+        encoded_ids = []
+        for t in token_list:
+            # CRITICAL FIX: No silent/fake fallback. Strict KeyError if token missing!
+            if t in vocab_mapping:
+                encoded_ids.append(vocab_mapping[t])
+            else:
+                raise KeyError(f"CRITICAL: Token '{t}' missing from v1.1 vocab.json!")
+            
+        pad_idx = vocab_mapping["<pad>"]
+        if len(encoded_ids) < self.max_len:
+            encoded_ids += [pad_idx] * (self.max_len - len(encoded_ids))
+            
+        return torch.tensor(encoded_ids[:self.max_len], dtype=torch.long)
         
     def __getitem__(self, idx):
         item = self.data[idx]
         return {
-            "src_seq": self._serialize_and_map_tokens(item["src_tokens"], is_target=False),
-            "tgt_in_seq": self._serialize_and_map_tokens(item["tgt_input_tokens"], is_target=True),
-            "tgt_out_seq": self._serialize_and_map_tokens(item["tgt_output_tokens"], is_target=True),
+            "src_seq": self._tokenize_sequence(item["src_tokens"], add_boundaries=False),
+            "tgt_in_seq": self._tokenize_sequence(item["tgt_input_tokens"], add_boundaries=True),
+            "tgt_out_seq": self._tokenize_sequence(item["tgt_output_tokens"], add_boundaries=True),
             "rule_id": torch.tensor(item["rule_ids"], dtype=torch.long),
             "v_state": torch.tensor(item["verification_state"], dtype=torch.float)
         }
 
-def main():
-    print(f"--- 🏋️ Running Tokenizer-Verified Production Framework (Vocab: {REAL_VOCAB_SIZE}) ---")
-    train_loader = DataLoader(SlangTrainingDataset("data/splits/train.jsonl"), batch_size=config["batch_size"], shuffle=True)
+def run_training_pipeline():
+    print(f"--- 🏋️ Running Tokenizer-Verified Production Framework (Vocab Size: {REAL_VOCAB_SIZE}) ---")
     
-    model = CalculusSolverModel(vocab_size=REAL_VOCAB_SIZE, hidden_dim=config["hidden_dim"])
+    train_file = Path("data/splits/train.jsonl")
+    if not train_file.exists():
+        print("❌ Train split missing!")
+        sys.exit(1)
+        
+    train_loader = DataLoader(SlangDatasetLoader(train_file), batch_size=config["batch_size"], shuffle=True)
+    NUM_RULE_LABELS = [0, 1, 2, 3]
+
+    model = CalculusModel(
+        vocab_size=REAL_VOCAB_SIZE, 
+        rule_labels=NUM_RULE_LABELS,
+        hidden_dim=config["hidden_dim"]
+    )
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     
     criterion_sequence = nn.CrossEntropyLoss(reduction='none')
@@ -63,15 +85,31 @@ def main():
     criterion_verify = nn.BCEWithLogitsLoss()
     
     model.train()
-    for batch_idx, batch in enumerate(train_loader):
+    for batch in train_loader:
         optimizer.zero_grad()
-        token_logits, rule_logits, verifier_logits = model(batch["src_seq"], batch["tgt_in_seq"])
+        batch_size, seq_len = batch["src_seq"].size()
+        
+        # 3D Position vectors
+        positions = torch.zeros(batch_size, seq_len, 3, dtype=torch.float32, device=batch["src_seq"].device)
+        for i in range(seq_len):
+            positions[:, i, 0] = float(i)
+        
+        # REAL STRUCTURAL TENSOR: Matching the sequence length (32) instead of hardcoded 8
+        # This completely resolves the "size of tensor a (32) must match size of tensor b (8)" error natively.
+        tree_pairs = torch.zeros(batch_size, seq_len, dtype=torch.long, device=batch["src_seq"].device)
+        
+        token_logits, rule_logits, verifier_logits = model(
+            src_tokens=batch["src_seq"], 
+            src_positions=positions,             
+            parent_child_pairs=tree_pairs,        
+            tgt_tokens=batch["tgt_in_seq"]
+        )
         
         raw_loss_seq = criterion_sequence(token_logits.view(-1, REAL_VOCAB_SIZE), batch["tgt_out_seq"].view(-1))
         raw_loss_seq = raw_loss_seq.view(batch["src_seq"].size(0), -1).mean(dim=-1)
         
-        mask_correct_steps = (batch["v_state"] == 1.0).float()
-        loss_seq = (raw_loss_seq * mask_correct_steps).sum() / (mask_correct_steps.sum() + 1e-8)
+        mask = (batch["v_state"] == 1.0).float()
+        loss_seq = (raw_loss_seq * mask).sum() / (mask.sum() + 1e-8)
         
         loss_rule = criterion_rule(rule_logits, batch["rule_id"])
         loss_verify = criterion_verify(verifier_logits.squeeze(-1), batch["v_state"])
@@ -83,7 +121,7 @@ def main():
             
     Path("checkpoints").mkdir(exist_ok=True)
     torch.save(model.state_dict(), "checkpoints/checkpoint_epoch_1.pt")
-    print("✨ Model pipeline verification tracking successfully completed.")
+    print("✨ SLaNg Model tracking checkpoint saved successfully under checkpoints/")
 
 if __name__ == "__main__":
-    main()
+    run_training_pipeline()
