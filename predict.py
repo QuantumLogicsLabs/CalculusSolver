@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
-from model.architecture import CalculusModel
+from solver_model import CalculusSolverModel
 from tokenizer.slang_serializer import serialize_slang_math
 
 
@@ -77,15 +77,14 @@ def evaluate_cli_input():
         return
 
     src_tensor = torch.tensor([src_ids], dtype=torch.long)
-    src_positions = torch.zeros(1, MAX_LEN, 3)
 
     bos_id = vocab_mapping["[BOS]"]
     tgt_tensor = torch.full((1, MAX_LEN), vocab_mapping["[PAD]"], dtype=torch.long)
     tgt_tensor[0, 0] = bos_id
 
-    model = CalculusModel(
+    model = CalculusSolverModel(
         vocab_size=REAL_VOCAB_SIZE,
-        rule_labels=RULE_LABELS,
+        num_rules=len(RULE_LABELS),
         hidden_dim=config["hidden_dim"],
     )
 
@@ -96,10 +95,8 @@ def evaluate_cli_input():
 
     with torch.no_grad():
         decoder_logits, rule_logits, verifier_logits = model(
-            src_tokens=src_tensor,
-            src_positions=src_positions,
-            parent_child_pairs=None,
-            tgt_tokens=tgt_tensor,
+            src_tensor,
+            tgt_tensor,
         )
         pred_rule_idx = torch.argmax(rule_logits, dim=-1).item()
         pred_rule_name = RULE_LABELS[pred_rule_idx] if pred_rule_idx < len(RULE_LABELS) else str(pred_rule_idx)

@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from tokenizer.slang_serializer import serialize_slang_math
-from model.architecture import CalculusModel
+from solver_model import CalculusSolverModel
 
 with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
@@ -102,9 +102,9 @@ def run_training_pipeline():
 
     train_loader = DataLoader(SlangDatasetLoader(train_file), batch_size=config["batch_size"], shuffle=True)
 
-    model = CalculusModel(
+    model = CalculusSolverModel(
         vocab_size=REAL_VOCAB_SIZE,
-        rule_labels=RULE_LABELS,
+        num_rules=len(RULE_LABELS),
         hidden_dim=config["hidden_dim"],
     )
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
@@ -119,22 +119,10 @@ def run_training_pipeline():
 
         batch_size, seq_len = batch["src_seq"].shape
 
-        # NOTE: parent_child_pairs and src_positions are real tree-derived features
-        # that nothing in the codebase computes yet (the serializer returns a flat
-        # token list only — no tree/position info). TreeEncoder.forward already
-        # treats parent_child_pairs=None as "no bias" and substitutes zeros itself,
-        # so we pass None rather than building our own placeholder tensor.
-        # src_positions has no such None-default, so it's an explicit zero tensor
-        # for now — this is a known gap, not a fix, and should be replaced once
-        # someone builds real tree-position extraction on top of the serializer.
-        src_positions = torch.zeros(batch_size, seq_len, 3)
 
         decoder_logits, rule_logits, verifier_logits = model(
-            src_tokens=batch["src_seq"],
-            src_positions=src_positions,
-            parent_child_pairs=None,
-            tgt_tokens=batch["tgt_in_seq"],
-            rule_ids=batch["rule_id"],
+            batch["src_seq"],
+            batch["tgt_in_seq"],
         )
 
         raw_loss_seq = criterion_sequence(
