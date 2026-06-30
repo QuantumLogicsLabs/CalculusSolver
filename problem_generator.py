@@ -12,8 +12,11 @@ def generate_slang_dataset():
     for i in range(100000):
         rule = random.randint(0, 3)
         var_name = "x"
-        coeff = random.randint(1, 15)
-        power = random.randint(2, 5)
+        # Caps chosen so output coeff (coeff * power) stays within vocab:
+        # max input coeff = 3, max power = 4 → max output coeff = 12 = COEF:12 ✓
+        # max output exponent = power - 1 = 3 = EXP:3 ✓
+        coeff = random.randint(1, 3)
+        power = random.randint(2, 4)
 
         # Real SLaNg term shape, matching tokenizer/slang_serializer.py:
         #   - "coeff" is a number
