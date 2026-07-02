@@ -114,7 +114,9 @@ def run_training_pipeline():
     criterion_verify = nn.BCEWithLogitsLoss()
 
     model.train()
-    for batch in train_loader:
+    for step, batch in enumerate(train_loader):
+        if step >= config.get("max_steps", 1500):
+            break
         optimizer.zero_grad()
 
         batch_size, seq_len = batch["src_seq"].shape
@@ -139,7 +141,6 @@ def run_training_pipeline():
         total_loss = loss_seq + loss_rule + loss_verify
         total_loss.backward()
         optimizer.step()
-        break
 
     Path("checkpoints").mkdir(exist_ok=True)
     torch.save(model.state_dict(), "checkpoints/checkpoint_epoch_1.pt")
