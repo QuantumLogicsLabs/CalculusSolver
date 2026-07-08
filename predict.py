@@ -113,3 +113,8 @@ def evaluate_cli_input():
 
 if __name__ == "__main__":
     evaluate_cli_input()
+# Quick test without CLI quoting issues
+if __name__ == "__main__":
+    import sys
+    sys.argv = ['predict.py', '{"op": "diff", "var": "x", "expr": {"coeff": 3, "var": {"x": 2}}}']
+    evaluate_cli_input()
