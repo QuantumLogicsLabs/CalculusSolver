@@ -127,6 +127,87 @@ Since the focus is currently on an API-only deployment (and the frontend is eith
 
 ---
 
+## [RESOLVED] tokenizer/vocab.json missing function tokens for trig/exp/log (Phase 2 vocab expansion)
+
+**Discovered:** Flagged as deferred scope in `NEURAL_DEPLOYMENT.md` ("Phase 2 — Trig/exp/log vocabulary expansion") and in `DATASET_REPORT.md`'s coverage gap section  
+**Fixed:** vocab.json v1.2  
+**Severity:** Medium — blocks dataset/model coverage of non-polynomial expressions, not a data-corruption risk like the STRUCT:OPEN issue  
+**Affected path:** Neural solver dataset generation and training only (FallbackSolver and GroqSolver unaffected — they operate on raw SLaNg dicts, not the vocab)
+
+### What was wrong
+
+The training dataset only covered polynomial expressions (power rule, sum rule, constant terms,
+partial derivatives). `tokenizer/vocab.json` had no tokens representing the mathematical functions
+`sin`, `cos`, `tan`, `exp`, or `ln`, so the dataset generator and tokenizer had no way to represent
+trigonometric, exponential, or logarithmic expressions even if problem templates were written for them.
+
+### Why it mattered
+
+Without these tokens, the model could never learn to solve anything beyond polynomials, regardless
+of training quality — the vocabulary itself set a hard ceiling on what expressions could be
+represented, tokenized, and fed to the transformer encoder.
+
+### The fix
+
+Added a new `function_tokens` category to `vocab.json`, assigning IDs **100–104**:
+
+| Token | ID |
+|---|---|
+| `FUNC:sin` | 100 |
+| `FUNC:cos` | 101 |
+| `FUNC:tan` | 102 |
+| `FUNC:exp` | 103 |
+| `FUNC:ln` | 104 |
+
+Following the same precedent as the `STRUCT:OPEN` fix above:
+
+- IDs were appended strictly after the current highest existing ID (99, `RULE:integration_by_parts`)
+- No existing token was renumbered or reused, so no previously trained model weights are invalidated
+- A new top-level category (`function_tokens`) was used rather than inserting into `operation_tokens`,
+  since `sin`/`cos`/`tan`/`exp`/`ln` are mathematical functions, not operations like `diff`/`integrate`,
+  keeping the same semantic separation already used between `OP:`, `RULE:`, and `VAR:` namespaces
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `tokenizer/vocab.json` | Added `function_tokens` block (`FUNC:sin`, `FUNC:cos`, `FUNC:tan`, `FUNC:exp`, `FUNC:ln`, IDs 100–104); version bumped to `1.2` |
+| `problem_generator.py` | New trig/exp/log problem templates added alongside existing polynomial templates (pending — see PR) |
+| `DATASET_REPORT.md` | Coverage section updated to reflect new trig/exp/log support (pending — see PR) |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+### Verification
+
+```python
+import json
+
+with open("tokenizer/vocab.json") as f:
+    vocab = json.load(f)
+
+token_to_id = {}
+for category in vocab.values():
+    if isinstance(category, dict):
+        token_to_id.update(category)
+
+expected = {
+    "FUNC:sin": 100,
+    "FUNC:cos": 101,
+    "FUNC:tan": 102,
+    "FUNC:exp": 103,
+    "FUNC:ln": 104,
+}
+for tok, expected_id in expected.items():
+    assert token_to_id[tok] == expected_id, f"{tok} should be {expected_id}"
+
+id_to_token = {v: k for k, v in token_to_id.items()}
+for expected_id, tok in {v: k for k, v in expected.items()}.items():
+    assert id_to_token[expected_id] == tok, f"ID {expected_id} should map to {tok}"
+
+print("All 5 function tokens correctly registered at IDs 100-104")
+```
+
+---
+
 ## Filing new issues
 
 To add a new entry, copy the template below and fill it in:

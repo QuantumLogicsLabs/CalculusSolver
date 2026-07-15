@@ -46,6 +46,29 @@ def serialize_slang_math(node: Any) -> List[str]:
 
     def serialize_op_node(n: Dict[str, Any]) -> None:
         tokens.append(f"{OP_PREFIX}{n['op']}")
+
+        # NEW (backward-compatible, opt-in): optional scale/sign decorator on
+        # an op-node, e.g. {"coeff": -1, "op": "sin", ...} for -sin(x). Reuses
+        # the existing COEF: token range -- no new vocab IDs needed. Existing
+        # op-nodes (diff, integrate, gradient, product_rule, ...) never set
+        # 'coeff', so this branch is never triggered for them and their token
+        # output is completely unchanged.
+        if "coeff" in n and n["coeff"] != 1:
+            coeff_val = float(n["coeff"])
+            if coeff_val.is_integer():
+                coeff_val = int(coeff_val)
+            tokens.append(f"{COEF_PREFIX}{coeff_val}")
+
+        # NEW (backward-compatible, opt-in): optional power decorator on an
+        # op-node, e.g. {"op": "sec", "power": 2, ...} for sec^2(x). Reuses
+        # the existing EXP: token range -- no new vocab IDs needed. Existing
+        # op-nodes never set 'power', so this is unaffected for them too.
+        if "power" in n and n["power"] != 1:
+            power_val = float(n["power"])
+            if power_val.is_integer():
+                power_val = int(power_val)
+            tokens.append(f"{EXP_PREFIX}{power_val}")
+
         if n.get("var") is not None:
             tokens.append(f"{OPVAR_PREFIX}{n['var']}")
         if isinstance(n.get("vars"), list):
@@ -108,12 +131,12 @@ def serialize_slang_math(node: Any) -> List[str]:
             coeff_val = float(coeff)
         except (ValueError, TypeError) as exc:
             raise ValueError(f"TERM node missing numeric coeff: {n}") from exc
-        
+
         # Convert float to int if it's a whole number
         if coeff_val.is_integer():
             coeff_val = int(coeff_val)
         tokens.append(f"{COEF_PREFIX}{coeff_val}")
-        
+
         var_dict = n.get("var")
         if var_dict and isinstance(var_dict, dict):
             # Sort variables alphabetically to match JS sort
@@ -167,6 +190,37 @@ def deserialize_slang_math(tokens: List[str]) -> Any:
         node: Dict[str, Any] = {"op": op_token[len(OP_PREFIX):]}
         index += 1
 
+        # NEW (backward-compatible): optional COEF: decorator immediately
+        # after the OP: token, mirroring serialize_op_node's emission order.
+        # Existing token streams (diff, integrate, ...) never have a COEF:
+        # token in this position, so this only ever triggers for the new
+        # sin/cos/tan/exp/ln/sec nodes that actually emit it.
+        if (
+            index < len(tokens)
+            and isinstance(tokens[index], str)
+            and tokens[index].startswith(COEF_PREFIX)
+        ):
+            coef_str = tokens[index][len(COEF_PREFIX):]
+            try:
+                node["coeff"] = int(coef_str)
+            except ValueError:
+                node["coeff"] = float(coef_str)
+            index += 1
+
+        # NEW (backward-compatible): optional EXP: decorator immediately
+        # after the optional COEF:, mirroring serialize_op_node's order.
+        if (
+            index < len(tokens)
+            and isinstance(tokens[index], str)
+            and tokens[index].startswith(EXP_PREFIX)
+        ):
+            exp_str = tokens[index][len(EXP_PREFIX):]
+            try:
+                node["power"] = int(exp_str)
+            except ValueError:
+                node["power"] = float(exp_str)
+            index += 1
+
         while (
             index < len(tokens)
             and isinstance(tokens[index], str)
@@ -209,7 +263,7 @@ def deserialize_slang_math(tokens: List[str]) -> Any:
         index = expect_token(index, DENO)
         denominator_terms, index = parse_wrapped_term_list(index)
         index = expect_token(index, CLOSE)
-        
+
         return {
             "numi": {"terms": numerator_terms},
             "deno": {"terms": denominator_terms},
