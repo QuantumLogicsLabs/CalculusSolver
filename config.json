@@ -3,9 +3,9 @@
   "batch_size": 32,
   "max_steps": 500,
   "hidden_dim": 128,
-  "epochs": 10,
+  "epochs": 15,
   "early_stopping": {
-    "patience": 5,
+    "patience": 8,
     "min_delta": 0.001
   },
   "validation_logging": true

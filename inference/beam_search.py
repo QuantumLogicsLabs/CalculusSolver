@@ -190,6 +190,188 @@ def is_valid_prefix(tokens: List[str]) -> bool:
     return result["status"] == "complete" and result["next"] == len(tokens)
 
 
+def is_complete_tree(tokens: List[str]) -> bool:
+    """True only when `tokens` form a fully closed, complete SLaNg AST
+    (as opposed to is_valid_prefix, which also accepts incomplete-but-valid
+    prefixes). Used to decide when [EOS] is allowed to be generated — the
+    grammar itself has no notion of [EOS], so this must be checked
+    separately rather than by appending "[EOS]" and calling is_valid_prefix.
+    """
+    if not tokens:
+        return False
+
+    def parse_term(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "NODE:TERM":
+            return {"status": "invalid"}
+        index += 1
+
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if not tokens[index].startswith("COEF:"):
+            return {"status": "invalid"}
+        index += 1
+
+        while index < len(tokens):
+            token = tokens[index]
+            if token.startswith("VAR:"):
+                index += 1
+                if index >= len(tokens):
+                    return {"status": "incomplete"}
+                if not tokens[index].startswith("EXP:"):
+                    return {"status": "invalid"}
+                index += 1
+                continue
+            break
+
+        return {"status": "complete", "next": index}
+
+    def parse_term_list(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] == "STRUCT:CLOSE":
+            return {"status": "complete", "next": index}
+
+        current = index
+        while True:
+            node = parse_node(current)
+            if node["status"] == "invalid":
+                return {"status": "invalid"}
+            if node["status"] == "incomplete":
+                return {"status": "incomplete"}
+            current = node["next"]
+            if current >= len(tokens):
+                return {"status": "incomplete"}
+            if tokens[current] == "STRUCT:SEP":
+                current += 1
+                continue
+            if tokens[current] == "STRUCT:CLOSE":
+                return {"status": "complete", "next": current}
+            return {"status": "invalid"}
+
+    def parse_fraction(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "NODE:FRAC":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:NUMI":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+
+        numerator = parse_term_list(index)
+        if numerator["status"] != "complete":
+            return numerator
+        index = numerator["next"]
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:CLOSE":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:SEP":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:DENO":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+
+        denominator = parse_term_list(index)
+        if denominator["status"] != "complete":
+            return denominator
+        index = denominator["next"]
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:CLOSE":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:CLOSE":
+            return {"status": "invalid"}
+        index += 1
+
+        return {"status": "complete", "next": index}
+
+    def parse_op_node(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        token = tokens[index]
+        if not isinstance(token, str) or not token.startswith("OP:"):
+            return {"status": "invalid"}
+        index += 1
+
+        while (
+            index < len(tokens)
+            and isinstance(tokens[index], str)
+            and tokens[index].startswith("OPVAR:")
+        ):
+            index += 1
+
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+
+        seen_child = False
+        while True:
+            node = parse_node(index)
+            if node["status"] == "invalid":
+                return {"status": "invalid"}
+            if node["status"] == "incomplete":
+                return {"status": "incomplete"}
+            seen_child = True
+            index = node["next"]
+            if index >= len(tokens):
+                return {"status": "incomplete"}
+            if tokens[index] == "STRUCT:SEP":
+                index += 1
+                continue
+            if tokens[index] == "STRUCT:CLOSE":
+                if not seen_child:
+                    return {"status": "invalid"}
+                index += 1
+                return {"status": "complete", "next": index}
+            return {"status": "invalid"}
+
+    def parse_node(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        token = tokens[index]
+        if token == "NODE:TERM":
+            return parse_term(index)
+        if token == "NODE:FRAC":
+            return parse_fraction(index)
+        if isinstance(token, str) and token.startswith("OP:"):
+            return parse_op_node(index)
+        return {"status": "invalid"}
+
+    result = parse_node(0)
+    return result["status"] == "complete" and result["next"] == len(tokens)
+
+
 class NodeValidityPool:
     """Pure-Python replacement for NodeValidityPool that runs completely in-memory."""
     def __init__(self, script_path: str = "", num_workers: int = 1):
@@ -291,8 +473,30 @@ def beam_search(
                 memory_key_padding_mask=None,
             )
             next_logits = decoder_logits[0, -1, :]
-            mask = node_pool.mask(token_strings, all_candidate_tokens)
-            invalid_mask = torch.tensor([not valid for valid in mask], device=device)
+
+            # BUG FIX (docs/KNOWN_ISSUES.md — "Beam search never accepts a
+            # single token"): the grammar checker (is_valid_prefix) only
+            # understands AST tokens (NODE:*, OP:*, STRUCT:*, ...). It has no
+            # notion of the [BOS] control token, so checking
+            # is_valid_prefix(token_strings + [candidate]) with the leading
+            # [BOS] still in token_strings marked EVERY candidate invalid at
+            # the very first decoding step, and generation always collapsed
+            # to just "[BOS]". Strip [BOS] before grammar-checking, and
+            # special-case [EOS]: it's only valid once the tree parsed so far
+            # is actually complete (the grammar has no token for [EOS]
+            # either, so it can never pass is_valid_prefix on its own).
+            grammar_tokens = [t for t in token_strings if t != "[BOS]"]
+            grammar_candidates = [
+                t for t in all_candidate_tokens if t not in ("[BOS]", "[EOS]", "[PAD]")
+            ]
+            grammar_valid = node_pool.mask(grammar_tokens, grammar_candidates)
+            valid_set = {tok for tok, ok in zip(grammar_candidates, grammar_valid) if ok}
+            if is_complete_tree(grammar_tokens):
+                valid_set.add("[EOS]")
+
+            invalid_mask = torch.tensor(
+                [tok not in valid_set for tok in all_candidate_tokens], device=device
+            )
             safe_logits = next_logits.masked_fill(invalid_mask, float("-inf"))
 
             if torch.isinf(safe_logits).all():

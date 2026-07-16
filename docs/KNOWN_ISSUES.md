@@ -208,6 +208,226 @@ print("All 5 function tokens correctly registered at IDs 100-104")
 
 ---
 
+## [RESOLVED] model/model.pkl checkpoint architecture mismatch
+
+**Discovered:** Member A task brief — inference raised a state_dict key mismatch on load
+**Fixed:** Checkpoint retired; retrained from scratch on current architecture
+**Severity:** High — blocks the neural inference path entirely
+**Affected path:** Neural solver only (`inference/solve.py` non-`.pt` branch)
+
+### What was wrong
+
+`model/model.pkl` was inspected directly (raw pickle key extraction, without
+needing to construct the model) and its `model_state_dict` contains keys like:
+
+```
+transformer.encoder.layers.0.self_attn.in_proj_weight
+transformer.decoder.layers.0.multihead_attn.in_proj_weight
+```
+
+This is the parameter naming produced by plain `torch.nn.Transformer` /
+`nn.TransformerEncoderLayer` (a single combined `in_proj_weight` per attention
+layer). The current architecture (`model/tree_encoder.py`,
+`model/tree_decoder.py`) is a custom implementation with separate
+`q_proj` / `k_proj` / `v_proj` / `out_proj` weights and an additional
+`parent_child_bias` parameter that has no equivalent in the checkpoint at all.
+
+### Why it mattered
+
+This is not a renaming issue — the two models are structurally different
+(different attention implementation, different parameter count and shapes).
+No key-mapping dict can correctly translate one into the other; attempting to
+force-load would silently place unrelated weights into the wrong layers.
+
+### The fix
+
+Per task brief instructions, the checkpoint was treated as stale and retired.
+`train.py` retrains `model/transformer.py`'s `CalculusSolverModel` (which
+wraps the current `TreeEncoder` / `TreeDecoder`) from scratch and saves to
+`checkpoints/final/best.pt`. Use `inference/solve.py`'s `.pt` loading path
+(`CalculusSolverInference(model_path="checkpoints/final/best.pt")`) rather
+than the old `model/model.pkl`.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `model/model.pkl` | Retired (superseded by `checkpoints/final/best.pt`) |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+---
+
+## [RESOLVED] Decoder trained without target shift (teacher forcing bug)
+
+**Discovered:** `docs/TRAINING_RESULTS.md` showed val loss dropping to
+near-zero (0.0070 → 0.0011 over 5 epochs) while `docs/EVAL_RESULTS.md` showed
+0.0% exact match on all 300 benchmark problems — a mismatch between the
+training signal and real performance
+**Fixed:** `train.py`, `SlangDatasetLoader.__getitem__`
+**Severity:** High — model learned nothing transferable to real inference
+**Affected path:** Neural solver training only (`train.py`)
+
+### What was wrong
+
+In `data/slang_dataset.jsonl`, every one of the 125,000 rows has
+`tgt_input_tokens` and `tgt_output_tokens` set to the *same* SLaNg tree.
+`train.py` tokenized each field independently, producing two identical token
+sequences, and fed one to the decoder as input while using the other as the
+loss target. Because `TreeDecoder`'s causal mask still lets position `i`
+attend to its own position-`i` input (only future positions are blocked), the
+decoder could satisfy the loss by copying its current input straight through
+instead of learning to predict the next token from the tokens before it.
+
+### Why it mattered
+
+Training and validation loss looked good (and `val_seq` — actually a loss
+value, not an accuracy, despite the column name — kept decreasing) purely
+because the copy shortcut is trivial to learn. But `eval/run_eval.py`
+generates autoregressively: at inference time the ground-truth answer is
+never available as decoder input, so a model that only learned to copy its
+input produces garbage, hence 0.0% exact match on every category.
+
+### The fix
+
+`SlangDatasetLoader.__getitem__` now tokenizes the target once (with
+`[BOS]`/`[EOS]` boundaries) and shifts it by one position instead of
+tokenizing `tgt_input_tokens` and `tgt_output_tokens` separately:
+
+- decoder input:  `[BOS, t1, ..., t_{n-1}]`
+- decoder target: `[t1, ..., t_n, EOS]`
+
+This forces the decoder to predict the token that comes *after* what it has
+seen so far, matching how generation actually works at inference time.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `train.py` | `SlangDatasetLoader._tokenize` split into `_tokenize_ids` + `_pad`; `__getitem__` now tokenizes the target once and shifts it instead of tokenizing `tgt_input_tokens`/`tgt_output_tokens` separately |
+| `config.json` | `hidden_dim` 128→256, `max_steps` →1000, `epochs` →15, early-stopping `patience` 5→6 (Step 3 tuning) |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+### Verification
+
+After retraining, confirm with:
+
+```bash
+python train.py
+python eval/run_eval.py
+```
+
+`docs/TRAINING_RESULTS.md`'s `Val Seq` column should now reflect real
+learning progress, and `docs/EVAL_RESULTS.md` should show non-zero exact
+match on every operation category (diff, integrate, gradient, partial,
+tangent_line) — not just overall.
+
+---
+
+## [RESOLVED] Sequence loss counted PAD positions
+
+**Discovered:** After fixing the teacher-forcing target shift, a retrain still
+showed `Val Seq` collapsing to near-zero within a few epochs (0.1161 → 0.0003)
+while `eval/run_eval.py` still scored 0.0% exact match on all 300 problems
+**Fixed:** `train.py` — both the training loop and `evaluate_validation`
+**Severity:** High — a second, independent bug masking real learning signal
+**Affected path:** Neural solver training only (`train.py`)
+
+### What was wrong
+
+`criterion_sequence = nn.CrossEntropyLoss(reduction='none')` had no
+`ignore_index` set, so cross-entropy was computed over **every** position in
+the padded `max_len=32` decoder output — including `[PAD]` positions. Real
+SLaNg token sequences are much shorter than 32 tokens, so most positions in
+every training example are `[PAD]`. The model could cheaply minimize the
+averaged loss by learning to predict `[PAD]` almost everywhere, without ever
+learning to predict the real content tokens.
+
+### Why it mattered
+
+This produced the same symptom as the target-shift bug — loss dropping fast
+while `eval/run_eval.py` stayed at 0% — for a different reason. Fixing the
+target shift alone was not enough; the loss function itself needed to ignore
+padding, otherwise "predict PAD everywhere" remained the easiest way to
+minimize loss.
+
+### The fix
+
+- `nn.CrossEntropyLoss(reduction='none', ignore_index=pad_idx)` so PAD
+  positions contribute zero loss.
+- Per-sequence loss is now averaged over the **real (non-pad) token count**
+  only (`raw_loss_seq.sum(dim=-1) / non_pad.sum(dim=-1)`), instead of a plain
+  mean over the full fixed-length sequence — otherwise a mean over mostly-zero
+  positions would still under-report the true per-token loss.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `train.py` | `ignore_index=pad_idx` added to `criterion_sequence`; both the training loop and `evaluate_validation` now normalize sequence loss by real (non-pad) token count |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+---
+
+## [RESOLVED] Beam search never accepts a single token (BOS/EOS not in grammar)
+
+**Discovered:** After fixing the teacher-forcing target-shift bug, `train.py`
+showed healthy-looking `Val Seq` loss (down to 0.0003) but
+`eval/run_eval.py` still reported 0.0% exact match on all 300 problems —
+a second, independent bug on the generation side
+**Fixed:** `inference/beam_search.py`
+**Severity:** High — makes generation always collapse to just `[BOS]`
+regardless of model quality
+**Affected path:** Neural solver inference/eval (`inference/beam_search.py`)
+
+### What was wrong
+
+`beam_search()` grammar-checks every candidate next token with
+`is_valid_prefix(token_strings + [candidate])`, where `token_strings`
+includes the leading `[BOS]` control token. The grammar parser
+(`is_valid_prefix` / `parse_node`) only understands AST tokens
+(`NODE:TERM`, `NODE:FRAC`, `OP:...`, `STRUCT:...`) — it has no case for
+`[BOS]`, so `parse_node` immediately returns `"invalid"` for any sequence
+starting with `[BOS]`. That marks **every** candidate token invalid at the
+very first decoding step, `safe_logits` becomes all `-inf`, the beam is
+dropped, `candidates` ends up empty, and the loop breaks immediately —
+generation always collapses to just `[BOS]` no matter how well the model
+was trained. The same grammar has no token for `[EOS]` either, so appending
+`[EOS]` to a genuinely complete tree also always failed the check.
+
+### Why it mattered
+
+This made eval accuracy structurally 0% independent of model quality —
+even a perfectly trained model could never generate anything past `[BOS]`,
+which is why the fix for the teacher-forcing bug alone did not move
+`docs/EVAL_RESULTS.md` off 0.0%.
+
+### The fix
+
+In the beam search loop, `[BOS]` is stripped from `token_strings` before
+grammar-checking (the grammar only describes the AST, not the control
+tokens). `[EOS]` is handled separately via a new `is_complete_tree()`
+helper, which is only true once the tokens generated so far form a fully
+closed AST — `[EOS]` is allowed exactly then, instead of being checked
+through `is_valid_prefix`, which the grammar can never satisfy for it.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `inference/beam_search.py` | Added `is_complete_tree()`; generation loop now grammar-checks `[BOS]`-stripped tokens and allows `[EOS]` via `is_complete_tree()` instead of `is_valid_prefix(tokens + ["[EOS]"])` |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+### Verification
+
+```bash
+python eval/run_eval.py
+```
+
+`docs/EVAL_RESULTS.md` should now show non-zero exact-match on categories
+the model has actually learned, instead of a structural 0.0% everywhere.
+
+---
+
 ## Filing new issues
 
 To add a new entry, copy the template below and fill it in:
