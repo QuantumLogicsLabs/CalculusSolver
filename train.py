@@ -15,6 +15,27 @@ with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
 
 
+def save_checkpoint(model, config):
+    """Save model weights together with metadata describing which model
+    class + config they belong to. PR fix: inference/solve.py used to guess
+    the architecture from the checkpoint's file extension (.pt vs .pkl),
+    which is fragile and was part of why the checkpoint/architecture
+    mismatch went unnoticed. Checkpoints now state this explicitly.
+    """
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "architecture": "CalculusSolverModel",
+            "config": {
+                "hidden_dim": config.get("hidden_dim", 128),
+                "vocab_size": REAL_VOCAB_SIZE,
+                "num_rules": len(RULE_LABELS),
+            },
+        },
+        str(FINAL_CHECKPOINT_PATH),
+    )
+
+
 def flatten_vocab(raw_vocab):
     """
     Same flattening rule as inference/beam_search.flatten_vocab on org main:
@@ -118,6 +139,7 @@ class SlangDatasetLoader(Dataset):
 
 def evaluate_validation(model, val_loader, criterion_sequence, criterion_rule, criterion_verify):
     model.eval()
+    pad_idx = vocab_mapping["[PAD]"]
     total_val_loss = 0.0
     total_seq_loss = 0.0
     total_rule_loss = 0.0
@@ -134,7 +156,9 @@ def evaluate_validation(model, val_loader, criterion_sequence, criterion_rule, c
             raw_loss_seq = criterion_sequence(
                 decoder_logits.reshape(-1, REAL_VOCAB_SIZE), batch["tgt_out_seq"].reshape(-1)
             )
-            raw_loss_seq = raw_loss_seq.view(batch_size, -1).mean(dim=-1)
+            raw_loss_seq = raw_loss_seq.view(batch_size, -1)  # (batch, seq_len); 0 at PAD positions
+            non_pad = (batch["tgt_out_seq"] != pad_idx).float()
+            raw_loss_seq = raw_loss_seq.sum(dim=-1) / (non_pad.sum(dim=-1) + 1e-8)  # per-seq mean over REAL tokens only
 
             mask = (batch["v_state"] == 1.0).float()
             loss_seq = (raw_loss_seq * mask).sum() / (mask.sum() + 1e-8)
@@ -227,7 +251,15 @@ def run_training_pipeline():
     )
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
 
-    criterion_sequence = nn.CrossEntropyLoss(reduction='none')
+    # FIX (docs/KNOWN_ISSUES.md — "Sequence loss counted PAD positions"):
+    # Without ignore_index, cross-entropy was computed over every position in
+    # the padded max_len=32 sequence, including [PAD]. Since real token
+    # sequences are much shorter than 32, the model could cheaply minimize
+    # loss by learning to output [PAD] almost everywhere instead of learning
+    # real content, which produced a fast-dropping loss with 0% real exact
+    # match. ignore_index excludes PAD positions from the loss entirely.
+    pad_idx = vocab_mapping["[PAD]"]
+    criterion_sequence = nn.CrossEntropyLoss(reduction='none', ignore_index=pad_idx)
     criterion_rule = nn.CrossEntropyLoss()
     criterion_verify = nn.BCEWithLogitsLoss()
 
@@ -287,7 +319,9 @@ def run_training_pipeline():
             raw_loss_seq = criterion_sequence(
                 decoder_logits.reshape(-1, REAL_VOCAB_SIZE), batch["tgt_out_seq"].reshape(-1)
             )
-            raw_loss_seq = raw_loss_seq.view(batch_size, -1).mean(dim=-1)
+            raw_loss_seq = raw_loss_seq.view(batch_size, -1)  # (batch, seq_len); 0 at PAD positions
+            non_pad = (batch["tgt_out_seq"] != pad_idx).float()
+            raw_loss_seq = raw_loss_seq.sum(dim=-1) / (non_pad.sum(dim=-1) + 1e-8)  # per-seq mean over REAL tokens only
 
             mask = (batch["v_state"] == 1.0).float()
             loss_seq = (raw_loss_seq * mask).sum() / (mask.sum() + 1e-8)
@@ -297,6 +331,11 @@ def run_training_pipeline():
 
             total_loss = loss_seq + loss_rule + loss_verify
             total_loss.backward()
+            # PR fix: clip gradients to stop the large, erratic per-epoch loss
+            # spikes seen in earlier runs (e.g. epoch 9: 0.51 -> 1.21 train loss)
+            # — unclipped gradients on a handful of batches can produce a
+            # destructive update that the model then has to recover from.
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
             epoch_loss += total_loss.item()
@@ -332,7 +371,7 @@ def run_training_pipeline():
                 best_val_loss = val_loss
                 patience_counter = 0
                 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-                torch.save(model.state_dict(), str(FINAL_CHECKPOINT_PATH))
+                save_checkpoint(model, config)
                 print(f"  New best validation loss! Saved checkpoint to {FINAL_CHECKPOINT_PATH}")
                 epoch_metrics["saved"] = True
             else:
@@ -345,7 +384,7 @@ def run_training_pipeline():
         else:
             # No validation set — save every epoch
             CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-            torch.save(model.state_dict(), str(FINAL_CHECKPOINT_PATH))
+            save_checkpoint(model, config)
             print(f"Checkpoint saved to {FINAL_CHECKPOINT_PATH}")
             epoch_metrics["saved"] = True
 

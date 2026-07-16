@@ -428,6 +428,65 @@ the model has actually learned, instead of a structural 0.0% everywhere.
 
 ---
 
+## [RESOLVED] PR review round: model.pkl stale, unstable training, fragile model-class detection
+
+**Discovered:** PR #24 review
+**Fixed:** `train.py`, `inference/solve.py`, new `finalize_checkpoint.py`
+**Severity:** Medium — did not block training/eval, but made the committed
+`model/model.pkl` misleading and made checkpoint loading fragile
+
+### Issue A — model/model.pkl was never updated after training
+
+`train.py` saves to `checkpoints/final/best.pt`, but `inference/solve.py`'s
+default `model_path` is `model/model.pkl` — the two were never the same
+file, so the committed `model.pkl` kept reflecting an old, unrelated
+checkpoint no matter how many times `train.py` was re-run.
+
+**Fix:** New `finalize_checkpoint.py` copies the trained checkpoint into
+`model/model.pkl` after training. Run it once training is done:
+```bash
+python train.py
+python finalize_checkpoint.py
+```
+
+### Issue B — training loss spiked/dropped instead of improving steadily
+
+No gradient clipping was applied before `optimizer.step()`, so a handful of
+batches with unusually large gradients could produce a destructive update
+(seen as e.g. train loss jumping from 0.51 to 1.21 at epoch 9 in one run).
+
+**Fix:** Added `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)`
+in `train.py`'s training loop, right after `backward()` and before
+`optimizer.step()`.
+
+### Issue C — model class was guessed from the file extension
+
+`inference/solve.py` decided whether to load `CalculusModel`
+(`model/architecture.py`) or `CalculusSolverModel` (`model/transformer.py`)
+based on whether the checkpoint's filename ended in `.pt`/`.pth`. A file
+extension is not a reliable guarantee of which model produced the weights —
+this is part of how the original checkpoint/architecture mismatch went
+unnoticed.
+
+**Fix:** `train.py`'s new `save_checkpoint()` helper now stores
+`"architecture"` (e.g. `"CalculusSolverModel"`) and `"config"` (hidden_dim,
+vocab_size, num_rules) directly in the checkpoint dict.
+`CalculusSolverInference` now reads that field to decide which model class
+to instantiate, regardless of filename. Legacy checkpoints saved before this
+fix (no `"architecture"` field) still load via the old extension-based
+guess, with a visible warning telling you to re-save them.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `train.py` | Added `save_checkpoint()` helper (embeds architecture/config metadata); added gradient clipping before `optimizer.step()` |
+| `inference/solve.py` | Loads model class from checkpoint's `"architecture"` field instead of file extension; `_load_checkpoint` tries `torch.load` before falling back to `joblib` |
+| `finalize_checkpoint.py` | New — copies `checkpoints/final/best.pt` into `model/model.pkl` after training |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+---
+
 ## Filing new issues
 
 To add a new entry, copy the template below and fill it in:

@@ -39,26 +39,26 @@ class CalculusSolverInference:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         rule_labels = self._load_rule_labels(vocab_path)
 
-        if model_path.endswith((".pt", ".pth")):
+        # PR fix: load based on what the checkpoint says it is, not the file
+        # extension. A file extension is not a reliable guarantee of which
+        # model class produced it (that's exactly how the old model.pkl /
+        # architecture mismatch went unnoticed for a while).
+        architecture = (
+            self.model_data.get("architecture")
+            if isinstance(self.model_data, dict)
+            else None
+        )
+
+        if architecture == "CalculusSolverModel":
             from model.transformer import CalculusSolverModel
-            hidden_dim = 128
-            try:
-                # Try to load hidden_dim from config.json in root
-                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                config_path = os.path.join(root_dir, "config.json")
-                if os.path.exists(config_path):
-                    with open(config_path, "r") as f:
-                        cfg = json.load(f)
-                        hidden_dim = cfg.get("hidden_dim", 128)
-            except Exception:
-                pass
-            vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
             self.model = CalculusSolverModel(
-                vocab_size=vocab_size,
-                num_rules=len(rule_labels),
-                hidden_dim=hidden_dim,
+                vocab_size=config.get(
+                    "vocab_size", max(self.vocab_map["token_to_id"].values()) + 1
+                ),
+                num_rules=config.get("num_rules", len(rule_labels)),
+                hidden_dim=config.get("hidden_dim", 128),
             ).to(self.device)
-        else:
+        elif architecture == "CalculusModel":
             self.model = CalculusModel(
                 vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
                 rule_labels=rule_labels,
@@ -69,6 +69,46 @@ class CalculusSolverInference:
                 dropout=config.get("dropout", 0.1),
                 position_dim=config.get("position_dim", 3),
             ).to(self.device)
+        else:
+            # Legacy checkpoint saved before the "architecture" field existed.
+            # Fall back to the old file-extension guess, with a visible
+            # warning so a stale/ambiguous checkpoint is never silently
+            # assumed to be the right one.
+            print(
+                f"WARNING: checkpoint at {model_path} has no 'architecture' "
+                "field (pre-dates this fix). Guessing model class from the "
+                "file extension — re-save this checkpoint with train.py to "
+                "remove this warning."
+            )
+            if model_path.endswith((".pt", ".pth")):
+                from model.transformer import CalculusSolverModel
+                hidden_dim = 128
+                try:
+                    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    config_path = os.path.join(root_dir, "config.json")
+                    if os.path.exists(config_path):
+                        with open(config_path, "r") as f:
+                            cfg = json.load(f)
+                            hidden_dim = cfg.get("hidden_dim", 128)
+                except Exception:
+                    pass
+                vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
+                self.model = CalculusSolverModel(
+                    vocab_size=vocab_size,
+                    num_rules=len(rule_labels),
+                    hidden_dim=hidden_dim,
+                ).to(self.device)
+            else:
+                self.model = CalculusModel(
+                    vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
+                    rule_labels=rule_labels,
+                    hidden_dim=config.get("hidden_dim", 512),
+                    num_heads=config.get("num_heads", 8),
+                    num_layers=config.get("num_layers", 8),
+                    ffn_dim=config.get("ffn_dim", 2048),
+                    dropout=config.get("dropout", 0.1),
+                    position_dim=config.get("position_dim", 3),
+                ).to(self.device)
         self.model.load_state_dict(self._resolve_state_dict(self.model_data))
         self.model.eval()
 
@@ -97,8 +137,15 @@ class CalculusSolverInference:
         return rule_labels
 
     def _load_checkpoint(self, model_path: str) -> Any:
-        if model_path.endswith((".pt", ".pth")):
+        # PR fix: try torch.load first regardless of extension — new
+        # checkpoints (from train.py's save_checkpoint) are always
+        # torch-saved dicts with an "architecture" field, whether the file
+        # is named .pt or .pkl. Only fall back to joblib for genuinely
+        # legacy checkpoints that torch.load can't parse.
+        try:
             return torch.load(model_path, map_location="cpu")
+        except Exception:
+            pass
         try:
             if not hasattr(sys.modules["__main__"], "SLaNgTokenizer"):
                 setattr(sys.modules["__main__"], "SLaNgTokenizer", _LegacySLaNgTokenizer)
