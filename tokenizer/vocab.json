@@ -1,6 +1,6 @@
 {
-  "_comment": "SLaNg vocabulary token string to integer ID mapping",
-  "_version": "1.0",
+  "_comment": "SLaNg vocabulary token string to integer ID mapping. STRUCT:OPEN is assigned ID 23 (gap after operation tokens) because IDs 4-9 were already fully occupied when this omission was discovered. Renumbering existing IDs would break trained model weights.",
+  "_version": "1.1",
   "special_tokens": {
     "[PAD]": 0,
     "[BOS]": 1,
@@ -13,7 +13,8 @@
     "STRUCT:SEP": 6,
     "STRUCT:CLOSE": 7,
     "NODE:FRAC": 8,
-    "NODE:TERM": 9
+    "NODE:TERM": 9,
+    "STRUCT:OPEN": 23
   },
   "operation_tokens": {
     "OP:diff": 10,

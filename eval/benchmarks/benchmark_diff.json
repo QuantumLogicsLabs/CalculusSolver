@@ -1,0 +1,3139 @@
+[
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 9,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -7,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -7
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 2,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -2,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 3
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -4,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -4,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 2,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -7,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -7
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -4,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -4
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 3
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -6,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -7,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -7
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 12,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -2
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -4,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -2
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -9,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -9
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -9,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 12,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": -4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12,
+            "var": {
+              "x": 3
+            }
+          },
+          {
+            "coeff": -8,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -2
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -6,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -6
+          },
+          {
+            "coeff": 12,
+            "var": {
+              "x": 3
+            }
+          },
+          {
+            "coeff": 12,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8
+          },
+          {
+            "coeff": 10,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -3,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 1
+          },
+          {
+            "coeff": -9,
+            "var": {
+              "x": 2
+            }
+          },
+          {
+            "coeff": -4,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 1
+          },
+          {
+            "coeff": 3,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10
+          },
+          {
+            "coeff": 8,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -6,
+            "var": {
+              "x": 2
+            }
+          },
+          {
+            "coeff": 12,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 1
+          },
+          {
+            "coeff": -4,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -5,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          },
+          {
+            "coeff": -10,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -8
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 6,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 4,
+            "var": {
+              "x": 3
+            }
+          },
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          },
+          {
+            "coeff": 4
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -2
+          },
+          {
+            "coeff": -8,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5
+          },
+          {
+            "coeff": 5,
+            "var": {
+              "x": 4
+            }
+          },
+          {
+            "coeff": 9,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 10,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 10
+          },
+          {
+            "coeff": -3,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": -9,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12,
+            "var": {
+              "x": 3
+            }
+          },
+          {
+            "coeff": -9
+          },
+          {
+            "coeff": -6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          },
+          {
+            "coeff": 8,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8
+          },
+          {
+            "coeff": -8,
+            "var": {
+              "x": 3
+            }
+          },
+          {
+            "coeff": 6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -9,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -9
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 2
+          },
+          {
+            "coeff": 10,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          },
+          {
+            "coeff": 3,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -3,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -2
+          },
+          {
+            "coeff": -6,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 12,
+            "var": {
+              "x": 3
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 4,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -3,
+            "var": {
+              "x": 2
+            }
+          },
+          {
+            "coeff": -10,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 5,
+            "var": {
+              "x": 4
+            }
+          },
+          {
+            "coeff": -6,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 4
+          },
+          {
+            "coeff": 4,
+            "var": {
+              "x": 3
+            }
+          },
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8
+          },
+          {
+            "coeff": 10,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 4
+          },
+          {
+            "coeff": 3,
+            "var": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8
+          },
+          {
+            "coeff": -4,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 3
+          },
+          {
+            "coeff": 2,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -5,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -5,
+            "var": {
+              "x": 4
+            }
+          },
+          {
+            "coeff": -5
+          },
+          {
+            "coeff": 4,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  },
+  {
+    "expr": {
+      "op": "diff",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 6,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5
+          },
+          {
+            "coeff": 12,
+            "var": {
+              "x": 1
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "diff",
+    "expected_rule": "power_rule"
+  }
+]

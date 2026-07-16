@@ -1,12 +1,6 @@
 """
 CalculusSolver API — Starlette only, no FastAPI, no pydantic.
-Compatible with Python 3.10+ including 3.14.
-
-Startup behaviour:
-  1. Try to load a trained neural checkpoint (checkpoints/final → sft → pretrain).
-  2. If none found, automatically fall back to FallbackSolver (pure-Python
-     polynomial solver — no torch, no checkpoint required).
-  The API always starts successfully; /health reports which mode is active.
+Local dev entrypoint.
 """
 
 import os
@@ -25,116 +19,78 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from api.routes.solve import solve_route
-from api.routes.validate import validate_route
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+except ImportError:
+    pass
 
-# ── Shared state ──────────────────────────────────────────────────────────────
-_state: dict = {
-    "solver": None,
-    "solver_mode": "unloaded",  # "neural" | "fallback" | "unloaded"
-    "solver_stage": None,  # "final" | "sft" | "pretrain" | None
-    "solver_error": None,
-}
+from api._shared import get_solver, get_solver_status, normalize_solver_result
+from tokenizer.slang_serializer import serialize_slang_math
 
-CHECKPOINT_PRIORITY = [
-    ("final", ROOT / "checkpoints" / "final" / "best.pt"),
-    ("sft", ROOT / "checkpoints" / "sft" / "best.pt"),
-    ("pretrain", ROOT / "checkpoints" / "pretrain" / "best.pt"),
-]
-
-
-def _resolve_model_path():
-    env_path = os.environ.get("MODEL_PATH")
-    if env_path:
-        p = Path(env_path)
-        p = p if p.is_absolute() else ROOT / p
-        if p.exists():
-            return str(p), "env"
-    for stage, path in CHECKPOINT_PRIORITY:
-        if path.exists():
-            return str(path), stage
-    return None, None
-
-
-async def _startup():
-    model_path, stage = _resolve_model_path()
-
-    if model_path:
-        # ── Try neural model ──────────────────────────────────────────────────
-        try:
-            from inference.solve import CalculusSolverInference
-
-            solver = CalculusSolverInference(
-                model_path=model_path,
-                vocab_path=str(ROOT / "tokenizer" / "vocab.json"),
-                beam_size=5,
-                max_len=256,
-            )
-            _state["solver"] = solver
-            _state["solver_mode"] = "neural"
-            _state["solver_stage"] = stage
-            _state["solver_error"] = None
-            print(
-                f"[CalculusSolver] Neural model loaded — stage={stage}, path={model_path}",
-                flush=True,
-            )
-            return
-        except Exception as exc:
-            _state["solver_error"] = str(exc)
-            print(f"[CalculusSolver] Neural load failed: {exc}", flush=True)
-
-    # ── Fall back to deterministic solver ─────────────────────────────────────
-    from inference.fallback_solver import FallbackSolver
-
-    _state["solver"] = FallbackSolver()
-    _state["solver_mode"] = "fallback"
-    _state["solver_stage"] = None
-    if not _state["solver_error"]:
-        _state["solver_error"] = "No checkpoint found. Tried: " + ", ".join(
-            str(p) for _, p in CHECKPOINT_PRIORITY
-        )
-    print(
-        "[CalculusSolver] Running in FALLBACK mode — "
-        "supports diff, partial, integrate, gradient, tangent_line. "
-        "Train a checkpoint to enable full neural inference.",
-        flush=True,
-    )
-
-
-async def _shutdown():
-    solver = _state.get("solver")
-    if solver is not None and hasattr(solver, "close"):
-        try:
-            solver.close()
-        except Exception:
-            pass
+# ── Lifespan ──────────────────────────────────────────────────────────────────
 
 
 @asynccontextmanager
 async def lifespan(app):
-    await _startup()
+    # Eagerly initialize solver on startup
+    get_solver()
+    yield
+
+
+# ── Route Handlers ────────────────────────────────────────────────────────────
+
+async def root_handler(request: Request) -> JSONResponse:
+    return JSONResponse({"message": "CalculusSolver API is running. Use POST /api/solve to solve equations."})
+
+async def health_handler(request: Request) -> JSONResponse:
+    return JSONResponse(get_solver_status())
+
+
+async def solve_handler(request: Request) -> JSONResponse:
+    solver, mode = get_solver()
+    if solver is None:
+        return JSONResponse({"detail": "Solver not initialised."}, status_code=503)
+
     try:
-        yield
-    finally:
-        await _shutdown()
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"detail": "Invalid JSON body."}, status_code=400)
+
+    input_env = body.get("input", body)
+    if not isinstance(input_env, dict):
+        return JSONResponse(
+            {"detail": "'input' must be a JSON object (SLaNg envelope)."},
+            status_code=422,
+        )
+
+    try:
+        result = solver.solve(input_env)
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=422)
+    except Exception as exc:
+        return JSONResponse({"detail": f"Solver error: {exc}"}, status_code=500)
+
+    normalized = normalize_solver_result(result, mode)
+    return JSONResponse(normalized)
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+async def validate_handler(request: Request) -> JSONResponse:
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"detail": "Invalid JSON body."}, status_code=400)
+
+    expression = body.get("expression", body)
+
+    try:
+        serialize_slang_math(expression)
+        return JSONResponse({"valid": True})
+    except Exception as error:
+        return JSONResponse({"valid": False, "reason": str(error)})
 
 
-async def health(request: Request):
-    return JSONResponse(
-        {
-            "status": "ok",
-            "solver_mode": _state["solver_mode"],
-            "solver_stage": _state["solver_stage"],
-            "solver_loaded": _state["solver"] is not None,
-            "checkpoint_error": (
-                _state["solver_error"] if _state["solver_mode"] != "neural" else None
-            ),
-        }
-    )
-
+# ── Application setup ─────────────────────────────────────────────────────────
 
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
@@ -144,9 +100,14 @@ ALLOWED_ORIGINS = os.getenv(
 app = Starlette(
     debug=False,
     routes=[
-        Route("/health", health),
-        Route("/solve", lambda req: solve_route(req, _state), methods=["POST"]),
-        Route("/validate", validate_route, methods=["POST"]),
+        Route("/", root_handler),
+        Route("/api/health", health_handler),
+        Route("/api/solve", solve_handler, methods=["POST"]),
+        Route("/api/validate", validate_handler, methods=["POST"]),
+        # Also support without /api for local fallback if needed
+        Route("/health", health_handler),
+        Route("/solve", solve_handler, methods=["POST"]),
+        Route("/validate", validate_handler, methods=["POST"]),
     ],
     middleware=[
         Middleware(

@@ -1,322 +1,40 @@
-# ------------------------------------------------------------
-# make-folder-txt
-# ------------------------------------------------------------
-.txtconfig
-.txtignore
-CalculusSolver.txt
-calculussolver.txt
-/.txtconfig
-/.txtignore
-/CalculusSolver.txt
-/calculussolver.txt
-
-
-# ------------------------------------------------------------
-# Python
-# ------------------------------------------------------------
+# Python artifacts
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyo
 *.pyd
-.Python
 *.egg
 *.egg-info/
 dist/
 build/
-eggs/
-parts/
-var/
-sdist/
-develop-eggs/
-.installed.cfg
-lib/
-lib64/
-MANIFEST
 
-
-# ------------------------------------------------------------
 # Virtual Environments
-# ------------------------------------------------------------
-.venv
-/.venv
+.venv/
 venv/
 env/
-ENV/
-.env
-.env.*
-!.env.example
-virtualenv/
-.virtualenv/
-pipenv/
-poetry.lock
-Pipfile.lock
-
-
-# ------------------------------------------------------------
-# Jupyter / IPython
-# ------------------------------------------------------------
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-profile_default/
-ipython_config.py
-*.ipynb
-
-
-# ------------------------------------------------------------
-# ML Frameworks & Model Artifacts
-# ------------------------------------------------------------
-
-# General model files
-*.pt
-*.pth
-*.ckpt
-*.pkl
-*.pickle
-*.h5
-*.hdf5
-*.pb
-*.onnx
-*.tflite
-*.mlmodel
-*.joblib
-*.bin
-*.safetensors
-*.model
-
-# TensorFlow / Keras
-saved_model/
-*.tf
-*.tfevents.*
-tensorflow_logs/
-tf_logs/
-
-# PyTorch
-lightning_logs/
-torch_logs/
-
-# Hugging Face
-*.msgpack
-*.arrow
-*.feather
-flax_model.msgpack
-rust_model.ot
-tf_model.h5
-pytorch_model.bin
-model.safetensors
-
-# scikit-learn / XGBoost / LightGBM / CatBoost
-*.xgb
-*.lgbm
-*.cbm
-
-
-# ------------------------------------------------------------
-# Experiment Tracking & MLOps
-# ------------------------------------------------------------
-
-# MLflow
-mlruns/
-mlartifacts/
-
-# Weights & Biases
-wandb/
-.wandb/
-
-# DVC
-.dvc/
-*.dvc
-dvc.lock
-
-# ClearML / Comet / Neptune
-.clearml/
-.comet/
-.neptune/
-
-# Optuna
-optuna.db
-optuna_studies/
-
-# Ray / Ray Tune
-ray_results/
-~/ray_results/
-
-
-# ------------------------------------------------------------
-# Datasets & Large Files
-# ------------------------------------------------------------
-data/raw/
-data/processed/
-data/interim/
-data/external/
-datasets/
-*.csv
-*.tsv
-*.parquet
-*.jsonl
-*.json.gz
-*.npy
-*.npz
-*.mat
-*.db
-*.sqlite
-*.sqlite3
-*.hdf
-*.zarr/
-
-# Images / video (common in CV projects)
-*.jpg
-*.jpeg
-*.png
-*.bmp
-*.tiff
-*.tif
-*.gif
-*.mp4
-*.avi
-*.mov
-*.mkv
-
-# Audio (common in speech/NLP projects)
-*.wav
-*.mp3
-*.flac
-*.ogg
-
-
-# ------------------------------------------------------------
-# Outputs, Logs & Reports
-# ------------------------------------------------------------
-outputs/
-results/
-reports/
-figures/
-plots/
-checkpoints/
-runs/
-logs/
-*.log
-*.out
-*.err
-*.log.*
-nohup.out
-core.*
-
-# Profiling
-*.prof
-*.lprof
-*.cprof
-
-
-# ------------------------------------------------------------
-# Configuration & Secrets
-# ------------------------------------------------------------
 .env
 .env.local
 .env.production
-secrets.yaml
-secrets.yml
-secrets.json
-config/secrets/
-*.key
-*.pem
-*.p12
-*.pfx
-api_keys.txt
-credentials.json
-token.json
-service_account*.json
 
-
-# ------------------------------------------------------------
-# IDE & Editor
-# ------------------------------------------------------------
+# IDEs
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.spyderproject.db
-.spyproject/
-.ropeproject/
 *.code-workspace
 
-
-# ------------------------------------------------------------
-# OS & System
-# ------------------------------------------------------------
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 Desktop.ini
-$RECYCLE.BIN/
-*.lnk
 
-
-# ------------------------------------------------------------
-# Docker
-# ------------------------------------------------------------
-.dockerignore
-docker-compose.override.yml
-*.pid
-
-
-# ------------------------------------------------------------
-# Node / Front-end (notebooks with JS kernels, Streamlit, etc.)
-# ------------------------------------------------------------
-node_modules/
-.npm
-.yarn/
-dist/
-.next/
-.nuxt/
-
-
-# ------------------------------------------------------------
-# Testing & Coverage
-# ------------------------------------------------------------
-.tox/
-.nox/
-.coverage
-.coverage.*
-coverage.xml
-htmlcov/
-.pytest_cache/
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.hypothesis/
-nosetests.xml
-test-results/
-
-
-# ------------------------------------------------------------
-# Documentation Builds
-# ------------------------------------------------------------
-docs/_build/
-docs/generated/
-site/
-.mkdocs/
-
-
-# ------------------------------------------------------------
-# Misc
-# ------------------------------------------------------------
-*.bak
-*.swp
-*.swo
-*~
-*.tmp
-*.temp
-.cache/
-.tmp/
+# Logs & temporary files
+*.log
 tmp/
 temp/
-scratch/
-sandbox/
+logs/
+
+# Vercel
+.vercel/
+
+# Model Checkpoints (avoid committing large binary weights)
+checkpoints/

@@ -1,0 +1,18 @@
+{
+  "input": {
+    "op": "diff",
+    "var": "x",
+    "expr": {
+      "numi": {"terms": [{"coeff": 7}]},
+      "deno": 1
+    }
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "expr": {
+      "numi": {"terms": [{"coeff": 0}]},
+      "deno": 1
+    }
+  }
+}

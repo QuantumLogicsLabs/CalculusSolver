@@ -1,0 +1,12 @@
+{
+  "learning_rate": 0.0001,
+  "batch_size": 32,
+  "max_steps": 500,
+  "hidden_dim": 128,
+  "epochs": 10,
+  "early_stopping": {
+    "patience": 5,
+    "min_delta": 0.001
+  },
+  "validation_logging": true
+}

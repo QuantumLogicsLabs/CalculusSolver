@@ -1,0 +1,17 @@
+{
+  "input": {
+    "op": "tangent_line",
+    "var": "x",
+    "expr": {
+      "numi": {"terms": [{"coeff": 1, "var": {"x": 2}}]},
+      "deno": 1
+    },
+    "point": {"x": 2}
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "rule": "tangent_line",
+    "latex": "y = 4.0x - 4.0"
+  }
+}

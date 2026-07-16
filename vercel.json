@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/solve.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/validate.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/health.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/health",
+      "dest": "api/health.py"
+    },
+    {
+      "src": "/api/solve",
+      "dest": "api/solve.py"
+    },
+    {
+      "src": "/api/validate",
+      "dest": "api/validate.py"
+    },
+    {
+      "src": "/api",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

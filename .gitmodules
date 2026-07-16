@@ -1,6 +1,6 @@
 [submodule "website"]
-    path = website
-    url = https://github.com/QuantumLogicsLabs/CalculusSolver-Website.git
+	path = website
+	url = https://github.com/QuantumLogicsLabs/CalculusSolver-Website.git
 [submodule "slang"]
-    path = slang
-    url = https://github.com/SENODROOM/SLaNg.git
+	path= slang
+	url=https://github.com/SENODROOM/SLaNg.git

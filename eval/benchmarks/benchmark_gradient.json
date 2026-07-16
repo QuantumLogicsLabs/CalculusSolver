@@ -1,0 +1,2711 @@
+[
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -2
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 5,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -6,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 10,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 9,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -7,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 12,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -7
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -9,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 1
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": 6,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 4,
+                "var": {
+                  "x": 3
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 6
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -3,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 9,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 10,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -8,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "y": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -10,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10,
+                "var": {
+                  "y": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5,
+                "var": {
+                  "y": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -8,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -10
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -9,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 6,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -9,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 9,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 9
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 3,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -9,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -5,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 3
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -4,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -2,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -2,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "y": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8,
+                "var": {
+                  "y": 3
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 12,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -8,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 3
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5,
+                "var": {
+                  "y": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 2,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 6,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "y": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12,
+                "var": {
+                  "y": 3
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 1,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 1
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -2
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 5,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 3
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 4
+              }
+            },
+            {
+              "coeff": -4,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8,
+                "var": {
+                  "x": 3
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -9,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 6,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 6
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 4,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 3
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 3
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -1
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 6,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -5,
+              "var": {
+                "y": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -6,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -10,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": 8,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": -6,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 4,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -6
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -7,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -7
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5,
+                "var": {
+                  "y": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 10,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -2
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -4,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 7,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 7
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -6,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -5,
+                "var": {
+                  "y": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 7,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 7
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 9,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -8
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 9
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 2
+              }
+            },
+            {
+              "coeff": 10,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 4,
+                "var": {
+                  "x": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 10
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 3
+              }
+            },
+            {
+              "coeff": -1,
+              "var": {
+                "y": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -6,
+                "var": {
+                  "x": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -3,
+                "var": {
+                  "y": 2
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            },
+            {
+              "coeff": -9,
+              "var": {
+                "y": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 5,
+                "var": {
+                  "x": 4
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -9
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
+  }
+]

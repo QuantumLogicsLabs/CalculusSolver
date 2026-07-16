@@ -1,0 +1,28 @@
+{
+  "input": {
+    "op": "gradient",
+    "var": "x",
+    "expr": {
+      "numi": {"terms": [
+        {"coeff": 1, "var": {"x": 2}},
+        {"coeff": 1, "var": {"y": 2}}
+      ]},
+      "deno": 1
+    }
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "rule": "gradient",
+    "gradient_partials": {
+      "x": {
+        "numi": {"terms": [{"coeff": 2, "var": {"x": 1}}]},
+        "deno": 1
+      },
+      "y": {
+        "numi": {"terms": [{"coeff": 2, "var": {"y": 1}}]},
+        "deno": 1
+      }
+    }
+  }
+}

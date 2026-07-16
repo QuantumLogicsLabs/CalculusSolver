@@ -9,64 +9,198 @@ import torch
 from model.architecture import CalculusModel
 
 
-class NodeValidityWorker:
-    def __init__(self, script_path: str):
-        self.process = subprocess.Popen(
-            [
-                "node",
-                "--input-type=module",
-                script_path,
-            ],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        if self.process.stdin is None or self.process.stdout is None:
-            raise RuntimeError("Failed to open Node validity worker streams.")
-        self.lock = threading.Lock()
+def is_valid_prefix(tokens: List[str]) -> bool:
+    """Check if the given tokens form a valid prefix of a SLaNg AST."""
+    if not tokens:
+        return True
+        
+    def parse_term(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "NODE:TERM":
+            return {"status": "invalid"}
+        index += 1
 
-    def ask(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        payload = json.dumps(request)
-        with self.lock:
-            self.process.stdin.write(payload + "\n")
-            self.process.stdin.flush()
-            response_line = self.process.stdout.readline()
-        if not response_line:
-            stderr = self.process.stderr.read().strip()
-            raise RuntimeError(
-                f"Node validity worker exited unexpectedly. stderr={stderr}"
-            )
-        return json.loads(response_line)
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if not tokens[index].startswith("COEF:"):
+            return {"status": "invalid"}
+        index += 1
 
-    def close(self) -> None:
-        try:
-            if self.process.stdin:
-                self.process.stdin.close()
-            self.process.terminate()
-        except Exception:
-            pass
+        while index < len(tokens):
+            token = tokens[index]
+            if token.startswith("VAR:"):
+                index += 1
+                if index >= len(tokens):
+                    return {"status": "incomplete"}
+                if not tokens[index].startswith("EXP:"):
+                    return {"status": "invalid"}
+                index += 1
+                continue
+            break
+
+        return {"status": "complete", "next": index}
+
+    def parse_term_list(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] == "STRUCT:CLOSE":
+            return {"status": "complete", "next": index}
+
+        current = index
+        while True:
+            node = parse_node(current)
+            if node["status"] == "invalid":
+                return {"status": "invalid"}
+            if node["status"] == "incomplete":
+                return {"status": "incomplete"}
+            current = node["next"]
+            if current >= len(tokens):
+                return {"status": "incomplete"}
+            if tokens[current] == "STRUCT:SEP":
+                current += 1
+                continue
+            if tokens[current] == "STRUCT:CLOSE":
+                return {"status": "complete", "next": current}
+            return {"status": "invalid"}
+
+    def parse_fraction(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "NODE:FRAC":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:NUMI":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+
+        numerator = parse_term_list(index)
+        if numerator["status"] != "complete":
+            return numerator
+        index = numerator["next"]
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:CLOSE":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:SEP":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:DENO":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+
+        denominator = parse_term_list(index)
+        if denominator["status"] != "complete":
+            return denominator
+        index = denominator["next"]
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:CLOSE":
+            return {"status": "invalid"}
+        index += 1
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:CLOSE":
+            return {"status": "invalid"}
+        index += 1
+
+        return {"status": "complete", "next": index}
+
+    def parse_op_node(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        token = tokens[index]
+        if not isinstance(token, str) or not token.startswith("OP:"):
+            return {"status": "invalid"}
+        index += 1
+
+        while (
+            index < len(tokens)
+            and isinstance(tokens[index], str)
+            and tokens[index].startswith("OPVAR:")
+        ):
+            index += 1
+
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        if tokens[index] != "STRUCT:OPEN":
+            return {"status": "invalid"}
+        index += 1
+
+        seen_child = False
+        while True:
+            node = parse_node(index)
+            if node["status"] == "invalid":
+                return {"status": "invalid"}
+            if node["status"] == "incomplete":
+                return {"status": "incomplete"}
+            seen_child = True
+            index = node["next"]
+            if index >= len(tokens):
+                return {"status": "incomplete"}
+            if tokens[index] == "STRUCT:SEP":
+                index += 1
+                continue
+            if tokens[index] == "STRUCT:CLOSE":
+                if not seen_child:
+                    return {"status": "invalid"}
+                index += 1
+                return {"status": "complete", "next": index}
+            return {"status": "invalid"}
+
+    def parse_node(index: int) -> dict:
+        if index >= len(tokens):
+            return {"status": "incomplete"}
+        token = tokens[index]
+        if token == "NODE:TERM":
+            return parse_term(index)
+        if token == "NODE:FRAC":
+            return parse_fraction(index)
+        if isinstance(token, str) and token.startswith("OP:"):
+            return parse_op_node(index)
+        return {"status": "invalid"}
+
+    result = parse_node(0)
+    if result["status"] == "invalid":
+        return False
+    if result["status"] == "incomplete":
+        return True
+    return result["status"] == "complete" and result["next"] == len(tokens)
 
 
 class NodeValidityPool:
-    def __init__(self, script_path: str, num_workers: int = 4):
-        self.workers = [NodeValidityWorker(script_path) for _ in range(num_workers)]
-        self.next_index = 0
+    """Pure-Python replacement for NodeValidityPool that runs completely in-memory."""
+    def __init__(self, script_path: str = "", num_workers: int = 1):
+        pass
 
     def mask(self, tokens: List[str], candidate_tokens: List[str]) -> List[bool]:
-        worker = self.workers[self.next_index % len(self.workers)]
-        self.next_index += 1
-        response = worker.ask(
-            {
-                "tokens": tokens,
-                "candidate_tokens": candidate_tokens,
-            }
-        )
-        return response.get("mask", [])
+        return [is_valid_prefix(tokens + [candidate]) for candidate in candidate_tokens]
 
     def close(self) -> None:
-        for worker in self.workers:
-            worker.close()
+        pass
+
 
 
 def flatten_vocab(vocab: Dict[str, Any]) -> Dict[str, int]:
@@ -127,7 +261,8 @@ def beam_search(
     root_rule_id = int(root_rule_ids[0].item())
     rule_embeddings = model.rule_head.embed_rules(root_rule_ids)
 
-    all_candidate_tokens = [id_to_token[idx] for idx in range(len(id_to_token))]
+    vocab_size = max(id_to_token.keys()) + 1
+    all_candidate_tokens = [id_to_token.get(idx, "[PAD]") for idx in range(vocab_size)]
     beams = [
         {
             "tokens": [bos_id],

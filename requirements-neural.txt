@@ -1,0 +1,6 @@
+# Local-dev / research only. NOT installed on Vercel.
+# Needed to run inference/solve.py, model/, train.py.
+-r requirements.txt
+torch==2.3.1
+numpy==1.26.4
+joblib==1.4.2

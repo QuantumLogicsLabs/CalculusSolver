@@ -32,22 +32,43 @@ class CalculusSolverInference:
         self.vocab_map = load_vocab(vocab_path)
         config = (
             self.model_data.get("config", {})
-            if isinstance(self.model_data, dict)
+            if isinstance(self.model_data, dict) and "config" in self.model_data
             else {}
         )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         rule_labels = self._load_rule_labels(vocab_path)
-        self.model = CalculusModel(
-            vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
-            rule_labels=rule_labels,
-            hidden_dim=config.get("hidden_dim", 512),
-            num_heads=config.get("num_heads", 8),
-            num_layers=config.get("num_layers", 8),
-            ffn_dim=config.get("ffn_dim", 2048),
-            dropout=config.get("dropout", 0.1),
-            position_dim=config.get("position_dim", 3),
-        ).to(self.device)
+
+        if model_path.endswith((".pt", ".pth")):
+            from model.transformer import CalculusSolverModel
+            hidden_dim = 128
+            try:
+                # Try to load hidden_dim from config.json in root
+                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                config_path = os.path.join(root_dir, "config.json")
+                if os.path.exists(config_path):
+                    with open(config_path, "r") as f:
+                        cfg = json.load(f)
+                        hidden_dim = cfg.get("hidden_dim", 128)
+            except Exception:
+                pass
+            vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
+            self.model = CalculusSolverModel(
+                vocab_size=vocab_size,
+                num_rules=len(rule_labels),
+                hidden_dim=hidden_dim,
+            ).to(self.device)
+        else:
+            self.model = CalculusModel(
+                vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
+                rule_labels=rule_labels,
+                hidden_dim=config.get("hidden_dim", 512),
+                num_heads=config.get("num_heads", 8),
+                num_layers=config.get("num_layers", 8),
+                ffn_dim=config.get("ffn_dim", 2048),
+                dropout=config.get("dropout", 0.1),
+                position_dim=config.get("position_dim", 3),
+            ).to(self.device)
         self.model.load_state_dict(self._resolve_state_dict(self.model_data))
         self.model.eval()
 
@@ -97,38 +118,14 @@ class CalculusSolverInference:
         raise ValueError("Unsupported checkpoint format for model state.")
 
     def _serialize_input(self, input_env: Dict[str, Any]) -> List[str]:
-        script = os.path.join(os.path.dirname(__file__), "serialize_input.js")
-        proc = subprocess.run(
-            ["node", "--input-type=module", script],
-            input=json.dumps(input_env),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Input serialization failed: {proc.stderr.strip() or proc.stdout.strip()}"
-            )
-        result = json.loads(proc.stdout)
-        return result["tokens"]
+        from tokenizer.slang_serializer import serialize_slang_math
+        return serialize_slang_math(input_env)
 
     def _verify_output(
         self, input_env: Dict[str, Any], output_tokens: List[str]
     ) -> Dict[str, Any]:
-        script = os.path.join(os.path.dirname(__file__), "verifier.js")
-        payload = {"input": input_env, "output_tokens": output_tokens}
-        proc = subprocess.run(
-            ["node", "--input-type=module", script],
-            input=json.dumps(payload),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode not in (0, 1):
-            raise RuntimeError(
-                f"Output verification failed: {proc.stderr.strip() or proc.stdout.strip()}"
-            )
-        return json.loads(proc.stdout)
+        from inference.verifier import verify
+        return verify(input_env, output_tokens)
 
     def solve(self, input_env: Dict[str, Any]) -> Dict[str, Any]:
         token_strings = self._serialize_input(input_env)

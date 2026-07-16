@@ -1,0 +1,26 @@
+{
+  "input": {
+    "op": "diff",
+    "var": "x",
+    "expr": {
+      "numi": {"terms": [
+        {"coeff": 3, "var": {"x": 2}},
+        {"coeff": -1, "var": {"x": 1}},
+        {"coeff": 5}
+      ]},
+      "deno": 1
+    }
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "rule": "power_rule",
+    "expr": {
+      "numi": {"terms": [
+        {"coeff": 6, "var": {"x": 1}},
+        {"coeff": -1}
+      ]},
+      "deno": 1
+    }
+  }
+}

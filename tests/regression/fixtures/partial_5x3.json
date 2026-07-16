@@ -1,0 +1,19 @@
+{
+  "input": {
+    "op": "partial",
+    "var": "x",
+    "expr": {
+      "numi": {"terms": [{"coeff": 5, "var": {"x": 3}}]},
+      "deno": 1
+    }
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "rule": "power_rule",
+    "expr": {
+      "numi": {"terms": [{"coeff": 15, "var": {"x": 2}}]},
+      "deno": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "input": {
+    "op": "integrate",
+    "var": "x",
+    "expr": {
+      "numi": {"terms": [{"coeff": 6, "var": {"x": 1}}]},
+      "deno": 1
+    }
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "rule": "power_rule_integral",
+    "expr": {
+      "numi": {"terms": [{"coeff": 3.0, "var": {"x": 2}}]},
+      "deno": 1
+    }
+  }
+}

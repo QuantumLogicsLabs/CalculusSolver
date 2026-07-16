@@ -1,0 +1,2002 @@
+[
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -64.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 96.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 9,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 9.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -1.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 108.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -243.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -12.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 16.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 6,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 160.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -256.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 4.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 30.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -45.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -8.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 4.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 2.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 8.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 4.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -3.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -2.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 3.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 32.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 48.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 12,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 32.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -48.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -3.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 2.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 6,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 12.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -6.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 4.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 3,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 3.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 5.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -6.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 4.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -4.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -4.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -4.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 2.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -4.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -2.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 5,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -2,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -160.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 256.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 48.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 64.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 3
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 3.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 2.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -4.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -2.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 6,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 6.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 16.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -16.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 8.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -1,
+              "var": {
+                "x": 4
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -108.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 243.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 4,
+              "var": {
+                "x": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 24.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -36.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -8,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 2
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -8.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -3,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 3
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -3.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -10,
+              "var": {
+                "x": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": -1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": -10.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": 0.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  },
+  {
+    "expr": {
+      "op": "tangent_line",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 1,
+              "var": {
+                "x": 5
+              }
+            }
+          ]
+        },
+        "deno": 1
+      },
+      "point": {
+        "x": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 5.0,
+            "var": {
+              "x": 1
+            }
+          },
+          {
+            "coeff": -4.0
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "tangent_line",
+    "expected_rule": "tangent_line"
+  }
+]

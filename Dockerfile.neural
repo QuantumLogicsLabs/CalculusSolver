@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install neural inference deps only
+COPY requirements-neural.txt .
+RUN pip install --no-cache-dir -r requirements-neural.txt
+
+# Copy only what neural_app.py needs
+COPY api/neural_app.py api/neural_app.py
+COPY api/__init__.py api/__init__.py
+COPY inference/ inference/
+COPY model/ model/
+COPY tokenizer/ tokenizer/
+COPY solver_model.py .
+COPY config.json .
+COPY slang/ slang/
+
+# Checkpoint must be mounted or uploaded separately
+# ENV MODEL_PATH=/checkpoints/best.pt
+
+EXPOSE 8080
+
+CMD ["uvicorn", "api.neural_app:app", "--host", "0.0.0.0", "--port", "8080"]

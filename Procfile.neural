@@ -1,0 +1,6 @@
+[build]
+# HuggingFace Spaces Dockerfile-style build
+# Runtime config for the neural inference microservice
+
+[run]
+command = uvicorn api.neural_app:app --host 0.0.0.0 --port 7860
