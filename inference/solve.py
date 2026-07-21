@@ -161,6 +161,18 @@ class CalculusSolverInference:
             if token_id in self.vocab_map["id_to_token"]
         ]
 
+        # FIX (docs/KNOWN_ISSUES.md): beam_search seeds every beam with a
+        # leading [BOS] token, which is correct for decoder input framing but
+        # is not part of the SLaNg AST grammar itself. Downstream consumers
+        # (the deserializer inside verify(), and any AST-structure parsing)
+        # expect a pure token sequence starting at a real node type
+        # (NODE:TERM / NODE:FRAC / OP:...), not [BOS]. Without this strip,
+        # deserialization fails immediately with "Unexpected token ... [BOS]"
+        # on every single call, regardless of whether the underlying sequence
+        # the model generated was otherwise valid.
+        if output_token_strings and output_token_strings[0] == "[BOS]":
+            output_token_strings = output_token_strings[1:]
+
         verifier_result = self._verify_output(input_env, output_token_strings)
         if verifier_result.get("status") in ("solved", "unverified", "unsolvable"):
             result["status"] = verifier_result["status"]
