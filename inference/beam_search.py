@@ -281,6 +281,20 @@ def beam_search(
 
             current_tokens = beam["tokens"]
             token_strings = [id_to_token[token_id] for token_id in current_tokens]
+
+            # FIX (docs/KNOWN_ISSUES.md): is_valid_prefix()'s grammar parses SLaNg
+            # AST structure only — it has no rule for a leading [BOS] token, so
+            # passing token_strings as-is caused every candidate to be marked
+            # invalid on the very first decoding step, producing empty output
+            # ([BOS] only) on every solve() call regardless of training quality.
+            # Strip the seed [BOS] before validity checking; it is not part of
+            # the AST grammar being validated.
+            validity_tokens = (
+                token_strings[1:]
+                if token_strings and token_strings[0] == "[BOS]"
+                else token_strings
+            )
+
             tgt = torch.tensor([current_tokens], device=device)
             decoder_logits, _ = model.decoder(
                 tgt,
@@ -291,7 +305,7 @@ def beam_search(
                 memory_key_padding_mask=None,
             )
             next_logits = decoder_logits[0, -1, :]
-            mask = node_pool.mask(token_strings, all_candidate_tokens)
+            mask = node_pool.mask(validity_tokens, all_candidate_tokens)
             invalid_mask = torch.tensor([not valid for valid in mask], device=device)
             safe_logits = next_logits.masked_fill(invalid_mask, float("-inf"))
 
