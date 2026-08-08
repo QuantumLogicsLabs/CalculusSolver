@@ -12,12 +12,22 @@ NUMI = "STRUCT:NUMI"
 DENO = "STRUCT:DENO"
 FRAC = "NODE:FRAC"
 TERM = "NODE:TERM"
+# Gradient node type. Represents a dict keyed by variable name, each value
+# itself a SLaNg expression (e.g. {"x": <d/dx expr>, "y": <d/dy expr>}).
+# Added to support inference/verifier.py's gradient_oracle(), which returns
+# exactly this shape. See docs/KNOWN_ISSUES.md.
+GRADIENT = "NODE:GRADIENT"
+
 
 OP_PREFIX = "OP:"
 OPVAR_PREFIX = "OPVAR:"
 VAR_PREFIX = "VAR:"
 COEF_PREFIX = "COEF:"
 EXP_PREFIX = "EXP:"
+# NEW: point decorator prefix for tangent_line's x0 value. Kept as a
+# distinct namespace from COEF:/EXP: (rather than reusing either) to avoid
+# any parsing ambiguity in parse_op_node's fixed decorator-check order.
+POINT_PREFIX = "POINT:"
 
 
 def serialize_slang_math(node: Any) -> List[str]:
@@ -39,6 +49,22 @@ def serialize_slang_math(node: Any) -> List[str]:
                 return
             if "coeff" in n:
                 serialize_term(n)
+                return
+            # NEW: unwrap the {"gradient": {...}} envelope used by
+            # eval/benchmarks' target format -- serialize the inner
+            # {var: expr} dict directly, not the wrapper key itself.
+            # Checked BEFORE the general gradient-dict branch below, since
+            # {"gradient": {...}} would otherwise itself match that
+            # branch's shape check (a dict whose sole value is a dict).
+            if set(n.keys()) == {"gradient"} and isinstance(n["gradient"], dict):
+                serialize_gradient_node(n["gradient"])
+                return
+            # NEW: gradient node -- a non-empty dict whose values are all
+            # themselves SLaNg-serializable expressions, keyed by variable
+            # name. Checked LAST among dict branches since it is the most
+            # permissive shape-match (any dict lacking op/numi+deno/coeff).
+            if n and all(isinstance(v, (dict, list, int, float)) for v in n.values()):
+                serialize_gradient_node(n)
                 return
         raise ValueError(
             f"Unsupported slang node type during serialization: {n}"
@@ -68,6 +94,18 @@ def serialize_slang_math(node: Any) -> List[str]:
             if power_val.is_integer():
                 power_val = int(power_val)
             tokens.append(f"{EXP_PREFIX}{power_val}")
+
+        # NEW (backward-compatible, opt-in): optional point decorator on an
+        # op-node, e.g. {"op": "tangent_line", "point": 3, ...} for the x0
+        # value at which the tangent line is evaluated. Uses a distinct
+        # POINT: token range (vocab.json v1.7) rather than reusing COEF:,
+        # to keep parse_op_node's fixed decorator order unambiguous. Only
+        # tangent_line sets this field; all other op-nodes are unaffected.
+        if "point" in n:
+            point_val = float(n["point"])
+            if point_val.is_integer():
+                point_val = int(point_val)
+            tokens.append(f"{POINT_PREFIX}{point_val}")
 
         if n.get("var") is not None:
             tokens.append(f"{OPVAR_PREFIX}{n['var']}")
@@ -108,6 +146,21 @@ def serialize_slang_math(node: Any) -> List[str]:
         tokens.append(OPEN)
         serialize_term_list(extract_terms(n["deno"]))
         tokens.append(CLOSE)
+        tokens.append(CLOSE)
+
+    def serialize_gradient_node(n: Dict[str, Any]) -> None:
+        """Serialize a {var: expr, ...} dict as NODE:GRADIENT OPEN
+        OPVAR:<name> <expr> [SEP OPVAR:<name> <expr> ...] CLOSE. Variables
+        are sorted alphabetically for deterministic, reproducible token
+        output (matching the existing var-sort convention in serialize_term)."""
+        tokens.append(GRADIENT)
+        tokens.append(OPEN)
+        sorted_items = sorted(n.items(), key=lambda kv: kv[0])
+        for i, (var_name, expr) in enumerate(sorted_items):
+            if i > 0:
+                tokens.append(SEP)
+            tokens.append(f"{OPVAR_PREFIX}{var_name}")
+            serialize(expr)
         tokens.append(CLOSE)
 
     def serialize_term_list(terms: List[Any]) -> None:
@@ -179,6 +232,8 @@ def deserialize_slang_math(tokens: List[str]) -> Any:
             return parse_term(index)
         if token == FRAC:
             return parse_fraction(index)
+        if token == GRADIENT:
+            return parse_gradient_node(index)
         if isinstance(token, str) and token.startswith(OP_PREFIX):
             return parse_op_node(index)
         raise ValueError(
@@ -219,6 +274,22 @@ def deserialize_slang_math(tokens: List[str]) -> Any:
                 node["power"] = int(exp_str)
             except ValueError:
                 node["power"] = float(exp_str)
+            index += 1
+
+        # NEW (backward-compatible): optional POINT: decorator immediately
+        # after the optional COEF:/EXP:, mirroring serialize_op_node's
+        # emission order. Existing op-nodes never have a POINT: token in
+        # this position, so this only ever triggers for tangent_line nodes.
+        if (
+            index < len(tokens)
+            and isinstance(tokens[index], str)
+            and tokens[index].startswith(POINT_PREFIX)
+        ):
+            point_str = tokens[index][len(POINT_PREFIX):]
+            try:
+                node["point"] = int(point_str)
+            except ValueError:
+                node["point"] = float(point_str)
             index += 1
 
         while (
@@ -268,6 +339,32 @@ def deserialize_slang_math(tokens: List[str]) -> Any:
             "numi": {"terms": numerator_terms},
             "deno": {"terms": denominator_terms},
         }, index
+
+    def parse_gradient_node(index: int) -> Tuple[Dict[str, Any], int]:
+        """Parse NODE:GRADIENT OPEN OPVAR:<name> <expr> [SEP ...] CLOSE
+        back into a {var: expr, ...} dict, mirroring serialize_gradient_node.
+        Note: this returns the BARE {var: expr} dict, not wrapped in
+        {"gradient": {...}} -- callers comparing against
+        eval/benchmarks' target format must wrap it themselves, since
+        inference/verifier.py's own gradient_oracle() also produces the
+        bare shape internally."""
+        index = expect_token(index, GRADIENT)
+        index = expect_token(index, OPEN)
+        result: Dict[str, Any] = {}
+        while index < len(tokens) and tokens[index] != CLOSE:
+            var_token = tokens[index]
+            if not isinstance(var_token, str) or not var_token.startswith(OPVAR_PREFIX):
+                raise ValueError(
+                    f"Expected OPVAR token in gradient node at index {index}, got {var_token}"
+                )
+            var_name = var_token[len(OPVAR_PREFIX):]
+            index += 1
+            child_node, index = parse_node(index)
+            result[var_name] = child_node
+            if index < len(tokens) and tokens[index] == SEP:
+                index += 1
+        index = expect_token(index, CLOSE)
+        return result, index
 
     def parse_wrapped_term_list(index: int) -> Tuple[List[Any], int]:
         index = expect_token(index, OPEN)

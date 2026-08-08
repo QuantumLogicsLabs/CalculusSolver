@@ -50,7 +50,17 @@ def run_solver(solver, items, solver_name):
 
         try:
             result = solver.solve(payload)
-            prediction = result.get("expr", {})
+            # FIX (docs/KNOWN_ISSUES.md, "run_pipeline.py reads wrong result
+            # key"): inference/solve.py's CalculusSolverInference.solve()
+            # returns its verified output under the key "output", not
+            # "expr". Reading result.get("expr", {}) silently returned {}
+            # on every call regardless of solver quality -- no exception,
+            # just an always-empty prediction, making every neural (and
+            # potentially other solver) result register as incorrect
+            # independent of real model accuracy. This mismatch predates
+            # the SimpleCalculusModel rewrite -- the original solve.py also
+            # returned "output", not "expr".
+            prediction = result.get("output", {})
         except Exception as e:
             prediction = {"error": str(e)}
 

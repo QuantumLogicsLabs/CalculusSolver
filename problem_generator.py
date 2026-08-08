@@ -22,6 +22,33 @@ SAFE_POS_EXPONENTS = [e for e in SAFE_EXPONENTS if e >= 1]
 # Variables
 VARIABLES = ["x", "y", "z"]
 
+# ── Rule IDs ─────────────────────────────────────────────────────────────────
+# IMPORTANT: these are NOT vocab token IDs. train.py's RuleHead classifier
+# output has one neuron per entry in RULE_LABELS, which is built by sorting
+# tokenizer/vocab.json's rule_tokens by vocab ID and taking each entry's
+# *list position* as the classifier's target index (see train.py's
+# flatten_vocab / RULE_LABELS construction). rule_ids written here must be
+# that 0-based classifier index, not the raw vocab ID.
+#
+# Current rule_tokens (sorted by vocab ID) and their resulting classifier index:
+#   RULE:power_rule (90)           -> index 0
+#   RULE:chain_rule (91)           -> index 1
+#   RULE:product_rule (92)         -> index 2
+#   RULE:quotient_rule (93)        -> index 3
+#   RULE:sum_rule (94)             -> index 4
+#   RULE:constant_rule (95)        -> index 5
+#   RULE:power_rule_integral (96)  -> index 6
+#   RULE:partial_derivative (97)   -> index 7
+#   RULE:lagrange_multiplier (98)  -> index 8
+#   RULE:integration_by_parts (99) -> index 9
+#   RULE:trig_rule (102)           -> index 10
+#   RULE:exp_rule (103)            -> index 11
+#   RULE:log_rule (104)            -> index 12
+
+RULE_ID_TRIG = 10   # index of RULE:trig_rule -- sin, cos, tan
+RULE_ID_EXP = 11    # index of RULE:exp_rule -- exp
+RULE_ID_LOG = 12    # index of RULE:log_rule -- ln
+
 
 def _output_in_vocab(coeff, power):
     """Check that the derivative output (coeff*power, power-1) stays in vocab range."""
@@ -75,19 +102,14 @@ def generate_multi_term_diff(var="x", num_terms=None):
     ans_terms = []
 
     for i in range(num_terms):
-        # Mix: some power-rule terms, optionally a constant
         if i == num_terms - 1 and random.random() < 0.3:
-            # Add a constant term
             c_src, c_ans, _ = generate_constant_term()
             src_terms.append(c_src)
-            # Constant differentiates to 0, so we skip adding to ans
         else:
             t_src, t_ans, _ = generate_single_term_diff(var)
-            # Avoid duplicate exponents in the same polynomial
             src_exps = {list(t["numi"]["terms"][0].get("var", {}).values())[0] for t in src_terms if t["numi"]["terms"][0].get("var")}
             t_exp = list(t_src["numi"]["terms"][0].get("var", {}).values())[0] if t_src["numi"]["terms"][0].get("var") else None
             if t_exp in src_exps:
-                # Try a different exponent
                 t_src, t_ans, _ = generate_single_term_diff(var)
             src_terms.append(t_src)
             ans_terms.append(t_ans)
@@ -120,36 +142,21 @@ def generate_multivar_diff():
     src_terms = []
     ans_terms = []
 
-    # Term with the target variable
     t_src, t_ans, _ = generate_single_term_diff(var)
     src_terms.append(t_src)
     ans_terms.append(t_ans)
 
-    # Term with another variable (treated as constant → differentiates to 0)
     if other_vars:
         ov = random.choice(other_vars)
         c = random.choice(SAFE_NONZERO_COEFFS)
         p = random.choice(SAFE_POS_EXPONENTS)
         src_terms.append({"numi": {"terms": [{"coeff": c, "var": {ov: p}}]}, "deno": 1})
-        # This term vanishes under d/d(var)
 
     if not ans_terms:
         ans_terms = [{"numi": {"terms": [{"coeff": 0}]}, "deno": 1}]
 
     return src_terms, ans_terms, var, 7  # rule_id 7 = partial_derivative
 
-
-# ── Phase 2 additions: trig / exp / log templates ───────────────────────────
-# Use vocab.json v1.3's OP:sin / OP:cos / OP:tan / OP:exp / OP:ln / OP:sec
-# tokens, plus slang_serializer.py's new optional 'coeff' and 'power'
-# decorators on op-nodes (backward-compatible -- existing op-nodes never set
-# these fields, so their token output is unaffected).
-#
-# All five functions vary the inner argument's multiplier k (giving sin(kx),
-# cos(kx), tan(kx), exp(kx), ln(kx) instead of always just sin(x) etc.) so
-# the model sees more than one exact pattern per function, per reviewer
-# feedback. Verified via exhaustive serialization test against the real
-# vocab: 0 failures across all 375,000 generated node instances.
 
 def generate_sin_diff(var="x"):
     """d/dvar[sin(k*var)] = k*cos(k*var)."""
@@ -159,53 +166,140 @@ def generate_sin_diff(var="x"):
     ans = {"op": "cos", "expr": inner}
     if k != 1:
         ans["coeff"] = k
-    return src, ans, 1  # rule_id 1 = chain_rule (closest existing label; see KNOWN_ISSUES.md note)
+    return src, ans, RULE_ID_TRIG
 
 
 def generate_cos_diff(var="x"):
-    """d/dvar[cos(k*var)] = -k*sin(k*var). Uses the symmetric-safe coeff
-    range since -k must also be a valid vocab token (asymmetric COEF range:
-    -10 to 12, so k=12 is excluded here to avoid needing COEF:-12)."""
+    """d/dvar[cos(k*var)] = -k*sin(k*var)."""
     k = random.choice(SAFE_SYMMETRIC_NONZERO_COEFFS)
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "cos", "expr": inner}
     ans = {"op": "sin", "expr": inner, "coeff": -k}
-    return src, ans, 1  # rule_id 1 = chain_rule (closest existing label; see KNOWN_ISSUES.md note)
+    return src, ans, RULE_ID_TRIG
 
 
 def generate_tan_diff(var="x"):
-    """d/dvar[tan(k*var)] = k*sec^2(k*var). Requires both the coeff and
-    power decorators together."""
+    """d/dvar[tan(k*var)] = k*sec^2(k*var)."""
     k = random.choice(SAFE_NONZERO_COEFFS)
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "tan", "expr": inner}
     ans = {"op": "sec", "expr": inner, "power": 2}
     if k != 1:
         ans["coeff"] = k
-    return src, ans, 1  # rule_id 1 = chain_rule (closest existing label; see KNOWN_ISSUES.md note)
+    return src, ans, RULE_ID_TRIG
 
 
 def generate_exp_diff(var="x"):
-    """d/dvar[exp(k*var)] = k*exp(k*var). Self-derivative scaled by k."""
+    """d/dvar[exp(k*var)] = k*exp(k*var)."""
     k = random.choice(SAFE_NONZERO_COEFFS)
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "exp", "expr": inner}
     ans = {"op": "exp", "expr": inner}
     if k != 1:
         ans["coeff"] = k
-    return src, ans, 1  # rule_id 1 = chain_rule (closest existing label; see KNOWN_ISSUES.md note)
+    return src, ans, RULE_ID_EXP
 
 
 def generate_ln_diff(var="x"):
-    """d/dvar[ln(k*var)] = 1/var (k cancels algebraically -- this is the
-    correct symbolic derivative regardless of k, consistent with how the
-    rest of this codebase treats formal derivatives without domain
-    restriction, e.g. the existing negative-exponent templates)."""
+    """d/dvar[ln(k*var)] = 1/var."""
     k = random.choice(SAFE_NONZERO_COEFFS)
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "ln", "expr": inner}
     ans = {"numi": {"terms": [{"coeff": 1}]}, "deno": {"terms": [{"coeff": 1, "var": {var: 1}}]}}
-    return src, ans, 1  # rule_id 1 = chain_rule (closest existing label; see KNOWN_ISSUES.md note)
+    return src, ans, RULE_ID_LOG
+
+
+def generate_integrate_diff(var="x"):
+    """Generate a single-term power-rule integration problem."""
+    for _ in range(100):
+        coeff = random.choice(SAFE_NONZERO_COEFFS)
+        power = random.choice(SAFE_EXPONENTS)
+        if power == -1:
+            continue
+        if _integral_in_vocab(coeff, power):
+            new_power = power + 1
+            new_coeff = int(coeff / new_power)
+            if power == 0:
+                src = {"numi": {"terms": [{"coeff": coeff}]}, "deno": 1}
+            else:
+                src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
+            ans = {"numi": {"terms": [{"coeff": new_coeff, "var": {var: new_power}}]}, "deno": 1}
+            return src, ans, 6  # rule_id 6 = power_rule_integral
+    return (
+        {"numi": {"terms": [{"coeff": 4, "var": {var: 3}}]}, "deno": 1},
+        {"numi": {"terms": [{"coeff": 1, "var": {var: 4}}]}, "deno": 1},
+        6,
+    )
+
+
+def generate_gradient_diff():
+    """Generate a two-variable gradient problem."""
+    vx, vy = "x", "y"
+
+    cx = random.choice(SAFE_NONZERO_COEFFS)
+    px = random.choice(SAFE_POS_EXPONENTS)
+    cy = random.choice(SAFE_NONZERO_COEFFS)
+    py = random.choice(SAFE_POS_EXPONENTS)
+
+    for _ in range(100):
+        if _output_in_vocab(cx, px) and _output_in_vocab(cy, py):
+            break
+        cx = random.choice(SAFE_NONZERO_COEFFS)
+        px = random.choice(SAFE_POS_EXPONENTS)
+        cy = random.choice(SAFE_NONZERO_COEFFS)
+        py = random.choice(SAFE_POS_EXPONENTS)
+
+    expr = {
+        "numi": {
+            "terms": [
+                {"coeff": cx, "var": {vx: px}},
+                {"coeff": cy, "var": {vy: py}},
+            ]
+        },
+        "deno": 1,
+    }
+
+    dx = {"numi": {"terms": [{"coeff": cx * px, "var": {vx: px - 1}}]}, "deno": 1}
+    dy = {"numi": {"terms": [{"coeff": cy * py, "var": {vy: py - 1}}]}, "deno": 1}
+
+    ans = {"gradient": {vx: dx, vy: dy}}
+    return expr, ans, 7  # rule_id 7 = partial_derivative
+
+
+def generate_tangent_line_diff(var="x"):
+    """Generate a tangent-line problem: find y = f'(x0)(x-x0) + f(x0) for a
+    single-term polynomial f, evaluated at integer x0 in [-5, 5]."""
+    for _ in range(100):
+        coeff = random.choice(SAFE_NONZERO_COEFFS)
+        power = random.choice(SAFE_POS_EXPONENTS)
+        x0 = random.choice(range(-5, 6))
+        if not _output_in_vocab(coeff, power):
+            continue
+
+        slope = coeff * power * (x0 ** (power - 1)) if power >= 1 else 0
+        y0 = coeff * (x0 ** power)
+        intercept = y0 - slope * x0
+
+        # Keep answer coefficients in vocab range
+        if slope not in SAFE_COEFFS or intercept not in SAFE_COEFFS:
+            continue
+
+        src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
+        ans_terms = []
+        if slope != 0:
+            ans_terms.append({"coeff": int(slope), "var": {var: 1}})
+        ans_terms.append({"coeff": int(intercept)})
+        ans = {"numi": {"terms": ans_terms}, "deno": 1}
+
+        return src, ans, x0, 0  # rule_id 0 = power_rule
+
+    # Fallback: f(x)=x^2 at x0=1 -> tangent line y = 2x - 1
+    return (
+        {"numi": {"terms": [{"coeff": 1, "var": {var: 2}}]}, "deno": 1},
+        {"numi": {"terms": [{"coeff": 2, "var": {var: 1}}, {"coeff": -1}]}, "deno": 1},
+        1,
+        0,
+    )
 
 
 def generate_slang_dataset():
@@ -216,22 +310,9 @@ def generate_slang_dataset():
     dataset = []
     random.seed(42)  # Reproducible
 
-    # ── Distribution of problem types ─────────────────────────────────────────
-    # 35k single-term power rule
-    # 25k multi-term polynomial (sum rule)
-    # 10k constant terms
-    # 10k negative exponent
-    # 20k multi-variable partial derivatives
-    # 5k sin differentiation      (Phase 2, varied k)
-    # 5k cos differentiation      (Phase 2, varied k)
-    # 5k tan differentiation      (Phase 2, varied k)
-    # 5k exp differentiation      (Phase 2, varied k)
-    # 5k ln differentiation       (Phase 2, varied k)
-    # Total: 125k
-
     # 1. Single-term power rule (35k)
     for _ in range(35000):
-        var = random.choice(VARIABLES[:1])  # mostly x for single-term
+        var = random.choice(VARIABLES[:1])
         src, ans, rule_id = generate_single_term_diff(var)
         src_op = {"op": "diff", "var": var, "expr": src}
         dataset.append({
@@ -293,7 +374,7 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    # 6. Trig — sin (5k) — Phase 2 addition, varied k
+    # 6. Trig — sin (5k)
     for _ in range(5000):
         var = random.choice(VARIABLES[:1])
         src, ans, rule_id = generate_sin_diff(var)
@@ -306,7 +387,7 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    # 7. Trig — cos (5k) — Phase 2 addition, varied k
+    # 7. Trig — cos (5k)
     for _ in range(5000):
         var = random.choice(VARIABLES[:1])
         src, ans, rule_id = generate_cos_diff(var)
@@ -319,7 +400,7 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    # 8. Trig — tan (5k) — Phase 2 addition, varied k
+    # 8. Trig — tan (5k)
     for _ in range(5000):
         var = random.choice(VARIABLES[:1])
         src, ans, rule_id = generate_tan_diff(var)
@@ -332,7 +413,7 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    # 9. Exponential — exp (5k) — Phase 2 addition, varied k
+    # 9. Exponential — exp (5k)
     for _ in range(5000):
         var = random.choice(VARIABLES[:1])
         src, ans, rule_id = generate_exp_diff(var)
@@ -345,11 +426,49 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    # 10. Logarithmic — ln (5k) — Phase 2 addition, varied k
+    # 10. Logarithmic — ln (5k)
     for _ in range(5000):
         var = random.choice(VARIABLES[:1])
         src, ans, rule_id = generate_ln_diff(var)
         src_op = {"op": "diff", "var": var, "expr": src}
+        dataset.append({
+            "src_tokens": src_op,
+            "tgt_input_tokens": ans,
+            "tgt_output_tokens": ans,
+            "rule_ids": rule_id,
+            "verification_state": 1,
+        })
+
+    # 11. Integration — power rule integral (10k)
+    for _ in range(10000):
+        var = random.choice(VARIABLES[:1])
+        src, ans, rule_id = generate_integrate_diff(var)
+        src_op = {"op": "integrate", "var": var, "expr": src}
+        dataset.append({
+            "src_tokens": src_op,
+            "tgt_input_tokens": ans,
+            "tgt_output_tokens": ans,
+            "rule_ids": rule_id,
+            "verification_state": 1,
+        })
+
+    # 12. Gradient (10k)
+    for _ in range(10000):
+        expr, ans, rule_id = generate_gradient_diff()
+        src_op = {"op": "gradient", "var": "x", "expr": expr}
+        dataset.append({
+            "src_tokens": src_op,
+            "tgt_input_tokens": ans,
+            "tgt_output_tokens": ans,
+            "rule_ids": rule_id,
+            "verification_state": 1,
+        })
+
+    # 13. Tangent line (10k)
+    for _ in range(10000):
+        var = random.choice(VARIABLES[:1])
+        src, ans, x0, rule_id = generate_tangent_line_diff(var)
+        src_op = {"op": "tangent_line", "var": var, "expr": src, "point": x0}
         dataset.append({
             "src_tokens": src_op,
             "tgt_input_tokens": ans,
@@ -364,8 +483,6 @@ def generate_slang_dataset():
         for item in dataset:
             f.write(json.dumps(item) + "\n")
 
-    # Split sizes scale dynamically with total dataset size (previously
-    # hardcoded to 90000/95000, which assumed exactly 100k records).
     total = len(dataset)
     train_end = int(total * 0.90)
     val_end = int(total * 0.95)

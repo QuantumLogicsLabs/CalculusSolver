@@ -263,6 +263,19 @@ def gradient_oracle(expr: dict, variables: List[str]) -> Dict[str, dict]:
         res[var] = differentiate_fraction(expr, var)
     return res
 
+def tangent_line_oracle(expr: dict, variable: str, x0: float) -> dict:
+    """Tangent line at x=x0: y = f'(x0)*(x - x0) + f(x0), expanded to
+    standard polynomial form (slope*x + intercept)."""
+    derivative = differentiate_fraction(expr, variable)
+    slope = evaluate_fraction(derivative, {variable: x0})
+    y0 = evaluate_fraction(expr, {variable: x0})
+    intercept = y0 - slope * x0
+
+    terms = []
+    if abs(slope) > 1e-12:
+        terms.append({"coeff": slope, "var": {variable: 1}})
+    terms.append({"coeff": intercept})
+    return {"numi": {"terms": terms}, "deno": 1}
 
 # ── Equivalence Verification ──────────────────────────────────────────────────
 
@@ -345,6 +358,8 @@ def verify(input_env: Dict[str, Any], output_tokens: List[str]) -> Dict[str, Any
         oracle_fn = def_int_fn
     elif op == "gradient":
         oracle_fn = lambda inp: gradient_oracle(inp["expr"], get_variables(inp))
+    elif op == "tangent_line":
+        oracle_fn = lambda inp: tangent_line_oracle(inp["expr"], inp["var"], float(inp["point"]))
     elif op == "product_rule":
         oracle_fn = lambda inp: product_rule_differentiate(inp["u"], inp["v"], inp["var"])
     elif op == "quotient_rule":

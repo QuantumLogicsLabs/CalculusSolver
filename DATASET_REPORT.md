@@ -27,3 +27,9 @@
 ## 3. Limitations & Gaps
 - All five core transcendental functions (`sin`, `cos`, `tan`, `exp`, `ln`) are now covered for first-derivative differentiation with varied coefficients. Chain rule composition beyond a linear inner argument (e.g. `sin(x^2)`, nested functions like `sin(cos(x))`) is not yet covered and would require additional template work.
 - `rule_ids` for all Phase 2 trig/exp/log records currently reuse `RULE:chain_rule` (rule_id 1) as the closest existing label — there is no dedicated `RULE:trig_rule` / `RULE:exp_rule` / `RULE:log_rule` token yet. Flagged for team review as a possible follow-up (next free rule ID would need to be added to `vocab.json`'s `rule_tokens` block).
+  - **Empirically confirmed impact (see `docs/KNOWN_ISSUES.md`):** during neural training, `Val Rule` loss plateaus at ~0.51 and does not improve regardless of learning rate or dataset-coverage changes (reproduced across 3 separate training configurations). Only 5 of 10 defined rule classes appear anywhere in the training data, and `rule_id 1` alone accounts for ~22,570 rows in the train split — consistent with genuine chain-rule polynomial problems and all ~25,000 Phase 2 trig/exp/log rows being merged under one label. This conflated label is the most likely root cause of the training plateau, not a hyperparameter or data-coverage issue.
+
+## 4. Recommended Follow-up
+- Add dedicated `RULE:trig_rule`, `RULE:exp_rule`, `RULE:log_rule` tokens to `tokenizer/vocab.json`'s `rule_tokens` block.
+- Update `problem_generator.py` to assign the correct rule_id per problem type for all Phase 2 records instead of reusing `RULE:chain_rule`.
+- Regenerate the affected ~25,000 Phase 2 rows and retrain the rule head to confirm the plateau resolves.

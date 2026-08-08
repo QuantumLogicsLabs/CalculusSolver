@@ -1,129 +1,67 @@
 import json
 import os
-import subprocess
-import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-import joblib
 import torch
 
-from model.architecture import CalculusModel
 from inference.beam_search import NodeValidityPool, beam_search, load_vocab
-
-
-class _LegacySLaNgTokenizer:
-    pass
 
 
 class CalculusSolverInference:
     def __init__(
         self,
-        model_path: str = os.path.join("model", "model.pkl"),
+        model_path: str = os.path.join("checkpoints", "final", "best.pt"),
         vocab_path: str = os.path.join("tokenizer", "vocab.json"),
         beam_size: int = 5,
-        max_len: int = 256,
+        max_len: int = 32,
     ):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
         if not os.path.exists(vocab_path):
             raise FileNotFoundError(f"Vocab file not found: {vocab_path}")
 
-        self.model_data = self._load_checkpoint(model_path)
         self.vocab_map = load_vocab(vocab_path)
-        config = (
-            self.model_data.get("config", {})
-            if isinstance(self.model_data, dict) and "config" in self.model_data
-            else {}
-        )
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        rule_labels = self._load_rule_labels(vocab_path)
+        pad_id = self.vocab_map["token_to_id"]["[PAD]"]
 
-        if model_path.endswith((".pt", ".pth")):
-            from model.transformer import CalculusSolverModel
-            hidden_dim = 128
-            try:
-                # Try to load hidden_dim from config.json in root
-                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                config_path = os.path.join(root_dir, "config.json")
-                if os.path.exists(config_path):
-                    with open(config_path, "r") as f:
-                        cfg = json.load(f)
-                        hidden_dim = cfg.get("hidden_dim", 128)
-            except Exception:
-                pass
-            vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
-            self.model = CalculusSolverModel(
-                vocab_size=vocab_size,
-                num_rules=len(rule_labels),
-                hidden_dim=hidden_dim,
-            ).to(self.device)
-        else:
-            self.model = CalculusModel(
-                vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
-                rule_labels=rule_labels,
-                hidden_dim=config.get("hidden_dim", 512),
-                num_heads=config.get("num_heads", 8),
-                num_layers=config.get("num_layers", 8),
-                ffn_dim=config.get("ffn_dim", 2048),
-                dropout=config.get("dropout", 0.1),
-                position_dim=config.get("position_dim", 3),
-            ).to(self.device)
-        self.model.load_state_dict(self._resolve_state_dict(self.model_data))
+        from model.simple_transformer import SimpleCalculusModel
+
+        hidden_dim = 128
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        config_path = os.path.join(root_dir, "config.json")
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                cfg = json.load(f)
+                hidden_dim = cfg.get("hidden_dim", 128)
+                max_len = cfg.get("max_len", max_len)
+
+        vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
+        self.model = SimpleCalculusModel(
+            vocab_size=vocab_size,
+            hidden_dim=hidden_dim,
+            pad_id=pad_id,
+            max_len=max_len,
+        ).to(self.device)
+
+        state_dict = torch.load(model_path, map_location=self.device)
+        self.model.load_state_dict(state_dict)
         self.model.eval()
 
         self.beam_size = beam_size
         self.max_len = max_len
-        self.node_pool = NodeValidityPool(
-            os.path.join(os.path.dirname(__file__), "validity_worker.js"),
-            num_workers=max(2, beam_size),
-        )
+        self.node_pool = NodeValidityPool()
         self.bos_id = self.vocab_map["token_to_id"]["[BOS]"]
         self.eos_id = self.vocab_map["token_to_id"]["[EOS]"]
-        self.pad_id = self.vocab_map["token_to_id"]["[PAD]"]
+        self.pad_id = pad_id
 
     def close(self) -> None:
         self.node_pool.close()
-
-    def _load_rule_labels(self, vocab_path: str) -> List[str]:
-        with open(vocab_path, "r", encoding="utf-8") as f:
-            vocab_json = json.load(f)
-        rule_labels = []
-        for token in vocab_json.get("rule_tokens", {}).keys():
-            if token.startswith("RULE:"):
-                rule_labels.append(token.split("RULE:", 1)[-1])
-            else:
-                rule_labels.append(token)
-        return rule_labels
-
-    def _load_checkpoint(self, model_path: str) -> Any:
-        if model_path.endswith((".pt", ".pth")):
-            return torch.load(model_path, map_location="cpu")
-        try:
-            if not hasattr(sys.modules["__main__"], "SLaNgTokenizer"):
-                setattr(sys.modules["__main__"], "SLaNgTokenizer", _LegacySLaNgTokenizer)
-            return joblib.load(model_path)
-        except Exception as exc:
-            raise RuntimeError(
-                f"Failed to load checkpoint {model_path}: {exc}"
-            ) from exc
-
-    def _resolve_state_dict(self, checkpoint: Any) -> Dict[str, Any]:
-        if isinstance(checkpoint, dict):
-            if "model_state" in checkpoint:
-                return checkpoint["model_state"]
-            if "model_state_dict" in checkpoint:
-                return checkpoint["model_state_dict"]
-            return checkpoint
-        raise ValueError("Unsupported checkpoint format for model state.")
 
     def _serialize_input(self, input_env: Dict[str, Any]) -> List[str]:
         from tokenizer.slang_serializer import serialize_slang_math
         return serialize_slang_math(input_env)
 
-    def _verify_output(
-        self, input_env: Dict[str, Any], output_tokens: List[str]
-    ) -> Dict[str, Any]:
+    def _verify_output(self, input_env: Dict[str, Any], output_tokens: List[str]) -> Dict[str, Any]:
         from inference.verifier import verify
         return verify(input_env, output_tokens)
 
@@ -134,21 +72,12 @@ class CalculusSolverInference:
             for token in token_strings
         ]
         token_ids = token_ids[: self.max_len]
-
         padded_tokens = token_ids + [self.pad_id] * (self.max_len - len(token_ids))
         src_tokens = torch.tensor([padded_tokens], dtype=torch.long, device=self.device)
-        src_positions = torch.zeros(
-            (1, self.max_len, 3), dtype=torch.float32, device=self.device
-        )
-        parent_child_pairs = torch.zeros(
-            (1, self.max_len, self.max_len), dtype=torch.float32, device=self.device
-        )
 
         result = beam_search(
             model=self.model,
             src_tokens=src_tokens,
-            src_positions=src_positions,
-            parent_child_pairs=parent_child_pairs,
             vocab_map=self.vocab_map,
             beam_size=self.beam_size,
             max_len=self.max_len,
@@ -156,31 +85,28 @@ class CalculusSolverInference:
         )
 
         output_token_strings = [
-            self.vocab_map["id_to_token"][token_id]
-            for token_id in result["tokens"]
-            if token_id in self.vocab_map["id_to_token"]
+            self.vocab_map["id_to_token"][t]
+            for t in result["tokens"]
+            if t in self.vocab_map["id_to_token"]
         ]
 
-        # FIX (docs/KNOWN_ISSUES.md): beam_search seeds every beam with a
-        # leading [BOS] token, which is correct for decoder input framing but
-        # is not part of the SLaNg AST grammar itself. Downstream consumers
-        # (the deserializer inside verify(), and any AST-structure parsing)
-        # expect a pure token sequence starting at a real node type
-        # (NODE:TERM / NODE:FRAC / OP:...), not [BOS]. Without this strip,
-        # deserialization fails immediately with "Unexpected token ... [BOS]"
-        # on every single call, regardless of whether the underlying sequence
-        # the model generated was otherwise valid.
+        # Strip [BOS]
         if output_token_strings and output_token_strings[0] == "[BOS]":
             output_token_strings = output_token_strings[1:]
 
+        # Extract and strip the leading RULE:xxx token, if present -- it's
+        # not part of the SLaNg AST grammar the verifier deserializes.
+        predicted_rule = None
+        if output_token_strings and output_token_strings[0].startswith("RULE:"):
+            predicted_rule = output_token_strings[0]
+            output_token_strings = output_token_strings[1:]
+
         verifier_result = self._verify_output(input_env, output_token_strings)
-        if verifier_result.get("status") in ("solved", "unverified", "unsolvable"):
-            result["status"] = verifier_result["status"]
+        result["status"] = verifier_result.get("status", result.get("status"))
         result["verified"] = verifier_result.get("verified", False)
         result["confidence"] = verifier_result.get("confidence", 0)
         result["output"] = verifier_result.get("output")
-        if verifier_result.get("error"):
-            result["warning"] = verifier_result["error"]
+        warning = verifier_result.get("error")
 
         return {
             "input": input_env,
@@ -188,21 +114,18 @@ class CalculusSolverInference:
             "status": result["status"],
             "verified": result["verified"],
             "confidence": result["confidence"],
-            "rule": result.get("root_rule_label"),
+            "rule": predicted_rule,
             "output": result["output"],
-            "warning": result.get("warning"),
+            "warning": warning,
         }
 
 
 if __name__ == "__main__":
     import sys
-
     if len(sys.argv) < 2:
         raise SystemExit("Usage: python inference/solve.py input.json")
-
     with open(sys.argv[1], "r", encoding="utf-8") as f:
         payload = json.load(f)
-
     solver = CalculusSolverInference()
     try:
         print(json.dumps(solver.solve(payload), indent=2))

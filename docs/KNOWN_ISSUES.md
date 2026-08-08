@@ -208,6 +208,143 @@ print("All 5 function tokens correctly registered at IDs 100-104")
 
 ---
 
+## [RESOLVED] Beam search and output deserialization fail on leading [BOS] token
+
+**Discovered:** During Member A neural training/eval task, while running `CalculusSolverInference.solve()` end-to-end for the first time after training
+**Fixed:** PR #26
+**Severity:** High — silently produced empty/invalid output on every single inference call, regardless of model or training quality
+**Affected path:** Neural solver only (`inference/beam_search.py`, `inference/solve.py`); FallbackSolver and GroqSolver unaffected
+
+### What was wrong
+
+Two related call sites never accounted for the seed `[BOS]` token being part
+of the beam's running token sequence:
+
+1. In `inference/beam_search.py`, `beam_search()` seeds every beam with
+   `tokens = [bos_id]` and, on each decoding step, passes the full running
+   sequence (including `[BOS]`) into `node_pool.mask()`, which calls
+   `is_valid_prefix()`. That function's grammar parses SLaNg AST node types
+   (`NODE:TERM`, `NODE:FRAC`, `OP:*`) starting at index 0 and has no rule for
+   `[BOS]`, so every candidate token was masked invalid on the very first
+   decoding step.
+2. In `inference/solve.py`, `solve()` passed `result["tokens"]` (still
+   including the leading `[BOS]`) directly into `_verify_output()`, which
+   deserializes the sequence as a SLaNg AST — again with no grammar rule for
+   a leading `[BOS]`.
+
+### Why it mattered
+
+Bug 1 meant beam search always terminated after a single step with only the
+seed `[BOS]` token — no candidate ever passed the validity mask, so
+`safe_logits` was always all `-inf`. Every call to `solve()` failed silently
+in this way, independent of how well-trained the underlying model was.
+
+After patching bug 1, bug 2 surfaced immediately: deserialization failed
+with `Unexpected token while parsing node at index 0: [BOS]` on every call,
+since the now-longer generated sequence still carried the leading `[BOS]`
+through to the verifier.
+
+### Why it was not caught earlier
+
+No prior PR trained a real checkpoint compatible with `model/transformer.py`
+and then ran a live `solve()` call — `inference/solve.py`'s own default
+`model_path` (`model/model.pkl`) points at a stale checkpoint from a
+different, incompatible architecture, which fails at `load_state_dict()`
+before beam search is ever reached (see Files changed / follow-up below).
+This masked both `[BOS]` bugs until a correctly-shaped checkpoint
+(`checkpoints/final/best.pt`, produced by the current `train.py`) was
+loaded and `solve()` was actually exercised end-to-end.
+
+### The fix
+
+- `inference/beam_search.py`: strip the leading `[BOS]` from the token
+  sequence before calling `node_pool.mask()`, since it is a decoder-input
+  framing token, not part of the AST grammar being validated.
+- `inference/solve.py`: strip the leading `[BOS]` from `output_token_strings`
+  before calling `_verify_output()`, for the same reason.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `inference/beam_search.py` | Strip leading `[BOS]` before validity-mask check |
+| `inference/solve.py` | Strip leading `[BOS]` before AST deserialization/verification |
+| `docs/KNOWN_ISSUES.md` | This entry added |
+
+### Follow-up (not yet fixed)
+
+`inference/solve.py`'s default `model_path` (`model/model.pkl`) still loads
+a stale, architecturally-incompatible checkpoint and fails
+`load_state_dict()` with dozens of missing/unexpected key errors. The
+currently correct checkpoint is `checkpoints/final/best.pt`, matching what
+`train.py` and `eval/run_eval.py` actually produce/expect. Flagged for team
+review — either update the default `model_path`, or keep `model/model.pkl`
+in sync with the currently-trained architecture going forward.
+
+---
+
+## [OPEN] Rule head training plateau caused by Phase 2 rule_id mislabeling
+
+**Discovered:** During Member A neural training/eval task, after training loss plateaued identically across three separate configurations
+**Fixed:** Pending — requires new `RULE:` vocab tokens and a `problem_generator.py` fix
+**Severity:** Medium — degrades rule classification signal and likely also affects sequence generation quality for trig/exp/log problems
+**Affected path:** Neural training pipeline (`train.py`'s rule head loss) and inference (rule prediction accuracy for non-polynomial problems)
+
+### What was wrong
+
+`Val Rule` loss plateaus at ~0.51 and does not improve, reproduced across
+three separate training configurations:
+
+| Config | Learning Rate | Max Steps/Epoch | Result |
+|---|---|---|---|
+| Original | 0.0001 | 500 (14% of data/epoch) | Plateau at ~0.513 |
+| High-LR | 0.0003 | 3500 (full data/epoch) | Diverged, then flatlined at ~1.51 |
+| Fixed coverage | 0.0001 | 1750 (full data/epoch, batch_size=64) | Plateau at ~0.512, same as original |
+
+Since neither raising the learning rate nor guaranteeing full-dataset
+coverage per epoch broke the plateau, the cause was traced to the training
+data itself rather than hyperparameters.
+
+### Why it mattered
+
+Checking the `rule_ids` distribution across `data/splits/train.jsonl`:
+
+Only 5 of the 10 defined rule classes appear in the training data at all.
+Per `DATASET_REPORT.md`'s own documented limitation, all ~25,000 Phase 2
+trig/exp/log records reuse `RULE:chain_rule` (rule_id 1) as a placeholder
+label, since no dedicated `RULE:trig_rule`/`RULE:exp_rule`/`RULE:log_rule`
+tokens exist yet. `rule_id 1`'s count (22,570 in the train split) is
+consistent with genuine chain-rule polynomial problems and the entire
+Phase 2 trig/exp/log set being merged under one label.
+
+This means `rule_id 1` represents two semantically different problem types
+depending on the row — an incoherent training signal that no model can
+learn a clean decision boundary for, regardless of training duration,
+learning rate, or dataset coverage.
+
+### The fix (not yet implemented)
+
+- Add dedicated rule tokens to `tokenizer/vocab.json`'s `rule_tokens` block
+  (e.g. `RULE:trig_rule`, `RULE:exp_rule`, `RULE:log_rule` at new IDs,
+  following the same non-renumbering precedent as the `STRUCT:OPEN` and
+  `FUNC:*` fixes above)
+- Update `problem_generator.py` to assign the correct rule_id per problem
+  type for all Phase 2 records instead of reusing `RULE:chain_rule`
+- Regenerate the affected ~25,000 Phase 2 rows and retrain the rule head to
+  confirm the plateau resolves
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `docs/KNOWN_ISSUES.md` | This entry added |
+| `DATASET_REPORT.md` | Cross-referenced this finding under the existing `rule_ids` limitation bullet |
+
+(No code changes yet — flagged for team review before regenerating ~25,000
+dataset rows and retraining.)
+
+---
+
 ## Filing new issues
 
 To add a new entry, copy the template below and fill it in:
