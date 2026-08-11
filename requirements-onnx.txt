@@ -1,0 +1,9 @@
+# Production requirements for Option A (ONNX export) deployment.
+# Deliberately does NOT include torch — that's the entire point of this
+# path. See docs/EXPORT_DECISION.md for the measured size comparison.
+onnxruntime==1.18.1
+numpy==1.26.4
+starlette==1.3.1
+uvicorn==0.49.0
+python-dotenv==1.2.2
+groq==1.5.0
