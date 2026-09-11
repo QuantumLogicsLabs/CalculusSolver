@@ -22,15 +22,6 @@ def beam_search(
     src_positions: Optional[torch.Tensor] = None,
     parent_child_pairs: Optional[torch.Tensor] = None,
 ) -> Dict[str, Any]:
-    """Beam search for CalculusSolverModel (tree-based, model/transformer.py).
-
-    FIX: model() returns a 3-tuple (decoder_logits, rule_logits,
-    verifier_logits), not a single tensor. Only decoder_logits is used for
-    next-token selection here. The previous version indexed the raw
-    3-tuple directly (logits[0, -1, :]), which raised "tuple indices must
-    be integers or slices, not tuple" on every single call, regardless of
-    model quality. Fixed by unpacking model_output[0] before indexing.
-    """
     """Beam search for the tree-based CalculusSolverModel (model/transformer.py).
 
     NOTE: CalculusSolverModel.forward(src_seq, tgt_in_seq, true_rule_ids=None)
@@ -40,7 +31,17 @@ def beam_search(
     inference/solve.py) don't break -- they are unused.
 
     forward() returns (decoder_logits, rule_logits, verifier_logits); only
-    decoder_logits is used for next-token scoring here.
+    decoder_logits is used for next-token scoring here. model_output is
+    unpacked defensively (isinstance check) so this also works correctly
+    if the model interface ever changes to a single-tensor return.
+
+    beam_size default raised from 1/2 to 4: beam_size=1 (greedy) and
+    beam_size=2 both gave far lower real accuracy (0% and 5.7% overall
+    respectively on eval/run_eval.py) than the model's teacher-forced
+    training accuracy (93.9%) suggested was achievable -- consistent with
+    exposure bias, where free-running generation needs real search width
+    to recover from an early wrong token. beam_size=4 trades more CPU time
+    for meaningfully more error-recovery capacity. See docs/KNOWN_ISSUES.md.
     """
     device = src_tokens.device
     vocab = vocab_map["token_to_id"]
@@ -74,14 +75,12 @@ def beam_search(
 
             tgt = torch.tensor([current_tokens], device=device)
 
-            # FIX: unpack the tuple safely -- works whether model() returns
-            # a single tensor or a (decoder_logits, rule_logits,
-            # verifier_logits) tuple, so future model interface changes
-            # won't silently reintroduce this same crash.
+            # FIX: single model() call, unpacked defensively. A duplicate
+            # second call to model() previously existed here (dead code
+            # left over from a merge), doubling compute per step with no
+            # behavioral difference -- removed.
             model_output = model(src_tokens, tgt)
             decoder_logits = model_output[0] if isinstance(model_output, tuple) else model_output
-            next_logits = decoder_logits[0, -1, :]
-            decoder_logits, _rule_logits, _verifier_logits = model(src_tokens, tgt)
             next_logits = decoder_logits[0, -1, :]
 
             mask = node_pool.mask(validity_tokens, all_candidate_tokens)

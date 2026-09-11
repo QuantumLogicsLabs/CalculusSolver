@@ -23,9 +23,9 @@ def main():
         print(f"Error: checkpoint {checkpoint_path} does not exist.")
         sys.exit(1)
 
-    print("Loading neural model (with beam_size=2 for fast evaluation)...")
-    # Set beam_size=2 to avoid freezing and speed up inference significantly
-    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=2)
+    print("Loading neural model (with beam_size=5 for fast evaluation)...")
+    # Set beam_size=5 to avoid freezing and speed up inference significantly
+    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=5)
 
     benchmark_dir = ROOT / "eval" / "benchmarks"
     benchmark_files = glob.glob(str(benchmark_dir / "*.json"))
