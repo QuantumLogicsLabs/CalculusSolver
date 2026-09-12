@@ -15,6 +15,41 @@ class _LegacySLaNgTokenizer:
     pass
 
 
+class PklTransformerModel(torch.nn.Module):
+    def __init__(self, vocab_size: int, hidden_dim: int = 128):
+        super().__init__()
+        self.pos_encoder = torch.nn.Parameter(torch.zeros(1, 100, hidden_dim))
+        self.embedding = torch.nn.Embedding(vocab_size, hidden_dim)
+        self.transformer = torch.nn.Transformer(
+            d_model=hidden_dim,
+            nhead=8,
+            num_encoder_layers=3,
+            num_decoder_layers=3,
+            dim_feedforward=2048,
+            batch_first=True,
+        )
+        self.fc_out = torch.nn.Linear(hidden_dim, vocab_size)
+
+    def forward(self, src_seq, tgt_in_seq):
+        max_id = self.embedding.num_embeddings - 1
+        src_seq = torch.clamp(src_seq, 0, max_id)
+        tgt_in_seq = torch.clamp(tgt_in_seq, 0, max_id)
+        max_pos = self.pos_encoder.size(1)
+        src_seq = src_seq[:, :max_pos]
+        tgt_in_seq = tgt_in_seq[:, :max_pos]
+
+        src_emb = self.embedding(src_seq) + self.pos_encoder[:, : src_seq.size(1), :]
+        tgt_emb = self.embedding(tgt_in_seq) + self.pos_encoder[:, : tgt_in_seq.size(1), :]
+        device = src_seq.device
+        tgt_mask = torch.triu(
+            torch.ones(tgt_in_seq.size(1), tgt_in_seq.size(1), dtype=torch.bool, device=device),
+            diagonal=1,
+        )
+        out = self.transformer(src_emb, tgt_emb, tgt_mask=tgt_mask)
+        logits = self.fc_out(out)
+        return logits
+
+
 class CalculusSolverInference:
     def __init__(
         self,
@@ -39,38 +74,48 @@ class CalculusSolverInference:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         rule_labels = self._load_rule_labels(vocab_path)
 
-        if model_path.endswith((".pt", ".pth")):
-            from model.transformer import CalculusSolverModel
-            hidden_dim = 128
-            try:
-                # Try to load hidden_dim from config.json in root
-                root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                config_path = os.path.join(root_dir, "config.json")
-                if os.path.exists(config_path):
-                    with open(config_path, "r") as f:
-                        cfg = json.load(f)
-                        hidden_dim = cfg.get("hidden_dim", 128)
-            except Exception:
-                pass
-            vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
-            self.model = CalculusSolverModel(
-                vocab_size=vocab_size,
-                num_rules=len(rule_labels),
-                hidden_dim=hidden_dim,
-                rule_labels=rule_labels,
-            ).to(self.device)
+        if isinstance(self.model_data, torch.nn.Module):
+            self.model = self.model_data.to(self.device)
         else:
-            self.model = CalculusModel(
-                vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
-                rule_labels=rule_labels,
-                hidden_dim=config.get("hidden_dim", 512),
-                num_heads=config.get("num_heads", 8),
-                num_layers=config.get("num_layers", 8),
-                ffn_dim=config.get("ffn_dim", 2048),
-                dropout=config.get("dropout", 0.1),
-                position_dim=config.get("position_dim", 3),
-            ).to(self.device)
-        self.model.load_state_dict(self._resolve_state_dict(self.model_data))
+            state_dict = self._resolve_state_dict(self.model_data)
+
+            if "fc_out.weight" in state_dict and "pos_encoder" in state_dict:
+                vocab_size = state_dict["embedding.weight"].shape[0]
+                hidden_dim = state_dict["embedding.weight"].shape[1]
+                self.model = PklTransformerModel(vocab_size=vocab_size, hidden_dim=hidden_dim).to(self.device)
+            elif any(k.startswith(("encoder.", "decoder.", "rule_head.")) for k in state_dict.keys()) and not model_path.endswith((".pt", ".pth")):
+                self.model = CalculusModel(
+                    vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
+                    rule_labels=rule_labels,
+                    hidden_dim=config.get("hidden_dim", 512),
+                    num_heads=config.get("num_heads", 8),
+                    num_layers=config.get("num_layers", 8),
+                    ffn_dim=config.get("ffn_dim", 2048),
+                    dropout=config.get("dropout", 0.1),
+                    position_dim=config.get("position_dim", 3),
+                ).to(self.device)
+            else:
+                from model.transformer import CalculusSolverModel
+                hidden_dim = 128
+                try:
+                    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    config_path = os.path.join(root_dir, "config.json")
+                    if os.path.exists(config_path):
+                        with open(config_path, "r") as f:
+                            cfg = json.load(f)
+                            hidden_dim = cfg.get("hidden_dim", 128)
+                except Exception:
+                    pass
+                vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
+                self.model = CalculusSolverModel(
+                    vocab_size=vocab_size,
+                    num_rules=len(rule_labels),
+                    hidden_dim=hidden_dim,
+                    rule_labels=rule_labels,
+                ).to(self.device)
+
+            self.model.load_state_dict(state_dict)
+
         self.model.eval()
 
         self.beam_size = beam_size
@@ -139,14 +184,6 @@ class CalculusSolverInference:
         padded_tokens = token_ids + [self.pad_id] * (self.max_len - len(token_ids))
         src_tokens = torch.tensor([padded_tokens], dtype=torch.long, device=self.device)
 
-        # FIX: this environment's inference/beam_search.py has the
-        # simplified signature (model, src_tokens, vocab_map, beam_size,
-        # max_len, node_pool) -- it does not accept src_positions or
-        # parent_child_pairs as external arguments. model/transformer.py's
-        # CalculusSolverModel.forward() builds these zero-tensors
-        # internally, so they were never needed here; passing them caused
-        # "beam_search() got an unexpected keyword argument 'src_positions'"
-        # on every single solve() call.
         result = beam_search(
             model=self.model,
             src_tokens=src_tokens,
@@ -162,26 +199,9 @@ class CalculusSolverInference:
             if token_id in self.vocab_map["id_to_token"]
         ]
 
-        # FIX (docs/KNOWN_ISSUES.md): beam_search seeds every beam with a
-        # leading [BOS] token, which is correct for decoder input framing but
-        # is not part of the SLaNg AST grammar itself. Downstream consumers
-        # (the deserializer inside verify(), and any AST-structure parsing)
-        # expect a pure token sequence starting at a real node type
-        # (NODE:TERM / NODE:FRAC / OP:...), not [BOS]. Without this strip,
-        # deserialization fails immediately with "Unexpected token ... [BOS]"
-        # on every single call, regardless of whether the underlying sequence
-        # the model generated was otherwise valid.
         if output_token_strings and output_token_strings[0] == "[BOS]":
             output_token_strings = output_token_strings[1:]
 
-        # FIX: this model folds rule prediction into the output sequence as
-        # a leading RULE:xxx token (see docs/KNOWN_ISSUES.md, "Rule
-        # prediction folded into output sequence"). It is not part of the
-        # SLaNg AST grammar the verifier deserializes. Without this strip,
-        # deserialization failed with "Unexpected token while parsing node
-        # at index 0: RULE:partial_derivative" (or any other rule label)
-        # on every single call, regardless of whether the rest of the
-        # generated sequence was correct.
         predicted_rule = None
         if output_token_strings and output_token_strings[0].startswith("RULE:"):
             predicted_rule = output_token_strings[0]
