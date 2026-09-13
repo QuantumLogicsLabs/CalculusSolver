@@ -93,3 +93,31 @@ class TestPrefixParity:
             f"beam_search seed length ({beam_seed_len}). "
             f"This will cause positional mismatch in the decoder."
         )
+
+    def test_beam_search_4_arg_model_compatibility(self):
+        from inference.beam_search import beam_search, NodeValidityPool
+
+        class PermissiveNodePool(NodeValidityPool):
+            def mask(self, tokens, candidate_tokens):
+                return [True] * len(candidate_tokens)
+
+        class MockFourArgModel(torch.nn.Module):
+            def forward(self, src_tokens, src_positions, parent_child_pairs, tgt_tokens):
+                vocab_size = 120
+                seq_len = tgt_tokens.size(1)
+                decoder_logits = torch.zeros((1, seq_len, vocab_size))
+                decoder_logits[0, -1, 2] = 10.0  # predict [EOS] (ID 2)
+                rule_logits = torch.zeros((1, 13))
+                return decoder_logits, rule_logits, None
+
+        mock_model = MockFourArgModel()
+        src_tokens = torch.tensor([[1, 10, 9, 2]])
+        vocab_map = {
+            "token_to_id": self.vocab_mapping,
+            "id_to_token": {v: k for k, v in self.vocab_mapping.items()},
+        }
+
+        result = beam_search(mock_model, src_tokens, vocab_map, max_len=5, node_pool=PermissiveNodePool())
+        assert result["status"] == "solved"
+        assert len(result["tokens"]) >= 2
+

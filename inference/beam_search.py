@@ -7,6 +7,29 @@ import torch
 from inference.grammar import NodeValidityPool, flatten_vocab, load_vocab, is_valid_prefix
 
 
+def _call_model(
+    model,
+    src_tokens: torch.Tensor,
+    tgt_tokens: torch.Tensor,
+    src_positions: Optional[torch.Tensor] = None,
+    parent_child_pairs: Optional[torch.Tensor] = None,
+) -> Any:
+    try:
+        return model(src_tokens, tgt_tokens)
+    except TypeError:
+        device = src_tokens.device
+        batch_size, seq_len = src_tokens.size()
+        if src_positions is None:
+            src_positions = torch.zeros(
+                (batch_size, seq_len, 3), dtype=torch.float32, device=device
+            )
+        if parent_child_pairs is None:
+            parent_child_pairs = torch.zeros(
+                (batch_size, seq_len, seq_len), dtype=torch.float32, device=device
+            )
+        return model(src_tokens, src_positions, parent_child_pairs, tgt_tokens)
+
+
 def beam_search(
     model,
     src_tokens: torch.Tensor,
@@ -29,25 +52,31 @@ def beam_search(
     vocab_size = max(id_to_token.keys()) + 1
     all_candidate_tokens = [id_to_token.get(idx, "[PAD]") for idx in range(vocab_size)]
 
-    rule_token_entries = sorted(
-        [(tok, tid) for tok, tid in vocab.items() if tok.startswith("RULE:")],
-        key=lambda x: x[1],
-    )
+    rule_token_entries = [
+        tok for tok in vocab.keys() if tok.startswith("RULE:")
+    ]
 
     seed_tokens = [bos_id]
 
     if rule_token_entries:
         init_tgt = torch.tensor([[bos_id]], device=device)
         with torch.no_grad():
-            init_output = model(src_tokens, init_tgt)
+            init_output = _call_model(
+                model,
+                src_tokens,
+                init_tgt,
+                src_positions=src_positions,
+                parent_child_pairs=parent_child_pairs,
+            )
         init_rule_logits = init_output[1] if isinstance(init_output, tuple) else None
 
         if init_rule_logits is not None:
             pred_rule_idx = torch.argmax(init_rule_logits, dim=-1).item()
             pred_rule_idx = min(pred_rule_idx, len(rule_token_entries) - 1)
-            rule_token_str = rule_token_entries[pred_rule_idx][0]
-            rule_token_id = vocab[rule_token_str]
-            seed_tokens = [bos_id, rule_token_id]
+            rule_token_str = rule_token_entries[pred_rule_idx]
+            rule_token_id = vocab.get(rule_token_str)
+            if rule_token_id is not None:
+                seed_tokens = [bos_id, rule_token_id]
 
     beams = [{"tokens": seed_tokens, "score": 0.0, "finished": False}]
     completed = []
@@ -60,7 +89,7 @@ def beam_search(
                 continue
 
             current_tokens = beam["tokens"]
-            token_strings = [id_to_token[t] for t in current_tokens]
+            token_strings = [id_to_token[t] for t in current_tokens if t in id_to_token]
             validity_tokens = token_strings[:]
             if validity_tokens and validity_tokens[0] == "[BOS]":
                 validity_tokens = validity_tokens[1:]
@@ -69,12 +98,22 @@ def beam_search(
 
             tgt = torch.tensor([current_tokens], device=device)
 
-            model_output = model(src_tokens, tgt)
+            model_output = _call_model(
+                model,
+                src_tokens,
+                tgt,
+                src_positions=src_positions,
+                parent_child_pairs=parent_child_pairs,
+            )
             decoder_logits = model_output[0] if isinstance(model_output, tuple) else model_output
             next_logits = decoder_logits[0, -1, :]
 
             mask = node_pool.mask(validity_tokens, all_candidate_tokens)
-            invalid_mask = torch.tensor([not v for v in mask[: next_logits.size(0)]], device=device)
+            vocab_len = next_logits.size(0)
+            padded_mask = mask + [True] * max(0, vocab_len - len(mask))
+            invalid_mask = torch.tensor(
+                [not v for v in padded_mask[:vocab_len]], device=device
+            )
             safe_logits = next_logits.masked_fill(invalid_mask, float("-inf"))
 
             if torch.isinf(safe_logits).all():

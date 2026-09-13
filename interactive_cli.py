@@ -58,7 +58,7 @@ def run_cli():
         if user_input == "1":
             expr_dict = {"op": "diff", "var": "x", "expr": {"coeff": 3, "var": {"x": 2}}}
         elif user_input == "2":
-            expr_dict = {"op": "diff", "var": "x", "expr": [{"coeff": 5, "var": {"x": 3}}, {"coeff": 2, "var": {"x": 1}}]}
+            expr_dict = {"op": "diff", "var": "x", "expr": {"numi": {"terms": [{"coeff": 5, "var": {"x": 3}}, {"coeff": 2, "var": {"x": 1}}]}, "deno": 1}}
         elif user_input == "3":
             expr_dict = {"op": "diff", "var": "x", "expr": {"op": "sin", "arg": {"var": {"x": 1}}}}
         elif user_input == "4":
