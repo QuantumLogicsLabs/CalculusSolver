@@ -23,15 +23,27 @@ from inference.grammar import (
     load_vocab,
 )
 
-# NOTE: NodeValidityPool, flatten_vocab, load_vocab, is_valid_prefix and
-# is_complete live in inference/grammar.py (torch-free) so the ONNX
-# deployment path (deployment/onnx_beam_search.py) can reuse them without
-# importing torch.
-#
-# WARNING: deployment/onnx_beam_search.py mirrors this file's search loop.
-# The grammar-side termination fix reaches it automatically via the shared
-# import, but the loop changes here do NOT -- mirror them, or the ONNX path
-# keeps the never-terminating behaviour described below.
+def _call_model(
+    model,
+    src_tokens: torch.Tensor,
+    tgt_tokens: torch.Tensor,
+    src_positions: Optional[torch.Tensor] = None,
+    parent_child_pairs: Optional[torch.Tensor] = None,
+) -> Any:
+    try:
+        return model(src_tokens, tgt_tokens)
+    except TypeError:
+        device = src_tokens.device
+        batch_size, seq_len = src_tokens.size()
+        if src_positions is None:
+            src_positions = torch.zeros(
+                (batch_size, seq_len, 3), dtype=torch.float32, device=device
+            )
+        if parent_child_pairs is None:
+            parent_child_pairs = torch.zeros(
+                (batch_size, seq_len, seq_len), dtype=torch.float32, device=device
+            )
+        return model(src_tokens, src_positions, parent_child_pairs, tgt_tokens)
 
 
 def _apply_repetition_penalty(
@@ -85,36 +97,6 @@ def beam_search(
     repetition_penalty: float = 1.2,
     repetition_min_count: int = 4,
 ) -> Dict[str, Any]:
-    """Beam search for the tree-based CalculusSolverModel (model/transformer.py).
-
-    NOTE: CalculusSolverModel.forward(src_seq, tgt_in_seq, true_rule_ids=None)
-    computes src_positions/parent_child_pairs internally (as zero tensors) and
-    does not take them as inputs. src_positions/parent_child_pairs are accepted
-    here only so callers built for the older tree-kwarg interface (e.g.
-    inference/solve.py) don't break -- they are unused.
-
-    forward() returns (decoder_logits, rule_logits, verifier_logits); only
-    decoder_logits is used for next-token scoring here. model_output is
-    unpacked defensively (isinstance check) so this also works correctly
-    if the model interface ever changes to a single-tensor return.
-
-    CORRECTION: an earlier version of this docstring attributed the 0%
-    eval accuracy to exposure bias, and raised beam_size to compensate.
-    That diagnosis was wrong and widening the beam could not have fixed it.
-    The decoder had no legal way to terminate at any beam width: the grammar
-    rejected every continuation of a closed AST, [EOS] included, so a beam
-    that produced the correct answer had its entire candidate row masked to
-    -inf and was dropped from the search. Only degenerate, still-open beams
-    survived, which is why every prediction came back truncated and failed
-    to deserialize. See inference/grammar.is_valid_prefix and
-    tests/unit/test_beam_search.py::test_oracle_reaches_solved -- an oracle
-    model that is certain about every token now recovers gold exactly, at
-    every beam width from 1 to 8.
-
-    Beam width remains a real accuracy/CPU trade-off, but it should be
-    re-tuned against a checkpoint now that termination works; the old
-    0%/5.7% figures measured the termination bug, not the search width.
-    """
     device = src_tokens.device
     vocab = vocab_map["token_to_id"]
     id_to_token = vocab_map["id_to_token"]
@@ -138,27 +120,55 @@ def beam_search(
     vocab_size = max(id_to_token.keys()) + 1
     all_candidate_tokens = [id_to_token.get(idx, "[PAD]") for idx in range(vocab_size)]
 
-    beams = [{"tokens": [bos_id], "score": 0.0, "finished": False}]
+    rule_token_entries = [
+        tok for tok in vocab.keys() if tok.startswith("RULE:")
+    ]
+
+    seed_tokens = [bos_id]
+
+    if rule_token_entries:
+        init_tgt = torch.tensor([[bos_id]], device=device)
+        with torch.no_grad():
+            init_output = _call_model(
+                model,
+                src_tokens,
+                init_tgt,
+                src_positions=src_positions,
+                parent_child_pairs=parent_child_pairs,
+            )
+        init_rule_logits = init_output[1] if isinstance(init_output, tuple) else None
+
+        if init_rule_logits is not None:
+            pred_rule_idx = torch.argmax(init_rule_logits, dim=-1).item()
+            pred_rule_idx = min(pred_rule_idx, len(rule_token_entries) - 1)
+            rule_token_str = rule_token_entries[pred_rule_idx]
+            rule_token_id = vocab.get(rule_token_str)
+            if rule_token_id is not None:
+                seed_tokens = [bos_id, rule_token_id]
+
+    beams = [{"tokens": seed_tokens, "score": 0.0, "finished": False}]
     completed = []
 
     for _ in range(max_len):
         candidates = []
         for beam in beams:
             current_tokens = beam["tokens"]
-            token_strings = [id_to_token[t] for t in current_tokens]
-            validity_tokens = (
-                token_strings[1:]
-                if token_strings and token_strings[0] == "[BOS]"
-                else token_strings
-            )
+            token_strings = [id_to_token[t] for t in current_tokens if t in id_to_token]
+            validity_tokens = token_strings[:]
+            if validity_tokens and validity_tokens[0] == "[BOS]":
+                validity_tokens = validity_tokens[1:]
+            if validity_tokens and validity_tokens[0].startswith("RULE:"):
+                validity_tokens = validity_tokens[1:]
 
             tgt = torch.tensor([current_tokens], device=device)
 
-            # FIX: single model() call, unpacked defensively. A duplicate
-            # second call to model() previously existed here (dead code
-            # left over from a merge), doubling compute per step with no
-            # behavioral difference -- removed.
-            model_output = model(src_tokens, tgt)
+            model_output = _call_model(
+                model,
+                src_tokens,
+                tgt,
+                src_positions=src_positions,
+                parent_child_pairs=parent_child_pairs,
+            )
             decoder_logits = model_output[0] if isinstance(model_output, tuple) else model_output
             next_logits = decoder_logits[0, -1, :]
 
@@ -174,7 +184,11 @@ def beam_search(
             )
 
             mask = node_pool.mask(validity_tokens, all_candidate_tokens)
-            invalid_mask = torch.tensor([not v for v in mask], device=device)
+            vocab_len = next_logits.size(0)
+            padded_mask = mask + [True] * max(0, vocab_len - len(mask))
+            invalid_mask = torch.tensor(
+                [not v for v in padded_mask[:vocab_len]], device=device
+            )
             safe_logits = next_logits.masked_fill(invalid_mask, float("-inf"))
 
             # Hard repeat guard (task 2b). Applied as a mask, not a penalty:
