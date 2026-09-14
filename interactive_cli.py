@@ -2,6 +2,12 @@ import sys
 import json
 from pathlib import Path
 
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -14,8 +20,8 @@ def run_cli():
     print("=" * 60)
     
     candidate_paths = [
-        ROOT / "model" / "model.pkl",
         ROOT / "checkpoints" / "final" / "best.pt",
+        ROOT / "model" / "model.pkl",
         ROOT / "checkpoints" / "checkpoint_epoch_1.pt",
     ]
     checkpoint_path = None
@@ -40,8 +46,8 @@ def run_cli():
     print(" 1) d/dx (3x^2)")
     print(" 2) d/dx (5x^3 + 2x)")
     print(" 3) d/dx (sin(x))")
-    print(" 4) ∫ (x^2) dx")
-    print(" 5) ∂/∂x (x^2 * y^3)\n")
+    print(" 4) integrate (x^2) dx")
+    print(" 5) partial d/dx (x^2 * y^3)\n")
 
     while True:
         try:
@@ -56,15 +62,15 @@ def run_cli():
 
         expr_dict = None
         if user_input == "1":
-            expr_dict = {"op": "diff", "var": "x", "expr": {"coeff": 3, "var": {"x": 2}}}
+            expr_dict = {"op": "diff", "var": "x", "expr": {"numi": {"terms": [{"coeff": 3, "var": {"x": 2}}]}, "deno": 1}}
         elif user_input == "2":
             expr_dict = {"op": "diff", "var": "x", "expr": {"numi": {"terms": [{"coeff": 5, "var": {"x": 3}}, {"coeff": 2, "var": {"x": 1}}]}, "deno": 1}}
         elif user_input == "3":
-            expr_dict = {"op": "diff", "var": "x", "expr": {"op": "sin", "arg": {"var": {"x": 1}}}}
+            expr_dict = {"op": "diff", "var": "x", "expr": {"op": "sin", "expr": {"numi": {"terms": [{"coeff": 1, "var": {"x": 1}}]}, "deno": 1}}}
         elif user_input == "4":
-            expr_dict = {"op": "integrate", "var": "x", "expr": {"var": {"x": 2}}}
+            expr_dict = {"op": "integrate", "var": "x", "expr": {"numi": {"terms": [{"coeff": 3, "var": {"x": 2}}]}, "deno": 1}}
         elif user_input == "5":
-            expr_dict = {"op": "partial", "var": "x", "expr": {"coeff": 1, "var": {"x": 2, "y": 3}}}
+            expr_dict = {"op": "partial", "var": "x", "expr": {"numi": {"terms": [{"coeff": 1, "var": {"x": 2, "y": 3}}]}, "deno": 1}}
         else:
             try:
                 expr_dict = json.loads(user_input)

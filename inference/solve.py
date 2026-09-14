@@ -163,6 +163,45 @@ class CalculusSolverInference:
             return checkpoint
         raise ValueError("Unsupported checkpoint format for model state.")
 
+    def _normalize_input(self, input_env: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize bare terms or shorthand into canonical SLaNg fraction form."""
+        env = dict(input_env)
+        expr = env.get("expr")
+        if isinstance(expr, dict):
+            if "coeff" in expr and "numi" not in expr and "op" not in expr:
+                env["expr"] = {"numi": {"terms": [expr]}, "deno": 1}
+            elif "terms" in expr and "numi" not in expr:
+                env["expr"] = {"numi": expr, "deno": 1}
+        return env
+
+    def _infer_rule_token(self, input_env: Dict[str, Any]) -> Optional[str]:
+        op = input_env.get("op")
+        expr = input_env.get("expr", {})
+        if op == "integrate":
+            return "RULE:power_rule_integral"
+        if op in ("partial", "gradient"):
+            return "RULE:partial_derivative"
+        if op == "tangent_line":
+            return "RULE:power_rule"
+        if op == "diff":
+            if isinstance(expr, dict) and "op" in expr:
+                sub_op = expr["op"]
+                if sub_op in ("sin", "cos", "tan"):
+                    return "RULE:trig_rule"
+                if sub_op == "exp":
+                    return "RULE:exp_rule"
+                if sub_op == "ln":
+                    return "RULE:log_rule"
+            terms = expr.get("numi", {}).get("terms", []) if isinstance(expr, dict) else []
+            if len(terms) > 1:
+                return "RULE:sum_rule"
+            if len(terms) == 1:
+                t = terms[0]
+                if not t.get("var") or all(v == 0 for v in t.get("var", {}).values()):
+                    return "RULE:constant_rule"
+                return "RULE:power_rule"
+        return None
+
     def _serialize_input(self, input_env: Dict[str, Any]) -> List[str]:
         from tokenizer.slang_serializer import serialize_slang_math
         return serialize_slang_math(input_env)
@@ -174,7 +213,9 @@ class CalculusSolverInference:
         return verify(input_env, output_tokens)
 
     def solve(self, input_env: Dict[str, Any]) -> Dict[str, Any]:
-        token_strings = self._serialize_input(input_env)
+        normalized_env = self._normalize_input(input_env)
+        rule_token = self._infer_rule_token(normalized_env)
+        token_strings = self._serialize_input(normalized_env)
         token_ids = [
             self.vocab_map["token_to_id"].get(token, self.pad_id)
             for token in token_strings
@@ -191,6 +232,7 @@ class CalculusSolverInference:
             beam_size=self.beam_size,
             max_len=self.max_len,
             node_pool=self.node_pool,
+            seed_rule_token=rule_token,
         )
 
         output_token_strings = [
@@ -207,7 +249,7 @@ class CalculusSolverInference:
             predicted_rule = output_token_strings[0]
             output_token_strings = output_token_strings[1:]
 
-        verifier_result = self._verify_output(input_env, output_token_strings)
+        verifier_result = self._verify_output(normalized_env, output_token_strings)
         if verifier_result.get("status") in ("solved", "unverified", "unsolvable"):
             result["status"] = verifier_result["status"]
         result["verified"] = verifier_result.get("verified", False)

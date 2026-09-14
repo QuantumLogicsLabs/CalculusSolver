@@ -3,6 +3,12 @@ import json
 import torch
 from pathlib import Path
 
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
 from solver_model import CalculusSolverModel
@@ -89,8 +95,10 @@ def evaluate_cli_input():
         rule_labels=RULE_LABELS,
     )
 
-    checkpoint_path = "checkpoints/checkpoint_epoch_1.pt"
-    state_dict = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint_path = Path("checkpoints/final/best.pt")
+    if not checkpoint_path.exists():
+        checkpoint_path = Path("checkpoints/checkpoint_epoch_1.pt")
+    state_dict = torch.load(str(checkpoint_path), map_location="cpu")
     model.load_state_dict(state_dict)  # let mismatches raise loudly, never swallow them
     model.eval()
 

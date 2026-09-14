@@ -29,21 +29,27 @@ def _call_model(
     tgt_tokens: torch.Tensor,
     src_positions: Optional[torch.Tensor] = None,
     parent_child_pairs: Optional[torch.Tensor] = None,
+    true_rule_ids: Optional[torch.Tensor] = None,
 ) -> Any:
     try:
+        if true_rule_ids is not None:
+            return model(src_tokens, tgt_tokens, true_rule_ids=true_rule_ids)
         return model(src_tokens, tgt_tokens)
     except TypeError:
-        device = src_tokens.device
-        batch_size, seq_len = src_tokens.size()
-        if src_positions is None:
-            src_positions = torch.zeros(
-                (batch_size, seq_len, 3), dtype=torch.float32, device=device
-            )
-        if parent_child_pairs is None:
-            parent_child_pairs = torch.zeros(
-                (batch_size, seq_len, seq_len), dtype=torch.float32, device=device
-            )
-        return model(src_tokens, src_positions, parent_child_pairs, tgt_tokens)
+        try:
+            return model(src_tokens, tgt_tokens)
+        except TypeError:
+            device = src_tokens.device
+            batch_size, seq_len = src_tokens.size()
+            if src_positions is None:
+                src_positions = torch.zeros(
+                    (batch_size, seq_len, 3), dtype=torch.float32, device=device
+                )
+            if parent_child_pairs is None:
+                parent_child_pairs = torch.zeros(
+                    (batch_size, seq_len, seq_len), dtype=torch.float32, device=device
+                )
+            return model(src_tokens, src_positions, parent_child_pairs, tgt_tokens)
 
 
 def _apply_repetition_penalty(
@@ -96,6 +102,7 @@ def beam_search(
     no_repeat_ngram_size: int = 2,
     repetition_penalty: float = 1.2,
     repetition_min_count: int = 4,
+    seed_rule_token: Optional[str] = None,
 ) -> Dict[str, Any]:
     device = src_tokens.device
     vocab = vocab_map["token_to_id"]
@@ -125,8 +132,14 @@ def beam_search(
     ]
 
     seed_tokens = [bos_id]
+    pred_rule_idx = None
 
-    if rule_token_entries:
+    if seed_rule_token and seed_rule_token in vocab:
+        rule_token_id = vocab[seed_rule_token]
+        seed_tokens = [bos_id, rule_token_id]
+        if seed_rule_token in rule_token_entries:
+            pred_rule_idx = rule_token_entries.index(seed_rule_token)
+    elif rule_token_entries:
         init_tgt = torch.tensor([[bos_id]], device=device)
         with torch.no_grad():
             init_output = _call_model(
@@ -146,6 +159,7 @@ def beam_search(
             if rule_token_id is not None:
                 seed_tokens = [bos_id, rule_token_id]
 
+    true_rule_tensor = torch.tensor([pred_rule_idx], device=device) if pred_rule_idx is not None else None
     beams = [{"tokens": seed_tokens, "score": 0.0, "finished": False}]
     completed = []
 
@@ -168,6 +182,7 @@ def beam_search(
                 tgt,
                 src_positions=src_positions,
                 parent_child_pairs=parent_child_pairs,
+                true_rule_ids=true_rule_tensor,
             )
             decoder_logits = model_output[0] if isinstance(model_output, tuple) else model_output
             next_logits = decoder_logits[0, -1, :]
