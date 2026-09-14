@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 import torch
+import math
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import LambdaLR
@@ -155,7 +156,6 @@ def evaluate_validation(model, val_loader, criterion):
             tgt_out = batch["tgt_out_seq"][:, 1:]
             rule_id = batch["rule_id"]
 
-            # REPLACED CODE: updated to multi-output model forward pass
             decoder_logits, rule_logits, verifier_logits = model(src_seq, tgt_in, true_rule_ids=rule_id)
             loss = criterion(decoder_logits.reshape(-1, REAL_VOCAB_SIZE), tgt_out.reshape(-1))
             total_loss += loss.item()
@@ -186,6 +186,100 @@ def evaluate_validation(model, val_loader, criterion):
     return avg_loss, seq_acc, token_acc
 
 
+def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48):
+    """
+    Free-running generation check: greedy decode (no beam search, no teacher forcing).
+    """
+    model.eval()
+    
+    total = len(val_dataset)
+    if total == 0:
+        return 0.0, 0.0, 0.0
+    
+    indices = [int(i * total / num_examples) for i in range(min(num_examples, total))]
+    
+    bos_id = vocab_mapping["[BOS]"]
+    eos_id = vocab_mapping["[EOS]"]
+    pad_id = vocab_mapping["[PAD]"]
+    
+    correct_seqs = 0
+    total_tokens = 0
+    correct_tokens = 0
+    total_gen_len = 0
+    
+    with torch.no_grad():
+        for idx in indices:
+            item = val_dataset[idx]
+            src_seq = item["src_seq"].unsqueeze(0)
+            
+            tgt_out_full = item["tgt_out_seq"]
+            tgt_out = tgt_out_full[1:]
+            tgt_mask = tgt_out != pad_id
+            tgt_len = int(tgt_mask.sum().item())
+            tgt_out_clean = tgt_out[:tgt_len]
+            
+            generated = [bos_id]
+            for _ in range(max_gen_len):
+                tgt_in = torch.tensor([generated], dtype=torch.long)
+                logits, _, _ = model(src_seq, tgt_in, true_rule_ids=None)
+                next_token = int(logits[0, -1, :].argmax().item())
+                generated.append(next_token)
+                if next_token == eos_id:
+                    break
+            
+            gen_tokens = generated[1:]
+            if gen_tokens and gen_tokens[-1] == eos_id:
+                gen_tokens = gen_tokens[:-1]
+            
+            total_gen_len += len(gen_tokens)
+            
+            gen_tensor = torch.tensor(gen_tokens)
+            if len(gen_tokens) == tgt_len and torch.equal(gen_tensor, tgt_out_clean):
+                correct_seqs += 1
+            
+            compare_len = min(len(gen_tokens), tgt_len)
+            if compare_len > 0:
+                gen_cmp = gen_tensor[:compare_len]
+                tgt_cmp = tgt_out_clean[:compare_len]
+                correct_tokens += int((gen_cmp == tgt_cmp).sum().item())
+                total_tokens += compare_len
+    
+    n = len(indices)
+    free_run_seq_acc = correct_seqs / max(n, 1)
+    free_run_token_acc = correct_tokens / max(total_tokens, 1)
+    avg_gen_len = total_gen_len / max(n, 1)
+    
+    return free_run_seq_acc, free_run_token_acc, avg_gen_len
+
+
+def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
+    """Return probability of using model's own prediction for this epoch."""
+    if not ss_config.get("enabled", False):
+        return 0.0
+    
+    start = ss_config.get("start_prob", 0.0)
+    end = ss_config.get("end_prob", 0.3)
+    schedule = ss_config.get("schedule", "linear")
+    
+    progress = (epoch - 1) / max(total_epochs - 1, 1)
+    
+    if schedule == "linear":
+        return start + (end - start) * progress
+    elif schedule == "exponential":
+        ratio = end / max(start, 1e-8)
+        return start * (ratio ** progress)
+    elif schedule == "sigmoid":
+        midpoint = 0.5
+        steepness = 10
+        sigmoid = 1 / (1 + math.exp(-steepness * (progress - midpoint)))
+        sigmoid_min = 1 / (1 + math.exp(steepness * midpoint))
+        sigmoid_max = 1 / (1 + math.exp(-steepness * (1 - midpoint)))
+        normalized = (sigmoid - sigmoid_min) / (sigmoid_max - sigmoid_min)
+        return start + (end - start) * normalized
+    else:
+        return start + (end - start) * progress
+
+
 def write_training_results(metrics_log, best_val_loss, git_commit_hash):
     docs_dir = Path("docs")
     docs_dir.mkdir(exist_ok=True)
@@ -199,18 +293,20 @@ def write_training_results(metrics_log, best_val_loss, git_commit_hash):
         "",
         "## Per-Epoch Metrics",
         "",
-        "| Epoch | Train Loss | Val Loss | Per-Token Acc | Val Seq Acc | Saved |",
-        "|-------|-----------|----------|---------------|-------------|-------|",
+        "| Epoch | Train Loss | Val Loss | Per-Token Acc | Val Seq Acc | Free-Run Seq Acc | Free-Run Token Acc | Avg Gen Len | Saved |",
+        "|-------|-----------|----------|---------------|-------------|------------------|--------------------|-------------|-------|",
     ]
     for m in metrics_log:
         val_loss = f"{m['val_loss']:.4f}" if m['val_loss'] is not None else "N/A"
         token_acc = f"{m['val_token_acc']:.4f}" if m['val_token_acc'] is not None else "N/A"
         val_acc = f"{m['val_seq_acc']:.4f}" if m['val_seq_acc'] is not None else "N/A"
+        fr_seq = f"{m.get('free_run_seq_acc', 0):.4f}"
+        fr_tok = f"{m.get('free_run_token_acc', 0):.4f}"
+        fr_len = f"{m.get('free_run_avg_len', 0):.1f}"
         saved = "Yes" if m['saved'] else "No"
         lines.append(
-            f"| {m['epoch']} | {m['train_loss']:.4f} | {val_loss} | {token_acc} | {val_acc} | {saved} |"
+            f"| {m['epoch']} | {m['train_loss']:.4f} | {val_loss} | {token_acc} | {val_acc} | {fr_seq} | {fr_tok} | {fr_len} | {saved} |"
         )
-
     lines.extend([
         "",
         "## Configuration Snapshot",
@@ -251,6 +347,7 @@ def run_training_pipeline():
 
     val_file = Path("data/splits/val.jsonl")
     val_loader = None
+    val_dataset = None
     if val_file.exists() and config.get("validation_logging", True):
         print("[DEBUG] Loading val dataset into memory...", flush=True)
         val_dataset = SlangDatasetLoader(val_file)
@@ -265,14 +362,25 @@ def run_training_pipeline():
         rule_labels=RULE_LABELS,
     )
 
+    # Move 'epochs' extraction UP before scheduler calculations
+    epochs = config.get("epochs", 1)
+
     base_lr = config["learning_rate"]
     optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
 
     warmup_steps = config.get("warmup_steps", 1000)
+    total_training_steps = epochs * min(config.get("max_steps", 3500), len(train_loader))
+    lr_decay_cfg = config.get("lr_decay", {})
+    min_lr_ratio = lr_decay_cfg.get("min_lr_ratio", 0.1)
+    
     def lr_lambda(current_step):
         if current_step < warmup_steps:
             return float(current_step) / float(max(1, warmup_steps))
-        return 1.0
+        
+        progress = (current_step - warmup_steps) / max(total_training_steps - warmup_steps, 1)
+        progress = min(progress, 1.0)
+        cosine_decay = 0.5 * (1 + math.cos(math.pi * progress))
+        return min_lr_ratio + (1 - min_lr_ratio) * cosine_decay
 
     scheduler = LambdaLR(optimizer, lr_lambda=lr_lambda)
 
@@ -299,7 +407,6 @@ def run_training_pipeline():
     else:
         use_early_stopping = False
 
-    epochs = config.get("epochs", 1)
     global_step = 0
 
     print("[DEBUG] Entering training loop...", flush=True)
@@ -309,6 +416,11 @@ def run_training_pipeline():
         epoch_loss = 0.0
         steps_run = 0
 
+        ss_config = config.get("scheduled_sampling", {})
+        ss_prob = get_scheduled_sampling_prob(epoch, epochs, ss_config)
+        if ss_config.get("enabled"):
+            print(f"  [Scheduled Sampling] Epoch {epoch}: model-token prob = {ss_prob:.3f}")
+
         for step, batch in enumerate(train_loader):
             if step >= config.get("max_steps", 1500):
                 break
@@ -317,13 +429,29 @@ def run_training_pipeline():
             optimizer.zero_grad()
 
             src_seq = batch["src_seq"]
-            tgt_in = batch["tgt_in_seq"][:, :-1]
+            tgt_in_full = batch["tgt_in_seq"]
             tgt_out = batch["tgt_out_seq"][:, 1:]
             rule_id = batch["rule_id"]
 
-            # REPLACED CODE: updated to multi-output model forward pass
+            tgt_in = tgt_in_full[:, :-1]
+            
+            if ss_prob > 0:
+                with torch.no_grad():
+                    pred_logits, _, _ = model(src_seq, tgt_in, true_rule_ids=rule_id)
+                    pred_tokens = pred_logits.argmax(dim=-1)
+                
+                ss_mask = torch.rand_like(tgt_in, dtype=torch.float) < ss_prob
+                bos_id = vocab_mapping["[BOS]"]
+                eos_id = vocab_mapping["[EOS]"]
+                pad_id = vocab_mapping["[PAD]"]
+                special_mask = (tgt_in == bos_id) | (tgt_in == eos_id) | (tgt_in == pad_id)
+                ss_mask = ss_mask & ~special_mask
+                
+                tgt_in = torch.where(ss_mask, pred_tokens, tgt_in)
+
             decoder_logits, rule_logits, verifier_logits = model(src_seq, tgt_in, true_rule_ids=rule_id)
             loss = criterion(decoder_logits.reshape(-1, REAL_VOCAB_SIZE), tgt_out.reshape(-1))
+            
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_max_norm)
@@ -349,14 +477,31 @@ def run_training_pipeline():
 
         if val_loader is not None:
             val_loss, val_seq_acc, val_token_acc = evaluate_validation(model, val_loader, criterion)
+            
+            num_proxy_examples = config.get("proxy_eval_examples", 15)
+            fr_seq_acc, fr_token_acc, fr_avg_len = evaluate_free_running(
+                model, val_dataset, num_examples=num_proxy_examples
+            )
             print(
                 f"Epoch {epoch} - Val Loss: {val_loss:.4f} | "
-                f"Token Acc: {val_token_acc:.4f} | Seq Acc: {val_seq_acc:.4f}"
+                f"Token Acc: {val_token_acc:.4f} | Seq Acc: {val_seq_acc:.4f} | "
+                f"Free-Run Seq Acc: {fr_seq_acc:.4f} | Free-Run Token Acc: {fr_token_acc:.4f} | "
+                f"Avg Gen Len: {fr_avg_len:.1f}"
+            )
+            
+            train_val_gap = avg_train_loss - val_loss
+            print(
+                f"  [Diag] Train-Val Gap: {train_val_gap:.4f} | "
+                f"LR: {scheduler.get_last_lr()[0]:.2e} | "
+                f"Patience Counter: {patience_counter}/{patience if use_early_stopping else 'N/A'}"
             )
 
             epoch_metrics["val_loss"] = val_loss
             epoch_metrics["val_token_acc"] = val_token_acc
             epoch_metrics["val_seq_acc"] = val_seq_acc
+            epoch_metrics["free_run_seq_acc"] = fr_seq_acc
+            epoch_metrics["free_run_token_acc"] = fr_token_acc
+            epoch_metrics["free_run_avg_len"] = fr_avg_len
 
             if val_loss < best_val_loss - (min_delta if use_early_stopping else 0):
                 best_val_loss = val_loss

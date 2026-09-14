@@ -5,11 +5,22 @@
   "max_steps": 3500,
   "hidden_dim": 256,
   "max_len": 48,
-  "epochs": 15,
+  "epochs": 5,
   "grad_clip_max_norm": 1.0,
   "early_stopping": {
-    "patience": 15,
-    "min_delta": 0.0002
+    "patience": 3,
+    "min_delta": 0.0005
   },
-  "validation_logging": true
+  "validation_logging": true,
+  "scheduled_sampling": {
+    "enabled": true,
+    "start_prob": 0.0,
+    "end_prob": 0.3,
+    "schedule": "linear"
+  },
+  "proxy_eval_examples": 15,
+  "lr_decay": {
+    "type": "cosine",
+    "min_lr_ratio": 0.1
+  }
 }

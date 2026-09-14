@@ -37,9 +37,12 @@ jobs:
       # ── 4. Install test dependencies ───────────────────────────────────────
       # pytest     — test runner
       # httpx      — required internally by starlette.testclient.TestClient
-      # These are not in requirements.txt (they are dev/test only).
+      # joblib     — required for model loading/inference
+      # torch      — CPU build to prevent ModuleNotFoundError in unit/parity tests without bloating Vercel bundle
       - name: Install test dependencies
-        run: pip install pytest httpx
+        run: |
+          pip install pytest httpx joblib
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       # ── 5. Unit tests ──────────────────────────────────────────────────────
       # Tests tokenizer/slang_serializer.py round-trip.
