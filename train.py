@@ -19,7 +19,6 @@ with open("config.json", "r") as cfg_file:
 
 
 def get_git_commit_hash():
-    """Returns the exact current git commit hash for provenance tracking."""
     try:
         hash_str = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
         return hash_str
@@ -28,10 +27,6 @@ def get_git_commit_hash():
 
 
 def flatten_vocab(raw_vocab):
-    """
-    Same flattening rule as inference/beam_search.flatten_vocab on org main:
-    merge every sub-dict, skip keys starting with '_' (e.g. _comment, _version).
-    """
     flat = {}
     for key, value in raw_vocab.items():
         if key.startswith("_"):
@@ -46,10 +41,8 @@ with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
 
 vocab_mapping = flatten_vocab(_raw_vocab)
 
-# IDs are NOT contiguous (gaps by design — see docs/KNOWN_ISSUES.md, STRUCT:OPEN @ 23).
 REAL_VOCAB_SIZE = max(vocab_mapping.values()) + 1
 
-# Rule labels/tokens, derived from vocab's rule_tokens, ordered by ID.
 _rule_items = sorted(_raw_vocab.get("rule_tokens", {}).items(), key=lambda kv: kv[1])
 RULE_LABELS = [name.split("RULE:", 1)[1] for name, _ in _rule_items]
 RULE_TOKEN_STRINGS = [name for name, _ in _rule_items]
@@ -140,7 +133,7 @@ def preflight_check_max_len(dataset_path, max_len):
         print(f"[Pre-flight] OK: max_len has {max_len - worst} tokens of headroom.")
 
 
-def evaluate_validation(model, val_loader, criterion):
+def evaluate_validation(model, val_loader, criterion, device="cpu"):
     model.eval()
     total_loss = 0.0
     total_correct_seq = 0
@@ -151,10 +144,10 @@ def evaluate_validation(model, val_loader, criterion):
 
     with torch.no_grad():
         for batch in val_loader:
-            src_seq = batch["src_seq"]
-            tgt_in = batch["tgt_in_seq"][:, :-1]
-            tgt_out = batch["tgt_out_seq"][:, 1:]
-            rule_id = batch["rule_id"]
+            src_seq = batch["src_seq"].to(device)
+            tgt_in = batch["tgt_in_seq"][:, :-1].to(device)
+            tgt_out = batch["tgt_out_seq"][:, 1:].to(device)
+            rule_id = batch["rule_id"].to(device)
 
             decoder_logits, rule_logits, verifier_logits = model(src_seq, tgt_in, true_rule_ids=rule_id)
             loss = criterion(decoder_logits.reshape(-1, REAL_VOCAB_SIZE), tgt_out.reshape(-1))
@@ -354,13 +347,17 @@ def run_training_pipeline():
         print(f"[DEBUG] Val dataset loaded: {len(val_dataset)} examples", flush=True)
         val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False)
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+    print(f"[Hardware] Training device: {device} ({device_name})", flush=True)
+
     print("[DEBUG] Building model...", flush=True)
     model = CalculusSolverModel(
         vocab_size=REAL_VOCAB_SIZE,
         num_rules=len(RULE_LABELS),
         hidden_dim=config["hidden_dim"],
         rule_labels=RULE_LABELS,
-    )
+    ).to(device)
 
     # Move 'epochs' extraction UP before scheduler calculations
     epochs = config.get("epochs", 1)
@@ -428,10 +425,10 @@ def run_training_pipeline():
                 print(f"[DEBUG] epoch {epoch} step {step} - batch received, running forward/backward...", flush=True)
             optimizer.zero_grad()
 
-            src_seq = batch["src_seq"]
-            tgt_in_full = batch["tgt_in_seq"]
-            tgt_out = batch["tgt_out_seq"][:, 1:]
-            rule_id = batch["rule_id"]
+            src_seq = batch["src_seq"].to(device)
+            tgt_in_full = batch["tgt_in_seq"].to(device)
+            tgt_out = batch["tgt_out_seq"][:, 1:].to(device)
+            rule_id = batch["rule_id"].to(device)
 
             tgt_in = tgt_in_full[:, :-1]
             
@@ -448,7 +445,6 @@ def run_training_pipeline():
                 ss_mask = ss_mask & ~special_mask
                 
                 tgt_in = torch.where(ss_mask, pred_tokens, tgt_in)
-
             decoder_logits, rule_logits, verifier_logits = model(src_seq, tgt_in, true_rule_ids=rule_id)
             loss = criterion(decoder_logits.reshape(-1, REAL_VOCAB_SIZE), tgt_out.reshape(-1))
             
@@ -476,7 +472,7 @@ def run_training_pipeline():
         }
 
         if val_loader is not None:
-            val_loss, val_seq_acc, val_token_acc = evaluate_validation(model, val_loader, criterion)
+            val_loss, val_seq_acc, val_token_acc = evaluate_validation(model, val_loader, criterion, device=device)
             
             num_proxy_examples = config.get("proxy_eval_examples", 15)
             fr_seq_acc, fr_token_acc, fr_avg_len = evaluate_free_running(
