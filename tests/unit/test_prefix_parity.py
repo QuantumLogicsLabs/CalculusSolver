@@ -106,7 +106,7 @@ class TestPrefixParity:
                 vocab_size = 120
                 seq_len = tgt_tokens.size(1)
                 decoder_logits = torch.zeros((1, seq_len, vocab_size))
-                decoder_logits[0, -1, 2] = 10.0  # predict [EOS] (ID 2)
+                decoder_logits[0, -1, 2] = 10.0
                 rule_logits = torch.zeros((1, 13))
                 return decoder_logits, rule_logits, None
 

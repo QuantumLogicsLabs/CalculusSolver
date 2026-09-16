@@ -155,7 +155,6 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
 
             preds = decoder_logits.argmax(dim=-1)
             mask = tgt_out != PAD_ID
-
             correct_token_mask = (preds == tgt_out) & mask
             total_correct_tokens += correct_token_mask.sum().item()
             total_valid_tokens += mask.sum().item()
@@ -359,7 +358,6 @@ def run_training_pipeline():
         rule_labels=RULE_LABELS,
     ).to(device)
 
-    # Move 'epochs' extraction UP before scheduler calculations
     epochs = config.get("epochs", 1)
 
     base_lr = config["learning_rate"]

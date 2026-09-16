@@ -35,8 +35,6 @@ with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
 vocab_mapping = flatten_vocab(_raw_vocab)
 REAL_VOCAB_SIZE = max(vocab_mapping.values()) + 1
 
-# Same rule label derivation as train.py, so RuleHead's output layer is the
-# same shape the checkpoint was trained with.
 _rule_items = sorted(_raw_vocab.get("rule_tokens", {}).items(), key=lambda kv: kv[1])
 RULE_LABELS = [name.split("RULE:", 1)[1] for name, _ in _rule_items]
 
