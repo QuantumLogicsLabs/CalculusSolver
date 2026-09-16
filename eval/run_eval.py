@@ -5,11 +5,9 @@ import glob
 from pathlib import Path
 import torch
 
-# Performance optimizations for CPU execution
 torch.set_grad_enabled(False)
-torch.set_num_threads(4)  # Adjust based on your CPU physical core count
+torch.set_num_threads(4)
 
-# Ensure project root is in path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -24,7 +22,6 @@ def main():
         sys.exit(1)
 
     print("Loading neural model (with beam_size=5 for fast evaluation)...")
-    # Set beam_size=5 to avoid freezing and speed up inference significantly
     solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=5)
 
     benchmark_dir = ROOT / "eval" / "benchmarks"
@@ -64,7 +61,6 @@ def main():
                 res = solver.solve(expr)
                 pred = res.get("output") or res.get("expr") or {}
                 
-                # Check equivalence
                 if is_equivalent(pred, target):
                     exact_match_count += 1
                 if res.get("verified", False):
@@ -86,7 +82,6 @@ def main():
 
     report_lines.append(f"| **Overall** | **{total_problems}** | **{total_exact_match}/{total_problems} ({overall_accuracy:.1%})** | **{total_verified}/{total_problems} ({overall_ver_rate:.1%})** |")
 
-    # Write report
     eval_results_path = ROOT / "docs" / "EVAL_RESULTS.md"
     eval_results_path.parent.mkdir(parents=True, exist_ok=True)
     with open(eval_results_path, "w", encoding="utf-8") as f:

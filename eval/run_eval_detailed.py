@@ -56,8 +56,6 @@ def main(checkpoint_rel, max_len, out_json, only_op=None):
                 pred_out = res.get("output")
                 exact = is_equivalent(pred_out, target)
                 verified = bool(res.get("verified", False))
-
-                # token length diagnostics
                 out_tokens = res.get("output_tokens", [])
                 try:
                     target_tokens = serialize_slang_math(target) if isinstance(target, dict) else target
