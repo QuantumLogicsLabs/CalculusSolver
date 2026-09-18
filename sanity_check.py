@@ -10,22 +10,31 @@ vocab_path = Path("tokenizer/vocab.json")
 if not vocab_path.exists():
     vocab_path = Path("vocab.json")
 
-# Dynamic structural self-repair if local files were missing tracker keys
 if vocab_path.exists():
     with open(vocab_path, "r", encoding="utf-8") as f:
         vocab_mapping = json.load(f)
 else:
     vocab_mapping = {"<pad>": 0, "<s>": 1, "</s>": 2, "<unk>": 3}
 
-# Ensure core canonical test entities live explicitly in target validation map to satisfy unit tests
-core_tokens = ["NODE:TERM", "COEFF:*", "VAR:*", "STRUCT:*", "STRUCT:OPEN", "OP:DIFF"]
-for idx, token in enumerate(core_tokens, start=len(vocab_mapping)):
-    if token not in vocab_mapping:
-        vocab_mapping[token] = idx
+# Flatten top-level and nested sub-dictionary keys for lookup
+def extract_all_keys(data):
+    keys = set()
+    if isinstance(data, dict):
+        for k, v in data.items():
+            keys.add(k)
+            if isinstance(v, dict):
+                keys.update(extract_all_keys(v))
+    return keys
 
-# Re-write cleanly to ensure alignment across modules
-with open(vocab_path, "w", encoding="utf-8") as f:
-    json.dump(vocab_mapping, f, indent=4)
+all_vocab_keys = extract_all_keys(vocab_mapping)
+
+# Read-only verification of required tokens
+required_tokens = ["NODE:TERM", "STRUCT:OPEN", "OP:diff"]
+missing = [t for t in required_tokens if t not in all_vocab_keys]
+if missing:
+    print(f"⚠️  WARNING: vocab.json is missing expected tokens: {missing}")
+else:
+    print("✅ vocab.json contains all expected core tokens.")
 
 def run_strict_validation():
     print("🕵️ Starting validation pipeline check against the REAL vocabulary definitions...")
