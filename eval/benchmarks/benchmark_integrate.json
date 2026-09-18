@@ -36,14 +36,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 4
+                "y": 4
               }
             }
           ]
@@ -57,7 +57,7 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 5
+              "y": 5
             }
           }
         ]
@@ -70,14 +70,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 5,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -91,7 +91,7 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           }
         ]
@@ -138,14 +138,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 12,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -159,7 +159,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -172,14 +172,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -193,7 +193,7 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -240,14 +240,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -6,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -261,7 +261,7 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           }
         ]
@@ -274,14 +274,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 12,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -295,7 +295,7 @@
           {
             "coeff": 3.0,
             "var": {
-              "x": 4
+              "z": 4
             }
           }
         ]
@@ -342,14 +342,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -5,
               "var": {
-                "x": 4
+                "y": 4
               }
             }
           ]
@@ -363,7 +363,7 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 5
+              "y": 5
             }
           }
         ]
@@ -376,14 +376,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -4,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -397,7 +397,7 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -444,14 +444,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -465,7 +465,7 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -478,14 +478,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -499,7 +499,7 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           }
         ]
@@ -546,14 +546,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -2,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -567,7 +567,7 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -580,14 +580,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 12,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -601,7 +601,7 @@
           {
             "coeff": 3.0,
             "var": {
-              "x": 4
+              "z": 4
             }
           }
         ]
@@ -648,14 +648,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -6,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -669,7 +669,7 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           }
         ]
@@ -682,14 +682,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -703,7 +703,7 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           }
         ]
@@ -750,14 +750,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 12,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -771,7 +771,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -784,14 +784,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -805,7 +805,7 @@
           {
             "coeff": -5.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -852,14 +852,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -3,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -873,7 +873,7 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           }
         ]
@@ -886,14 +886,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 4,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -907,7 +907,7 @@
           {
             "coeff": 2.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -954,14 +954,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -975,7 +975,7 @@
           {
             "coeff": -5.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -988,14 +988,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -9,
               "var": {
-                "x": 2
+                "z": 2
               }
             }
           ]
@@ -1009,7 +1009,7 @@
           {
             "coeff": -3.0,
             "var": {
-              "x": 3
+              "z": 3
             }
           }
         ]
@@ -1056,14 +1056,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 4,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1077,7 +1077,7 @@
           {
             "coeff": 2.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -1090,14 +1090,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 4,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1111,7 +1111,7 @@
           {
             "coeff": 2.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -1158,14 +1158,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 5,
               "var": {
-                "x": 4
+                "y": 4
               }
             }
           ]
@@ -1179,7 +1179,7 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 5
+              "y": 5
             }
           }
         ]
@@ -1192,14 +1192,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -5,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -1213,7 +1213,7 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           }
         ]
@@ -1260,14 +1260,14 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -6,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1281,7 +1281,41 @@
           {
             "coeff": -3.0,
             "var": {
-              "x": 2
+              "y": 2
+            }
+          }
+        ]
+      },
+      "deno": 1
+    },
+    "operation": "integrate",
+    "expected_rule": "power_rule_integral"
+  },
+  {
+    "expr": {
+      "op": "integrate",
+      "var": "z",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 2,
+              "var": {
+                "z": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "numi": {
+        "terms": [
+          {
+            "coeff": 1.0,
+            "var": {
+              "z": 2
             }
           }
         ]
@@ -1328,54 +1362,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
-      "expr": {
-        "numi": {
-          "terms": [
-            {
-              "coeff": 2,
-              "var": {
-                "x": 1
-              }
-            }
-          ]
-        },
-        "deno": 1
-      }
-    },
-    "target": {
-      "numi": {
-        "terms": [
-          {
-            "coeff": 1.0,
-            "var": {
-              "x": 2
-            }
-          }
-        ]
-      },
-      "deno": 1
-    },
-    "operation": "integrate",
-    "expected_rule": "power_rule_integral"
-  },
-  {
-    "expr": {
-      "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 12,
               "var": {
-                "x": 2
+                "y": 2
               }
             },
             {
               "coeff": -4,
               "var": {
-                "x": 3
+                "y": 3
               }
             }
           ]
@@ -1389,13 +1389,13 @@
           {
             "coeff": 4.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           },
           {
             "coeff": -1.0,
             "var": {
-              "x": 4
+              "y": 4
             }
           }
         ]
@@ -1408,20 +1408,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 10,
               "var": {
-                "x": 4
+                "z": 4
               }
             },
             {
               "coeff": 6,
               "var": {
-                "x": 2
+                "z": 2
               }
             }
           ]
@@ -1435,13 +1435,13 @@
           {
             "coeff": 2.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           },
           {
             "coeff": 2.0,
             "var": {
-              "x": 3
+              "z": 3
             }
           }
         ]
@@ -1500,20 +1500,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -5,
               "var": {
-                "x": 4
+                "y": 4
               }
             },
             {
               "coeff": -10,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1527,13 +1527,13 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 5
+              "y": 5
             }
           },
           {
             "coeff": -5.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -1546,20 +1546,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -3,
               "var": {
-                "x": 2
+                "z": 2
               }
             },
             {
               "coeff": 6,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1573,13 +1573,13 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 3
+              "z": 3
             }
           },
           {
             "coeff": 3.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -1638,20 +1638,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -3,
               "var": {
-                "x": 2
+                "y": 2
               }
             },
             {
               "coeff": 8,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1665,13 +1665,13 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           },
           {
             "coeff": 4.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -1684,20 +1684,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -6,
               "var": {
-                "x": 1
+                "z": 1
               }
             },
             {
               "coeff": -6,
               "var": {
-                "x": 2
+                "z": 2
               }
             }
           ]
@@ -1711,13 +1711,13 @@
           {
             "coeff": -3.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           },
           {
             "coeff": -2.0,
             "var": {
-              "x": 3
+              "z": 3
             }
           }
         ]
@@ -1776,20 +1776,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -4,
               "var": {
-                "x": 1
+                "y": 1
               }
             },
             {
               "coeff": 5,
               "var": {
-                "x": 4
+                "y": 4
               }
             }
           ]
@@ -1803,13 +1803,13 @@
           {
             "coeff": -2.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           },
           {
             "coeff": 1.0,
             "var": {
-              "x": 5
+              "y": 5
             }
           }
         ]
@@ -1822,20 +1822,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -4,
               "var": {
-                "x": 3
+                "z": 3
               }
             },
             {
               "coeff": -4,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1849,13 +1849,13 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 4
+              "z": 4
             }
           },
           {
             "coeff": -2.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -1914,20 +1914,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 1
+                "y": 1
               }
             },
             {
               "coeff": -8,
               "var": {
-                "x": 3
+                "y": 3
               }
             }
           ]
@@ -1941,13 +1941,13 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           },
           {
             "coeff": -2.0,
             "var": {
-              "x": 4
+              "y": 4
             }
           }
         ]
@@ -1960,20 +1960,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 8,
               "var": {
-                "x": 3
+                "z": 3
               }
             },
             {
               "coeff": 3,
               "var": {
-                "x": 2
+                "z": 2
               }
             }
           ]
@@ -1987,13 +1987,13 @@
           {
             "coeff": 2.0,
             "var": {
-              "x": 4
+              "z": 4
             }
           },
           {
             "coeff": 1.0,
             "var": {
-              "x": 3
+              "z": 3
             }
           }
         ]
@@ -2052,20 +2052,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 1
+                "y": 1
               }
             },
             {
               "coeff": 6,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -2079,13 +2079,13 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           },
           {
             "coeff": 2.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           }
         ]
@@ -2098,20 +2098,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 5,
               "var": {
-                "x": 4
+                "z": 4
               }
             },
             {
               "coeff": -2,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -2125,13 +2125,13 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           },
           {
             "coeff": -1.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           }
         ]
@@ -2190,20 +2190,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 3,
               "var": {
-                "x": 2
+                "y": 2
               }
             },
             {
               "coeff": 8,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -2217,13 +2217,13 @@
           {
             "coeff": 1.0,
             "var": {
-              "x": 3
+              "y": 3
             }
           },
           {
             "coeff": 4.0,
             "var": {
-              "x": 2
+              "y": 2
             }
           }
         ]
@@ -2236,20 +2236,20 @@
   {
     "expr": {
       "op": "integrate",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -6,
               "var": {
-                "x": 1
+                "z": 1
               }
             },
             {
               "coeff": 5,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -2263,13 +2263,13 @@
           {
             "coeff": -3.0,
             "var": {
-              "x": 2
+              "z": 2
             }
           },
           {
             "coeff": 1.0,
             "var": {
-              "x": 5
+              "z": 5
             }
           }
         ]
