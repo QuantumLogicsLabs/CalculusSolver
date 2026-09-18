@@ -94,7 +94,14 @@ class TestPrefixParity:
             f"This will cause positional mismatch in the decoder."
         )
 
-    def test_beam_search_4_arg_model_compatibility(self):
+    def test_beam_search_rejects_non_canonical_model_signature(self):
+        """beam_search used to catch TypeError and retry with a 4-argument
+        form for the now-retired model/architecture.py::CalculusModel. That
+        also swallowed genuine TypeErrors raised inside forward(). The
+        4-argument form is no longer supported: a model that does not
+        implement forward(src_seq, tgt_in_seq, true_rule_ids=None) must fail
+        loudly rather than be silently re-dispatched.
+        """
         from inference.beam_search import beam_search, NodeValidityPool
 
         class PermissiveNodePool(NodeValidityPool):
@@ -103,21 +110,16 @@ class TestPrefixParity:
 
         class MockFourArgModel(torch.nn.Module):
             def forward(self, src_tokens, src_positions, parent_child_pairs, tgt_tokens):
-                vocab_size = 120
-                seq_len = tgt_tokens.size(1)
-                decoder_logits = torch.zeros((1, seq_len, vocab_size))
-                decoder_logits[0, -1, 2] = 10.0
-                rule_logits = torch.zeros((1, 13))
-                return decoder_logits, rule_logits, None
+                raise AssertionError("must not be reached")
 
-        mock_model = MockFourArgModel()
         src_tokens = torch.tensor([[1, 10, 9, 2]])
         vocab_map = {
             "token_to_id": self.vocab_mapping,
             "id_to_token": {v: k for k, v in self.vocab_mapping.items()},
         }
 
-        result = beam_search(mock_model, src_tokens, vocab_map, max_len=5, node_pool=PermissiveNodePool())
-        assert result["status"] == "solved"
-        assert len(result["tokens"]) >= 2
-
+        with pytest.raises(TypeError):
+            beam_search(
+                MockFourArgModel(), src_tokens, vocab_map,
+                max_len=5, node_pool=PermissiveNodePool(),
+            )

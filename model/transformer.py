@@ -65,6 +65,31 @@ class CalculusSolverModel(nn.Module):
         )
 
     def forward(self, src_seq, tgt_in_seq, true_rule_ids=None):
+        """Run the full model.
+
+        RETURN CONTRACT -- always a 3-tuple, never a single tensor:
+
+            (decoder_logits, rule_logits, verifier_logits)
+
+            decoder_logits   (batch, tgt_len, vocab_size)  next-token scores
+            rule_logits      (batch, num_rules)            rule classifier
+            verifier_logits  (batch, num_templates)        step tracer; 1 template
+
+        Every caller must unpack explicitly, e.g.
+            decoder_logits, rule_logits, _ = model(src_seq, tgt_in_seq)
+        Treating the result as a tensor is what caused
+        "'tuple' object has no attribute 'reshape'" in train.py and
+        "tuple indices must be integers or slices, not tuple" in beam_search.
+
+        check_forward_contract() below enforces this; train.py runs it before
+        the first training step.
+
+        Args:
+            src_seq: (batch, src_len) source token ids.
+            tgt_in_seq: (batch, tgt_len) decoder input token ids.
+            true_rule_ids: optional (batch,) rule ids for teacher forcing the
+                rule embedding. When None the model uses argmax(rule_logits).
+        """
         device = src_seq.device
         batch_size, seq_len = src_seq.size()
         
@@ -102,3 +127,60 @@ class CalculusSolverModel(nn.Module):
         verifier_logits = self.step_tracer(rule_ids, decoder_hidden_states)
         
         return decoder_logits, rule_logits, verifier_logits
+
+
+def check_forward_contract(
+    model: nn.Module,
+    vocab_size: int,
+    num_rules: int,
+    batch_size: int = 2,
+    src_len: int = 7,
+    tgt_len: int = 5,
+) -> None:
+    """Run one dummy forward pass and fail loudly if the contract is broken.
+
+    Checks that forward() returns exactly (decoder_logits, rule_logits,
+    verifier_logits) with the expected shapes. It costs one forward pass on a
+    tiny batch, so train.py runs it before the first step -- this class of
+    mismatch previously surfaced only after multi-hour runs.
+
+    Raises:
+        TypeError: the output is not a 3-tuple of tensors.
+        ValueError: a tensor has the wrong shape.
+    """
+    device = next(model.parameters()).device
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.no_grad():
+            # Ids >= 1 so no row is all padding (pad_id 0), which would give
+            # the rule head an empty root mask.
+            src = torch.randint(1, vocab_size, (batch_size, src_len), device=device)
+            tgt = torch.randint(1, vocab_size, (batch_size, tgt_len), device=device)
+            output = model(src, tgt)
+    finally:
+        model.train(was_training)
+
+    if not isinstance(output, tuple) or len(output) != 3:
+        raise TypeError(
+            "model.forward() must return a 3-tuple "
+            "(decoder_logits, rule_logits, verifier_logits); got "
+            f"{type(output).__name__}"
+            + (f" of length {len(output)}" if isinstance(output, tuple) else "")
+        )
+
+    decoder_logits, rule_logits, verifier_logits = output
+    num_templates = getattr(getattr(model, "step_tracer", None), "num_templates", None)
+    expected = {
+        "decoder_logits": (decoder_logits, (batch_size, tgt_len, vocab_size)),
+        "rule_logits": (rule_logits, (batch_size, num_rules)),
+        "verifier_logits": (
+            verifier_logits,
+            (batch_size, num_templates) if num_templates is not None else None,
+        ),
+    }
+    for name, (tensor, shape) in expected.items():
+        if not isinstance(tensor, torch.Tensor):
+            raise TypeError(f"{name} must be a torch.Tensor, got {type(tensor).__name__}")
+        if shape is not None and tuple(tensor.shape) != shape:
+            raise ValueError(f"{name} has shape {tuple(tensor.shape)}, expected {shape}")

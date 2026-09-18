@@ -23,33 +23,38 @@ from inference.grammar import (
     load_vocab,
 )
 
-def _call_model(
+def _forward(
     model,
     src_tokens: torch.Tensor,
     tgt_tokens: torch.Tensor,
-    src_positions: Optional[torch.Tensor] = None,
-    parent_child_pairs: Optional[torch.Tensor] = None,
     true_rule_ids: Optional[torch.Tensor] = None,
-) -> Any:
-    try:
-        if true_rule_ids is not None:
-            return model(src_tokens, tgt_tokens, true_rule_ids=true_rule_ids)
-        return model(src_tokens, tgt_tokens)
-    except TypeError:
-        try:
-            return model(src_tokens, tgt_tokens)
-        except TypeError:
-            device = src_tokens.device
-            batch_size, seq_len = src_tokens.size()
-            if src_positions is None:
-                src_positions = torch.zeros(
-                    (batch_size, seq_len, 3), dtype=torch.float32, device=device
-                )
-            if parent_child_pairs is None:
-                parent_child_pairs = torch.zeros(
-                    (batch_size, seq_len, seq_len), dtype=torch.float32, device=device
-                )
-            return model(src_tokens, src_positions, parent_child_pairs, tgt_tokens)
+):
+    """Call the model with the one canonical signature and unpack its output.
+
+    Every model this module accepts implements
+        forward(src_seq, tgt_in_seq, true_rule_ids=None)
+    and returns (decoder_logits, rule_logits, verifier_logits) -- see
+    model/transformer.py::CalculusSolverModel.forward.
+
+    This replaces a helper that caught TypeError and retried with other
+    argument shapes (including a 4-argument form for the retired
+    model/architecture.py::CalculusModel). That masked genuine TypeErrors
+    raised INSIDE forward() as signature mismatches. A contract violation now
+    fails immediately with a message naming the problem.
+    """
+    if true_rule_ids is None:
+        output = model(src_tokens, tgt_tokens)
+    else:
+        output = model(src_tokens, tgt_tokens, true_rule_ids=true_rule_ids)
+
+    if not isinstance(output, tuple) or len(output) != 3:
+        raise TypeError(
+            "model.forward() must return a 3-tuple "
+            "(decoder_logits, rule_logits, verifier_logits); got "
+            f"{type(output).__name__}"
+            + (f" of length {len(output)}" if isinstance(output, tuple) else "")
+        )
+    return output
 
 
 def _apply_repetition_penalty(
@@ -96,8 +101,6 @@ def beam_search(
     beam_size: int = 5,
     max_len: int = 32,
     node_pool: Optional[NodeValidityPool] = None,
-    src_positions: Optional[torch.Tensor] = None,
-    parent_child_pairs: Optional[torch.Tensor] = None,
     max_token_run: int = 4,
     no_repeat_ngram_size: int = 2,
     repetition_penalty: float = 1.2,
@@ -142,14 +145,7 @@ def beam_search(
     elif rule_token_entries:
         init_tgt = torch.tensor([[bos_id]], device=device)
         with torch.no_grad():
-            init_output = _call_model(
-                model,
-                src_tokens,
-                init_tgt,
-                src_positions=src_positions,
-                parent_child_pairs=parent_child_pairs,
-            )
-        init_rule_logits = init_output[1] if isinstance(init_output, tuple) else None
+            _, init_rule_logits, _ = _forward(model, src_tokens, init_tgt)
 
         if init_rule_logits is not None:
             pred_rule_idx = torch.argmax(init_rule_logits, dim=-1).item()
@@ -176,15 +172,9 @@ def beam_search(
 
             tgt = torch.tensor([current_tokens], device=device)
 
-            model_output = _call_model(
-                model,
-                src_tokens,
-                tgt,
-                src_positions=src_positions,
-                parent_child_pairs=parent_child_pairs,
-                true_rule_ids=true_rule_tensor,
+            decoder_logits, _, _ = _forward(
+                model, src_tokens, tgt, true_rule_ids=true_rule_tensor
             )
-            decoder_logits = model_output[0] if isinstance(model_output, tuple) else model_output
             next_logits = decoder_logits[0, -1, :]
 
             # Soft repetition penalty (task 1) -- on RAW logits, before the
