@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from tokenizer.slang_serializer import serialize_slang_math
-from solver_model import CalculusSolverModel
+from solver_model import CalculusSolverModel, check_forward_contract
 
 with open("config.json", "r") as cfg_file:
     config = json.load(cfg_file)
@@ -357,6 +357,12 @@ def run_training_pipeline():
         hidden_dim=config["hidden_dim"],
         rule_labels=RULE_LABELS,
     ).to(device)
+
+    # Preflight: one dummy forward pass to confirm the (decoder_logits,
+    # rule_logits, verifier_logits) return contract before any real training.
+    # Interface mismatches used to surface only after multi-hour runs.
+    check_forward_contract(model, vocab_size=REAL_VOCAB_SIZE, num_rules=len(RULE_LABELS))
+    print("[Preflight] Model forward contract OK", flush=True)
 
     epochs = config.get("epochs", 1)
 

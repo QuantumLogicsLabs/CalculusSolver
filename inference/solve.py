@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import joblib
 import torch
 
-from model.architecture import CalculusModel
+from model.transformer import CalculusSolverModel
 from inference.beam_search import NodeValidityPool, beam_search, load_vocab
 
 
@@ -30,7 +30,14 @@ class PklTransformerModel(torch.nn.Module):
         )
         self.fc_out = torch.nn.Linear(hidden_dim, vocab_size)
 
-    def forward(self, src_seq, tgt_in_seq):
+    def forward(self, src_seq, tgt_in_seq, true_rule_ids=None):
+        """Legacy model/model.pkl loader, conformed to the shared contract.
+
+        Accepts the canonical forward signature and returns the canonical
+        3-tuple, so beam_search can treat every model identically. This
+        architecture has no rule head or step tracer, so those slots are None;
+        true_rule_ids is accepted for signature parity and ignored.
+        """
         max_id = self.embedding.num_embeddings - 1
         src_seq = torch.clamp(src_seq, 0, max_id)
         tgt_in_seq = torch.clamp(tgt_in_seq, 0, max_id)
@@ -47,7 +54,7 @@ class PklTransformerModel(torch.nn.Module):
         )
         out = self.transformer(src_emb, tgt_emb, tgt_mask=tgt_mask)
         logits = self.fc_out(out)
-        return logits
+        return logits, None, None
 
 
 class CalculusSolverInference:
@@ -83,19 +90,7 @@ class CalculusSolverInference:
                 vocab_size = state_dict["embedding.weight"].shape[0]
                 hidden_dim = state_dict["embedding.weight"].shape[1]
                 self.model = PklTransformerModel(vocab_size=vocab_size, hidden_dim=hidden_dim).to(self.device)
-            elif any(k.startswith(("encoder.", "decoder.", "rule_head.")) for k in state_dict.keys()) and not model_path.endswith((".pt", ".pth")):
-                self.model = CalculusModel(
-                    vocab_size=config.get("vocab_size", len(self.vocab_map["token_to_id"])),
-                    rule_labels=rule_labels,
-                    hidden_dim=config.get("hidden_dim", 512),
-                    num_heads=config.get("num_heads", 8),
-                    num_layers=config.get("num_layers", 8),
-                    ffn_dim=config.get("ffn_dim", 2048),
-                    dropout=config.get("dropout", 0.1),
-                    position_dim=config.get("position_dim", 3),
-                ).to(self.device)
             else:
-                from model.transformer import CalculusSolverModel
                 hidden_dim = 128
                 try:
                     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
