@@ -118,6 +118,8 @@
         "RULE:integration_by_parts": 99,
         "RULE:trig_rule": 102,
         "RULE:exp_rule": 103,
-        "RULE:log_rule": 104
+        "RULE:log_rule": 104,
+        "RULE:gradient": 124,
+        "RULE:tangent_line": 125
     }
 }

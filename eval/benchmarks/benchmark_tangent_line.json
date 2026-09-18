@@ -37,19 +37,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 9,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -57,7 +57,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "y": 1
       }
     },
     "target": {
@@ -66,7 +66,7 @@
           {
             "coeff": 9.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -77,19 +77,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -1,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -97,7 +97,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "z": 1
       }
     },
     "target": {
@@ -106,7 +106,7 @@
           {
             "coeff": -1.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -117,7 +117,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -157,19 +157,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -1,
               "var": {
-                "x": 3
+                "y": 3
               }
             }
           ]
@@ -177,7 +177,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "y": 2
       }
     },
     "target": {
@@ -186,7 +186,7 @@
           {
             "coeff": -12.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -197,19 +197,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 6,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -217,7 +217,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "z": 2
       }
     },
     "target": {
@@ -226,7 +226,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -237,7 +237,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -277,19 +277,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 3
+                "y": 3
               }
             }
           ]
@@ -297,7 +297,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "y": -1
       }
     },
     "target": {
@@ -306,7 +306,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -317,19 +317,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 5,
               "var": {
-                "x": 2
+                "z": 2
               }
             }
           ]
@@ -337,7 +337,7 @@
         "deno": 1
       },
       "point": {
-        "x": 3
+        "z": 3
       }
     },
     "target": {
@@ -346,7 +346,7 @@
           {
             "coeff": 30.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -357,7 +357,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -397,19 +397,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 10,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -417,7 +417,7 @@
         "deno": 1
       },
       "point": {
-        "x": -2
+        "y": -2
       }
     },
     "target": {
@@ -426,7 +426,7 @@
           {
             "coeff": 10.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -437,19 +437,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -457,7 +457,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "z": -1
       }
     },
     "target": {
@@ -466,7 +466,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -477,7 +477,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -517,19 +517,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 5
+                "y": 5
               }
             }
           ]
@@ -537,7 +537,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "y": -1
       }
     },
     "target": {
@@ -546,7 +546,7 @@
           {
             "coeff": 10.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -557,19 +557,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 1,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -577,7 +577,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "z": 1
       }
     },
     "target": {
@@ -586,7 +586,7 @@
           {
             "coeff": 4.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -597,7 +597,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -637,19 +637,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -657,7 +657,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "y": 1
       }
     },
     "target": {
@@ -666,7 +666,7 @@
           {
             "coeff": -10.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -677,19 +677,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 10,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -697,7 +697,7 @@
         "deno": 1
       },
       "point": {
-        "x": -2
+        "z": -2
       }
     },
     "target": {
@@ -706,7 +706,7 @@
           {
             "coeff": 10.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -717,7 +717,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -757,19 +757,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -1,
               "var": {
-                "x": 4
+                "y": 4
               }
             }
           ]
@@ -777,7 +777,7 @@
         "deno": 1
       },
       "point": {
-        "x": -2
+        "y": -2
       }
     },
     "target": {
@@ -786,7 +786,7 @@
           {
             "coeff": 32.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -797,19 +797,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -10,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -817,7 +817,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "z": 2
       }
     },
     "target": {
@@ -826,7 +826,7 @@
           {
             "coeff": -10.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -837,7 +837,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -877,19 +877,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 1,
               "var": {
-                "x": 4
+                "y": 4
               }
             }
           ]
@@ -897,7 +897,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "y": 2
       }
     },
     "target": {
@@ -906,7 +906,7 @@
           {
             "coeff": 32.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -917,19 +917,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -1,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -937,7 +937,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "z": 1
       }
     },
     "target": {
@@ -946,7 +946,7 @@
           {
             "coeff": -3.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -957,7 +957,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -997,19 +997,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 8,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1017,7 +1017,7 @@
         "deno": 1
       },
       "point": {
-        "x": 3
+        "y": 3
       }
     },
     "target": {
@@ -1026,7 +1026,7 @@
           {
             "coeff": 8.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1037,19 +1037,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -1057,7 +1057,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "z": -1
       }
     },
     "target": {
@@ -1066,7 +1066,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1077,7 +1077,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1117,19 +1117,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -5,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -1137,7 +1137,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "y": -1
       }
     },
     "target": {
@@ -1146,7 +1146,7 @@
           {
             "coeff": 10.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1157,19 +1157,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -8,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1177,7 +1177,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "z": 1
       }
     },
     "target": {
@@ -1186,7 +1186,7 @@
           {
             "coeff": -8.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1197,7 +1197,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1237,19 +1237,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 1,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -1257,7 +1257,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "y": 2
       }
     },
     "target": {
@@ -1266,7 +1266,7 @@
           {
             "coeff": 4.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1277,19 +1277,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -1297,7 +1297,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "z": 1
       }
     },
     "target": {
@@ -1306,7 +1306,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1317,7 +1317,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1357,19 +1357,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -1377,7 +1377,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "y": -1
       }
     },
     "target": {
@@ -1386,7 +1386,7 @@
           {
             "coeff": -4.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1397,19 +1397,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 5,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1417,7 +1417,7 @@
         "deno": 1
       },
       "point": {
-        "x": -2
+        "z": -2
       }
     },
     "target": {
@@ -1426,7 +1426,7 @@
           {
             "coeff": 5.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1437,7 +1437,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1477,19 +1477,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 8,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1497,7 +1497,7 @@
         "deno": 1
       },
       "point": {
-        "x": 3
+        "y": 3
       }
     },
     "target": {
@@ -1506,7 +1506,7 @@
           {
             "coeff": 8.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1517,19 +1517,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 4,
               "var": {
-                "x": 3
+                "z": 3
               }
             }
           ]
@@ -1537,7 +1537,7 @@
         "deno": 1
       },
       "point": {
-        "x": -2
+        "z": -2
       }
     },
     "target": {
@@ -1546,7 +1546,7 @@
           {
             "coeff": 48.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1557,7 +1557,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1597,19 +1597,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 2,
               "var": {
-                "x": 2
+                "y": 2
               }
             }
           ]
@@ -1617,7 +1617,7 @@
         "deno": 1
       },
       "point": {
-        "x": -1
+        "y": -1
       }
     },
     "target": {
@@ -1626,7 +1626,7 @@
           {
             "coeff": -4.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1637,19 +1637,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 6,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1657,7 +1657,7 @@
         "deno": 1
       },
       "point": {
-        "x": -2
+        "z": -2
       }
     },
     "target": {
@@ -1666,7 +1666,7 @@
           {
             "coeff": 6.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1677,7 +1677,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1717,19 +1717,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 8,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1737,7 +1737,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "y": 2
       }
     },
     "target": {
@@ -1746,7 +1746,7 @@
           {
             "coeff": 8.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1757,19 +1757,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -1,
               "var": {
-                "x": 4
+                "z": 4
               }
             }
           ]
@@ -1777,7 +1777,7 @@
         "deno": 1
       },
       "point": {
-        "x": 3
+        "z": 3
       }
     },
     "target": {
@@ -1786,7 +1786,7 @@
           {
             "coeff": -108.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1797,7 +1797,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1837,19 +1837,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -8,
               "var": {
-                "x": 1
+                "y": 1
               }
             }
           ]
@@ -1857,7 +1857,7 @@
         "deno": 1
       },
       "point": {
-        "x": 2
+        "y": 2
       }
     },
     "target": {
@@ -1866,7 +1866,7 @@
           {
             "coeff": -8.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1877,19 +1877,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "z",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": -3,
               "var": {
-                "x": 1
+                "z": 1
               }
             }
           ]
@@ -1897,7 +1897,7 @@
         "deno": 1
       },
       "point": {
-        "x": 3
+        "z": 3
       }
     },
     "target": {
@@ -1906,7 +1906,7 @@
           {
             "coeff": -3.0,
             "var": {
-              "x": 1
+              "z": 1
             }
           },
           {
@@ -1917,7 +1917,7 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
@@ -1957,19 +1957,19 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   },
   {
     "expr": {
       "op": "tangent_line",
-      "var": "x",
+      "var": "y",
       "expr": {
         "numi": {
           "terms": [
             {
               "coeff": 1,
               "var": {
-                "x": 5
+                "y": 5
               }
             }
           ]
@@ -1977,7 +1977,7 @@
         "deno": 1
       },
       "point": {
-        "x": 1
+        "y": 1
       }
     },
     "target": {
@@ -1986,7 +1986,7 @@
           {
             "coeff": 5.0,
             "var": {
-              "x": 1
+              "y": 1
             }
           },
           {
@@ -1997,6 +1997,6 @@
       "deno": 1
     },
     "operation": "tangent_line",
-    "expected_rule": "power_rule"
+    "expected_rule": "tangent_line"
   }
 ]

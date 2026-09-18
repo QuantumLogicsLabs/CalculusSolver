@@ -62,16 +62,14 @@ def generate_diff_benchmarks(n=80):
     """Generate differentiation benchmark problems."""
     problems = []
     random.seed(100)
+    variables = ["x", "y", "z"]
 
     for i in range(n):
-        var = "x"
-        # Mix single and multi-term
+        var = variables[i % len(variables)]
         if i < 50:
-            # Single term
             term = _safe_diff_term(var)
             expr = _make_fraction([term])
         else:
-            # Multi-term (2-3 terms)
             num_terms = random.randint(2, 3)
             terms = []
             used_powers = set()
@@ -106,9 +104,10 @@ def generate_integrate_benchmarks(n=60):
     """Generate integration benchmark problems."""
     problems = []
     random.seed(200)
+    variables = ["x", "y", "z"]
 
     for i in range(n):
-        var = "x"
+        var = variables[i % len(variables)]
         if i < 40:
             term = _safe_integrate_term(var)
             expr = _make_fraction([term])
@@ -209,9 +208,10 @@ def generate_tangent_line_benchmarks(n=50):
     """Generate tangent line benchmark problems."""
     problems = []
     random.seed(500)
+    variables = ["x", "y", "z"]
 
     for i in range(n):
-        var = "x"
+        var = variables[i % len(variables)]
         term = _safe_diff_term(var)
         expr = _make_fraction([term])
         x_val = random.choice([1, 2, -1, -2, 3])
