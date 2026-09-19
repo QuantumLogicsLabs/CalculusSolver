@@ -178,7 +178,7 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
     return avg_loss, seq_acc, token_acc
 
 
-def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48):
+def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48, device="cpu"):
     """
     Free-running generation check: greedy decode (no beam search, no teacher forcing).
     """
@@ -202,7 +202,7 @@ def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48):
     with torch.no_grad():
         for idx in indices:
             item = val_dataset[idx]
-            src_seq = item["src_seq"].unsqueeze(0)
+            src_seq = item["src_seq"].unsqueeze(0).to(device)
             
             tgt_out_full = item["tgt_out_seq"]
             tgt_out = tgt_out_full[1:]
@@ -212,7 +212,7 @@ def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48):
             
             generated = [bos_id]
             for _ in range(max_gen_len):
-                tgt_in = torch.tensor([generated], dtype=torch.long)
+                tgt_in = torch.tensor([generated], dtype=torch.long, device=device)
                 logits, _, _ = model(src_seq, tgt_in, true_rule_ids=None)
                 next_token = int(logits[0, -1, :].argmax().item())
                 generated.append(next_token)
@@ -480,7 +480,7 @@ def run_training_pipeline():
             
             num_proxy_examples = config.get("proxy_eval_examples", 15)
             fr_seq_acc, fr_token_acc, fr_avg_len = evaluate_free_running(
-                model, val_dataset, num_examples=num_proxy_examples
+                model, val_dataset, num_examples=num_proxy_examples, device=device
             )
             print(
                 f"Epoch {epoch} - Val Loss: {val_loss:.4f} | "
