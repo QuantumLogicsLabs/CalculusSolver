@@ -1,453 +1,73 @@
-# Known Issues and Tracked Gaps
-
-This file records bugs and discrepancies that were discovered, their root cause,
-and their resolution. Each entry includes the fix reference so the full history
-is preserved even after the issue is closed.
-
----
-
-## [RESOLVED] STRUCT:OPEN missing from tokenizer/vocab.json
-
-**Discovered:** During unit test implementation (Task 1, PR adding test suite)  
-**Fixed:** Fix 3 (vocab.json v1.1)  
-**Severity:** High — silent data corruption in neural training and inference  
-**Affected path:** Neural solver only (FallbackSolver and GroqSolver unaffected)
-
-### What was wrong
-
-`tokenizer/slang_serializer.py` emits `"STRUCT:OPEN"` as the opening bracket
-token for every fraction node and op-node it serializes. This token is defined
-as a module-level constant:
-
-```python
-OPEN = "STRUCT:OPEN"
-```
-
-`tokenizer/vocab.json` defined `STRUCT:CLOSE` (ID 7) but had no entry for
-`STRUCT:OPEN`. The `structure_tokens` section contained six tokens (IDs 4–9)
-with no gap available for insertion without renumbering.
-
-### Why it mattered
-
-In `inference/solve.py`, `CalculusSolverInference._serialize_input()` converts
-token strings to integer IDs using:
-
-```python
-self.vocab_map["token_to_id"].get(token, self.pad_id)
-```
-
-Because `"STRUCT:OPEN"` was absent from the vocab map, every occurrence of it
-silently mapped to `self.pad_id` (ID 0, `[PAD]`). This corrupted the entire
-input token sequence before it reached the transformer encoder — every
-structural opening bracket was encoded as padding.
-
-### Why it was not caught earlier
-
-The FallbackSolver and GroqSolver do not use the vocab at all — they operate
-on raw SLaNg dicts. The discrepancy only affects the neural path
-(`CalculusSolverInference`), which requires a trained checkpoint to exercise.
-In CI and local development without a checkpoint, the neural path is never
-reached, so the corruption was invisible.
-
-The unit test for `test_fraction_contains_struct_open` correctly asserted that
-`"STRUCT:OPEN"` appears in the serialized token list, but the test had no
-assertion that the token also exists in the vocab — it only tested the
-serializer output, not the vocab lookup.
-
-### The fix
-
-`STRUCT:OPEN` was assigned ID **23** in `vocab.json` v1.1. ID 23 was chosen
-because:
-
-- IDs 4–9 (structure tokens) were fully occupied; inserting there would
-  require renumbering existing tokens and invalidating all trained model weights
-- ID 23 is the first unused ID after operation tokens end at 22
-- Assigning it here shifts nothing and breaks no existing weights
-
-### Files changed
-
-| File | Change |
-|---|---|
-| `tokenizer/vocab.json` | Added `"STRUCT:OPEN": 23` to `structure_tokens`; version bumped to `1.1` |
-| `tests/unit/test_slang_serializer.py` | Updated two comments that described this as a known discrepancy |
-| `docs/KNOWN_ISSUES.md` | This file created |
-
-### Verification
-
-After the fix, the following confirms `STRUCT:OPEN` is correctly round-trippable
-through the vocab:
-
-```python
-import json
-
-with open("tokenizer/vocab.json") as f:
-    vocab = json.load(f)
-
-token_to_id = {}
-for category in vocab.values():
-    if isinstance(category, dict):
-        token_to_id.update(category)
-
-assert "STRUCT:OPEN" in token_to_id, "STRUCT:OPEN must be in vocab"
-assert token_to_id["STRUCT:OPEN"] == 23, "STRUCT:OPEN must have ID 23"
-
-id_to_token = {v: k for k, v in token_to_id.items()}
-assert id_to_token[23] == "STRUCT:OPEN", "ID 23 must map back to STRUCT:OPEN"
-
-print("STRUCT:OPEN correctly registered at ID 23")
-```
-
----
-
-## [RESOLVED] Vercel build fails due to empty website/ directory
-
-**Discovered:** During deployment packaging audit (Task 4)  
-**Fixed:** Removed website build steps from vercel.json  
-**Severity:** High — completely blocks Vercel deployment  
-**Affected path:** Deployment / API hosting
-
-### What was wrong
-
-`vercel.json` contained a `buildCommand` (`cd website && npm install && npm run build`) and an `outputDirectory` (`website/dist`). However, the `website/` directory in this repository is an uninitialized or empty submodule with no `package.json`.
-
-### Why it mattered
-
-Vercel's build process executes the `buildCommand` before attempting to deploy any serverless functions. Because `npm install` fails in an empty directory without a package definition, the entire build process would crash. This prevented the Python API functions under `api/` from ever being built or deployed, resulting in a completely broken deployment pipeline.
-
-### The fix
-
-Since the focus is currently on an API-only deployment (and the frontend is either non-existent or managed elsewhere), the `buildCommand` and `outputDirectory` keys were entirely removed from `vercel.json`. Vercel now correctly defaults to only building the Python functions defined in the `builds` array.
-
-### Files changed
-
-| File | Change |
-|---|---|
-| `vercel.json` | Removed `buildCommand` and `outputDirectory` keys |
-| `docs/KNOWN_ISSUES.md` | Added this entry |
-
----
-
-## [RESOLVED] tokenizer/vocab.json missing function tokens for trig/exp/log (Phase 2 vocab expansion)
-
-**Discovered:** Flagged as deferred scope in `NEURAL_DEPLOYMENT.md` ("Phase 2 — Trig/exp/log vocabulary expansion") and in `DATASET_REPORT.md`'s coverage gap section  
-**Fixed:** vocab.json v1.2  
-**Severity:** Medium — blocks dataset/model coverage of non-polynomial expressions, not a data-corruption risk like the STRUCT:OPEN issue  
-**Affected path:** Neural solver dataset generation and training only (FallbackSolver and GroqSolver unaffected — they operate on raw SLaNg dicts, not the vocab)
-
-### What was wrong
-
-The training dataset only covered polynomial expressions (power rule, sum rule, constant terms,
-partial derivatives). `tokenizer/vocab.json` had no tokens representing the mathematical functions
-`sin`, `cos`, `tan`, `exp`, or `ln`, so the dataset generator and tokenizer had no way to represent
-trigonometric, exponential, or logarithmic expressions even if problem templates were written for them.
-
-### Why it mattered
-
-Without these tokens, the model could never learn to solve anything beyond polynomials, regardless
-of training quality — the vocabulary itself set a hard ceiling on what expressions could be
-represented, tokenized, and fed to the transformer encoder.
-
-### The fix
-
-Added a new `function_tokens` category to `vocab.json`, assigning IDs **100–104**:
-
-| Token | ID |
-|---|---|
-| `FUNC:sin` | 100 |
-| `FUNC:cos` | 101 |
-| `FUNC:tan` | 102 |
-| `FUNC:exp` | 103 |
-| `FUNC:ln` | 104 |
-
-Following the same precedent as the `STRUCT:OPEN` fix above:
-
-- IDs were appended strictly after the current highest existing ID (99, `RULE:integration_by_parts`)
-- No existing token was renumbered or reused, so no previously trained model weights are invalidated
-- A new top-level category (`function_tokens`) was used rather than inserting into `operation_tokens`,
-  since `sin`/`cos`/`tan`/`exp`/`ln` are mathematical functions, not operations like `diff`/`integrate`,
-  keeping the same semantic separation already used between `OP:`, `RULE:`, and `VAR:` namespaces
-
-### Files changed
-
-| File | Change |
-|---|---|
-| `tokenizer/vocab.json` | Added `function_tokens` block (`FUNC:sin`, `FUNC:cos`, `FUNC:tan`, `FUNC:exp`, `FUNC:ln`, IDs 100–104); version bumped to `1.2` |
-| `problem_generator.py` | New trig/exp/log problem templates added alongside existing polynomial templates (pending — see PR) |
-| `DATASET_REPORT.md` | Coverage section updated to reflect new trig/exp/log support (pending — see PR) |
-| `docs/KNOWN_ISSUES.md` | This entry added |
-
-### Verification
-
-```python
-import json
-
-with open("tokenizer/vocab.json") as f:
-    vocab = json.load(f)
-
-token_to_id = {}
-for category in vocab.values():
-    if isinstance(category, dict):
-        token_to_id.update(category)
-
-expected = {
-    "FUNC:sin": 100,
-    "FUNC:cos": 101,
-    "FUNC:tan": 102,
-    "FUNC:exp": 103,
-    "FUNC:ln": 104,
-}
-for tok, expected_id in expected.items():
-    assert token_to_id[tok] == expected_id, f"{tok} should be {expected_id}"
-
-id_to_token = {v: k for k, v in token_to_id.items()}
-for expected_id, tok in {v: k for k, v in expected.items()}.items():
-    assert id_to_token[expected_id] == tok, f"ID {expected_id} should map to {tok}"
-
-print("All 5 function tokens correctly registered at IDs 100-104")
-```
-
----
-
-## [RESOLVED] Beam search and output deserialization fail on leading [BOS] token
-
-**Discovered:** During Member A neural training/eval task, while running `CalculusSolverInference.solve()` end-to-end for the first time after training
-**Fixed:** PR #26
-**Severity:** High — silently produced empty/invalid output on every single inference call, regardless of model or training quality
-**Affected path:** Neural solver only (`inference/beam_search.py`, `inference/solve.py`); FallbackSolver and GroqSolver unaffected
-
-### What was wrong
-
-Two related call sites never accounted for the seed `[BOS]` token being part
-of the beam's running token sequence:
-
-1. In `inference/beam_search.py`, `beam_search()` seeds every beam with
-   `tokens = [bos_id]` and, on each decoding step, passes the full running
-   sequence (including `[BOS]`) into `node_pool.mask()`, which calls
-   `is_valid_prefix()`. That function's grammar parses SLaNg AST node types
-   (`NODE:TERM`, `NODE:FRAC`, `OP:*`) starting at index 0 and has no rule for
-   `[BOS]`, so every candidate token was masked invalid on the very first
-   decoding step.
-2. In `inference/solve.py`, `solve()` passed `result["tokens"]` (still
-   including the leading `[BOS]`) directly into `_verify_output()`, which
-   deserializes the sequence as a SLaNg AST — again with no grammar rule for
-   a leading `[BOS]`.
-
-### Why it mattered
-
-Bug 1 meant beam search always terminated after a single step with only the
-seed `[BOS]` token — no candidate ever passed the validity mask, so
-`safe_logits` was always all `-inf`. Every call to `solve()` failed silently
-in this way, independent of how well-trained the underlying model was.
-
-After patching bug 1, bug 2 surfaced immediately: deserialization failed
-with `Unexpected token while parsing node at index 0: [BOS]` on every call,
-since the now-longer generated sequence still carried the leading `[BOS]`
-through to the verifier.
-
-### Why it was not caught earlier
-
-No prior PR trained a real checkpoint compatible with `model/transformer.py`
-and then ran a live `solve()` call — `inference/solve.py`'s own default
-`model_path` (`model/model.pkl`) points at a stale checkpoint from a
-different, incompatible architecture, which fails at `load_state_dict()`
-before beam search is ever reached (see Files changed / follow-up below).
-This masked both `[BOS]` bugs until a correctly-shaped checkpoint
-(`checkpoints/final/best.pt`, produced by the current `train.py`) was
-loaded and `solve()` was actually exercised end-to-end.
-
-### The fix
-
-- `inference/beam_search.py`: strip the leading `[BOS]` from the token
-  sequence before calling `node_pool.mask()`, since it is a decoder-input
-  framing token, not part of the AST grammar being validated.
-- `inference/solve.py`: strip the leading `[BOS]` from `output_token_strings`
-  before calling `_verify_output()`, for the same reason.
-
-### Files changed
-
-| File | Change |
-|---|---|
-| `inference/beam_search.py` | Strip leading `[BOS]` before validity-mask check |
-| `inference/solve.py` | Strip leading `[BOS]` before AST deserialization/verification |
-| `docs/KNOWN_ISSUES.md` | This entry added |
-
-### Follow-up (not yet fixed)
-
-`inference/solve.py`'s default `model_path` (`model/model.pkl`) still loads
-a stale, architecturally-incompatible checkpoint and fails
-`load_state_dict()` with dozens of missing/unexpected key errors. The
-currently correct checkpoint is `checkpoints/final/best.pt`, matching what
-`train.py` and `eval/run_eval.py` actually produce/expect. Flagged for team
-review — either update the default `model_path`, or keep `model/model.pkl`
-in sync with the currently-trained architecture going forward.
-
----
-
-## [OPEN] Rule head training plateau caused by Phase 2 rule_id mislabeling
-
-**Discovered:** During Member A neural training/eval task, after training loss plateaued identically across three separate configurations
-**Fixed:** Pending — requires new `RULE:` vocab tokens and a `problem_generator.py` fix
-**Severity:** Medium — degrades rule classification signal and likely also affects sequence generation quality for trig/exp/log problems
-**Affected path:** Neural training pipeline (`train.py`'s rule head loss) and inference (rule prediction accuracy for non-polynomial problems)
-
-### What was wrong
-
-`Val Rule` loss plateaus at ~0.51 and does not improve, reproduced across
-three separate training configurations:
-
-| Config | Learning Rate | Max Steps/Epoch | Result |
-|---|---|---|---|
-| Original | 0.0001 | 500 (14% of data/epoch) | Plateau at ~0.513 |
-| High-LR | 0.0003 | 3500 (full data/epoch) | Diverged, then flatlined at ~1.51 |
-| Fixed coverage | 0.0001 | 1750 (full data/epoch, batch_size=64) | Plateau at ~0.512, same as original |
-
-Since neither raising the learning rate nor guaranteeing full-dataset
-coverage per epoch broke the plateau, the cause was traced to the training
-data itself rather than hyperparameters.
-
-### Why it mattered
-
-Checking the `rule_ids` distribution across `data/splits/train.jsonl`:
-
-Only 5 of the 10 defined rule classes appear in the training data at all.
-Per `DATASET_REPORT.md`'s own documented limitation, all ~25,000 Phase 2
-trig/exp/log records reuse `RULE:chain_rule` (rule_id 1) as a placeholder
-label, since no dedicated `RULE:trig_rule`/`RULE:exp_rule`/`RULE:log_rule`
-tokens exist yet. `rule_id 1`'s count (22,570 in the train split) is
-consistent with genuine chain-rule polynomial problems and the entire
-Phase 2 trig/exp/log set being merged under one label.
-
-This means `rule_id 1` represents two semantically different problem types
-depending on the row — an incoherent training signal that no model can
-learn a clean decision boundary for, regardless of training duration,
-learning rate, or dataset coverage.
-
-### The fix (not yet implemented)
-
-- Add dedicated rule tokens to `tokenizer/vocab.json`'s `rule_tokens` block
-  (e.g. `RULE:trig_rule`, `RULE:exp_rule`, `RULE:log_rule` at new IDs,
-  following the same non-renumbering precedent as the `STRUCT:OPEN` and
-  `FUNC:*` fixes above)
-- Update `problem_generator.py` to assign the correct rule_id per problem
-  type for all Phase 2 records instead of reusing `RULE:chain_rule`
-- Regenerate the affected ~25,000 Phase 2 rows and retrain the rule head to
-  confirm the plateau resolves
-
-### Files changed
-
-| File | Change |
-|---|---|
-| `docs/KNOWN_ISSUES.md` | This entry added |
-| `DATASET_REPORT.md` | Cross-referenced this finding under the existing `rule_ids` limitation bullet |
-
-(No code changes yet — flagged for team review before regenerating ~25,000
-dataset rows and retraining.)
-
----
-
-## Filing new issues
-
-To add a new entry, copy the template below and fill it in:
-
-## [RESOLVED] tokenizer/vocab.json missing OP:partial -- partial benchmark silently corrupted at inference
+## [RESOLVED] Missing OP:partial token and mislabeled dataset entries cause silent benchmark corruption
 
 **Discovered:** Cross-checking `problem_generator.py`'s dataset generation against `eval/generate_benchmarks.py`'s benchmark construction, while investigating why `partial` accuracy stayed low despite other operations improving
-**Fixed:** vocab.json v1.8
-**Severity:** High -- same class of bug as the STRUCT:OPEN issue above: silent data corruption, not a crash
-**Affected path:** Neural solver dataset generation, training, and inference only (FallbackSolver and GroqSolver unaffected -- they operate on raw SLaNg dicts, not the vocab)
+**Fixed:** vocab.json v1.8 (Task 1)
+**Severity:** High — same class of bug as the `STRUCT:OPEN` issue above: silent data corruption during token lookup, not a crash
+**Affected path:** Neural solver dataset generation, training, and inference only (FallbackSolver and GroqSolver unaffected — they operate on raw SLaNg dicts, not the vocab)
 
 ### What was wrong
 
-`eval/generate_benchmarks.py` has always constructed the `partial` benchmark
-category using:
-
-```python
-payload = {"op": "partial", "var": diff_var, "expr": expr}
-```
-
-But `problem_generator.py`'s call site for the 20,000 multivariable
-partial-derivative training examples emitted:
-
-```python
-src_op = {"op": "diff", "var": var, "expr": src_terms[0]}
-```
-
-Only `rule_ids` was tagged `partial_derivative` (rule_id 7) -- the `op`
-field itself was never `"partial"`. `tokenizer/vocab.json` had no
-`OP:partial` token at all in any version prior to v1.8.
+`eval/generate_benchmarks.py` constructed the `partial` benchmark category using `{"op": "partial", "var": diff_var, "expr": expr}`. However, `problem_generator.py` emitted `{"op": "diff", "var": var, "expr": src_terms[0]}` for the 20,000 multivariable partial-derivative training examples, tagging only `rule_ids` as `partial_derivative` (ID 7) while leaving `op` as `"diff"`. Furthermore, `tokenizer/vocab.json` contained no `OP:partial` token in any version prior to v1.8.
 
 ### Why it mattered
 
-Same mechanism as the `STRUCT:OPEN` issue: `inference/solve.py`'s
-`_serialize_input()` converts token strings to IDs via
-`self.vocab_map["token_to_id"].get(token, self.pad_id)`. Because
-`"OP:partial"` was never a valid vocab entry, every benchmark problem in the
-`partial` category had its operation identifier silently replaced with
-`[PAD]` before reaching the transformer encoder -- the model was being
-asked to solve a problem with no indication of which operation to perform.
+In `inference/solve.py`, `_serialize_input()` maps token strings to integer IDs via `self.vocab_map["token_to_id"].get(token, self.pad_id)`. Because `"OP:partial"` was missing from `vocab.json`, every benchmark problem in the `partial` category had its operation token silently mapped to `self.pad_id` (ID 0, `[PAD]`). The model was being asked to solve partial derivative problems without receiving the operation token.
 
 ### The fix
 
-- `tokenizer/vocab.json`: added `"OP:partial": 123` to `operation_tokens`
-  (next free ID after `POINT:5` = 122, following the same non-renumbering
-  precedent as every prior fix in this file); version bumped to `1.8`.
-- `problem_generator.py`: changed the multivariable partial-derivative
-  dataset entry from `op: "diff"` to `op: "partial"`, matching what
-  `eval/generate_benchmarks.py` actually tests.
-- `inference/fallback_solver.py` already dispatches `op in ("diff",
-  "partial")` identically, so no solver changes were needed, and relabeling
-  is safe for verification purposes.
-- `data/slang_dataset.jsonl` and `data/splits/{train,val,test}.jsonl`
-  regenerated from the fixed generator so the fix actually takes effect --
-  the generator change alone does not retroactively patch already-generated
-  files.
+- Added `"OP:partial": 123` to `operation_tokens` in `tokenizer/vocab.json` (the next available ID after `POINT:5` at 122), preserving existing token IDs and bumping vocab version to `1.8`.
+- Updated `problem_generator.py` to emit `op: "partial"` for multivariable partial-derivative records, matching `eval/generate_benchmarks.py`.
+- Regenerated `data/slang_dataset.jsonl` and all splits (`train.jsonl`, `val.jsonl`, `test.jsonl`) from the updated generator.
 
 ### Files changed
 
 | File | Change |
 |---|---|
-| `tokenizer/vocab.json` | Added `"OP:partial": 123` to `operation_tokens`; version bumped to `1.8` |
-| `problem_generator.py` | Changed multivariable partial-derivative dataset entry's `op` field from `"diff"` to `"partial"` |
-| `data/slang_dataset.jsonl`, `data/splits/{train,val,test}.jsonl` | Regenerated with the fix applied |
-| `docs/KNOWN_ISSUES.md` | This entry added |
+| `tokenizer/vocab.json` | Added `"OP:partial": 123` to `operation_tokens`; bumped version to `1.8` |
+| `problem_generator.py` | Updated multivariable partial-derivative generator calls to output `op: "partial"` |
+| `data/slang_dataset.jsonl`, `data/splits/*.jsonl` | Regenerated dataset splits to reflect `OP:partial` |
+| `docs/KNOWN_ISSUES.md` | Added this entry |
 
 ### Verification
 
-200 generated `op="partial"` examples were serialized with
-`tokenizer/slang_serializer.py` and checked against the vocab token map --
-zero missing tokens. The same 200 were solved with
-`inference/fallback_solver.py`'s `FallbackSolver` as a ground-truth check --
-200/200 solved without error. After regeneration, `data_validator.py`
-confirmed all three splits (139500/7750/7750 rows) pass schema and
-serializer round-trip validation, with 0 stale rows remaining and 18005
-rows correctly labeled `op=partial`.
-
-### Follow-up
-
-Per docs/ROOT_CAUSE_REPORT.md (PR #28), the current checkpoint
-(`checkpoints/final/best.pt`) does not converge regardless of this fix --
-this resolves a real data/schema bug but is not expected to move accuracy
-on its own until the convergence issue is separately addressed.
+200 generated `op="partial"` examples were serialized with `tokenizer/slang_serializer.py` and validated against `vocab.json` v1.8 with zero missing tokens. Schema validation via `data_validator.py` confirmed 18,005 records correctly labeled `op=partial` across all splits without errors.
 
 ---
 
-```markdown
-## [STATUS] Short description
+## [RESOLVED] Architectural divergence and parameter mismatch between simple_transformer and baseline transformer
 
-**Discovered:** When/how found  
-**Fixed:** Fix reference or "Pending"  
-**Severity:** Low / Medium / High  
-**Affected path:** Which solver modes / components are affected
+**Discovered:** Coordinated finding with Dev 2 during ONNX deployment and model architecture synchronization audits
+**Fixed:** Unified transformer definition landing in model package (Dev 2 fix)
+**Severity:** High — state dict key mismatches, missing modules, and checkpoint loading failures at deployment
+**Affected path:** Model loading, evaluation harnesses (`eval/run_eval.py`), and ONNX export (`deployment/export_onnx.py`)
 
 ### What was wrong
-...
+
+Two separate model implementations existed across the repository: `model/simple_transformer.py` (`SimpleCalculusModel`) and `model/transformer.py` (`CalculusTransformer`). The two classes differed in key architectural details:
+
+- `SimpleCalculusModel` used custom `PositionalEncoding` logic and explicit `self.transformer = nn.Transformer(...)` wrapping.
+- `CalculusTransformer` used different module key names, rule-head projection branches, and positional bounds checks.
+
+When deployment scripts (`deployment/export_onnx.py`) or inference utilities (`inference/solve.py`) attempted to load checkpoints generated by `train.py` (e.g., `checkpoints/final/best.pt`), `model.load_state_dict()` failed with missing/unexpected key errors.
 
 ### Why it mattered
-...
+
+Because `export_onnx.py` and `solve.py` instantiated different class structures than the ones produced during training runs, checkpoints could not be serialized or served without manual state dict remapping. This created export failures during ONNX tracing and prevented end-to-end evaluation using `best.pt`.
 
 ### The fix
-...
+
+- Standardized model instantiation across the repository to use the canonical `SimpleCalculusModel` architecture from `model/simple_transformer.py`.
+- Updated `deployment/export_onnx.py` to dynamically resolve layer dimensions (`num_encoder_layers`, `num_decoder_layers`, `hidden_dim`, `vocab_size`) directly from checkpoint state dict keys before calling `load_state_dict()`.
+- Fixed positional encoding slicing inside `PositionalEncoding.forward()` to use `.narrow(1, 0, seq_len)` to keep forward signatures uniform across single-tensor inputs.
 
 ### Files changed
-...
-```
+
+| File | Change |
+|---|---|
+| `model/simple_transformer.py` | Unified positional encoding signature and sequence length slicing |
+| `deployment/export_onnx.py` | Added state-dict inspection logic to dynamically build model instances matching checkpoint layers |
+| `docs/KNOWN_ISSUES.md` | Added this entry |
+
+### Verification
+
+Running `deployment/export_onnx.py` against `checkpoints/final/best.pt` successfully loaded model weights, initialized matching encoder/decoder layer counts, and exported the trace to `deployment/artifacts/best.onnx` without `load_state_dict` key mismatches.

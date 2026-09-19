@@ -1,9 +1,14 @@
+import argparse
 import json
 import os
 import sys
 import glob
 from pathlib import Path
 import torch
+
+parser = argparse.ArgumentParser(description="Run evaluation on benchmark files.")
+parser.add_argument("--sample", type=int, default=None, help="Evaluate only first N problems per category")
+args = parser.parse_args()
 
 torch.set_grad_enabled(False)
 torch.set_num_threads(4)
@@ -47,6 +52,9 @@ def main():
         op_name = Path(filepath).stem.replace("benchmark_", "")
         with open(filepath, "r", encoding="utf-8") as f:
             problems = json.load(f)
+
+        if args.sample:
+            problems = problems[:args.sample]
 
         exact_match_count = 0
         verified_count = 0
