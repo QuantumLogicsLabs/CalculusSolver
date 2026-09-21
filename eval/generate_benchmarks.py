@@ -205,28 +205,47 @@ def generate_gradient_benchmarks(n=50):
 
 
 def generate_tangent_line_benchmarks(n=50):
-    """Generate tangent line benchmark problems."""
+    """Generate tangent line benchmark problems with vocab-safe integer targets."""
     problems = []
     random.seed(500)
     variables = ["x", "y", "z"]
 
     for i in range(n):
         var = variables[i % len(variables)]
-        term = _safe_diff_term(var)
-        expr = _make_fraction([term])
-        x_val = random.choice([1, 2, -1, -2, 3])
+        for _ in range(500):
+            coeff = random.choice(SAFE_NONZERO_COEFFS)
+            power = random.choice(SAFE_POS_EXPONENTS)
+            x_val = random.choice([-2, -1, 1, 2])
 
-        payload = {"op": "tangent_line", "var": var, "expr": expr, "point": {var: x_val}}
-        try:
-            result = solver.solve(payload)
+            slope = coeff * power * (x_val ** (power - 1)) if power >= 1 else 0
+            y0 = coeff * (x_val ** power)
+            intercept = y0 - slope * x_val
+
+            if slope in SAFE_COEFFS and intercept in SAFE_COEFFS:
+                term = {"coeff": coeff, "var": {var: power}}
+                expr = _make_fraction([term])
+                payload = {"op": "tangent_line", "var": var, "expr": expr, "point": {var: x_val}}
+                ans_terms = []
+                if slope != 0:
+                    ans_terms.append({"coeff": int(slope), "var": {var: 1}})
+                ans_terms.append({"coeff": int(intercept)})
+                target = {"numi": {"terms": ans_terms}, "deno": 1}
+                problems.append({
+                    "expr": payload,
+                    "target": target,
+                    "operation": "tangent_line",
+                    "expected_rule": "tangent_line",
+                })
+                break
+        else:
+            payload = {"op": "tangent_line", "var": var, "expr": _make_fraction([{"coeff": 1, "var": {var: 2}}]), "point": {var: 1}}
+            target = {"numi": {"terms": [{"coeff": 2, "var": {var: 1}}, {"coeff": -1}]}, "deno": 1}
             problems.append({
                 "expr": payload,
-                "target": result["expr"],
+                "target": target,
                 "operation": "tangent_line",
                 "expected_rule": "tangent_line",
             })
-        except Exception as e:
-            print(f"  Skipping tangent_line problem {i}: {e}")
 
     return problems
 

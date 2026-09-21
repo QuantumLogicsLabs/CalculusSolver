@@ -43,9 +43,10 @@ def generate_single_term_diff(var="x"):
         power = random.choice(SAFE_POS_EXPONENTS)
         if _output_in_vocab(coeff, power):
             src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
-            ans = {"numi": {"terms": [{"coeff": coeff * power, "var": {var: power - 1}}]}, "deno": 1}
-            if ans["numi"]["terms"][0]["var"][var] == 0:
-                ans = {"coeff": coeff * power}
+            ans_term = {"coeff": coeff * power}
+            if power - 1 != 0:
+                ans_term["var"] = {var: power - 1}
+            ans = {"numi": {"terms": [ans_term]}, "deno": 1}
             return src, ans, 0
     return {"numi": {"terms": [{"coeff": 2, "var": {var: 2}}]}, "deno": 1}, {"numi": {"terms": [{"coeff": 4, "var": {var: 1}}]}, "deno": 1}, 0
 
@@ -69,20 +70,24 @@ def generate_multi_term_diff(var="x", num_terms=None):
     for i in range(num_terms):
         if i == num_terms - 1 and random.random() < 0.3:
             c_src, c_ans, _ = generate_constant_term()
-            src_terms.append(c_src)
+            src_terms.extend(c_src["numi"]["terms"])
         else:
             t_src, t_ans, _ = generate_single_term_diff(var)
-            src_exps = {list(t["numi"]["terms"][0].get("var", {}).values())[0] for t in src_terms if t["numi"]["terms"][0].get("var")}
+            src_exps = {list(t.get("var", {}).values())[0] for t in src_terms if t.get("var")}
             t_exp = list(t_src["numi"]["terms"][0].get("var", {}).values())[0] if t_src["numi"]["terms"][0].get("var") else None
             if t_exp in src_exps:
                 t_src, t_ans, _ = generate_single_term_diff(var)
-            src_terms.append(t_src)
-            ans_terms.append(t_ans)
+            src_terms.extend(t_src["numi"]["terms"])
+            for t in t_ans["numi"]["terms"]:
+                if t.get("coeff", 0) != 0:
+                    ans_terms.append(t)
 
     if not ans_terms:
-        ans_terms = [{"numi": {"terms": [{"coeff": 0}]}, "deno": 1}]
+        ans_terms = [{"coeff": 0}]
 
-    return src_terms, ans_terms, 4
+    src_expr = {"numi": {"terms": src_terms}, "deno": 1}
+    ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
+    return [src_expr], [ans_expr], 4
 
 
 def generate_negative_exp_diff(var="x"):
@@ -108,19 +113,23 @@ def generate_multivar_diff():
     ans_terms = []
 
     t_src, t_ans, _ = generate_single_term_diff(var)
-    src_terms.append(t_src)
-    ans_terms.append(t_ans)
+    src_terms.extend(t_src["numi"]["terms"])
+    for t in t_ans["numi"]["terms"]:
+        if t.get("coeff", 0) != 0:
+            ans_terms.append(t)
 
     if other_vars:
         ov = random.choice(other_vars)
         c = random.choice(SAFE_NONZERO_COEFFS)
         p = random.choice(SAFE_POS_EXPONENTS)
-        src_terms.append({"numi": {"terms": [{"coeff": c, "var": {ov: p}}]}, "deno": 1})
+        src_terms.append({"coeff": c, "var": {ov: p}})
 
     if not ans_terms:
-        ans_terms = [{"numi": {"terms": [{"coeff": 0}]}, "deno": 1}]
+        ans_terms = [{"coeff": 0}]
 
-    return src_terms, ans_terms, var, 7
+    src_expr = {"numi": {"terms": src_terms}, "deno": 1}
+    ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
+    return [src_expr], [ans_expr], var, 7
 
 
 def generate_sin_diff(var="x"):
@@ -224,8 +233,15 @@ def generate_gradient_diff():
         "deno": 1,
     }
 
-    dx = {"numi": {"terms": [{"coeff": cx * px, "var": {vx: px - 1}}]}, "deno": 1}
-    dy = {"numi": {"terms": [{"coeff": cy * py, "var": {vy: py - 1}}]}, "deno": 1}
+    dx_term = {"coeff": cx * px}
+    if px - 1 > 0:
+        dx_term["var"] = {vx: px - 1}
+    dx = {"numi": {"terms": [dx_term]}, "deno": 1}
+
+    dy_term = {"coeff": cy * py}
+    if py - 1 > 0:
+        dy_term["var"] = {vy: py - 1}
+    dy = {"numi": {"terms": [dy_term]}, "deno": 1}
 
     ans = {"gradient": {vx: dx, vy: dy}}
     return expr, ans, RULE_ID_GRADIENT
@@ -330,10 +346,11 @@ def generate_slang_dataset():
     for _ in range(20000):
         src_terms, ans_terms, var, rule_id = generate_multivar_diff()
         src_op = {"op": "partial", "var": var, "expr": src_terms[0]}
+        tgt = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
         dataset.append({
             "src_tokens": src_op,
-            "tgt_input_tokens": ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1},
-            "tgt_output_tokens": ans_terms[0] if ans_terms else {"coeff": 0},
+            "tgt_input_tokens": tgt,
+            "tgt_output_tokens": tgt,
             "rule_ids": rule_id,
             "verification_state": 1,
         })
