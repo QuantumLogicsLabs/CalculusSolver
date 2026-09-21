@@ -174,10 +174,12 @@ class CalculusSolverInference:
         expr = input_env.get("expr", {})
         if op == "integrate":
             return "RULE:power_rule_integral"
-        if op in ("partial", "gradient"):
+        if op == "partial":
             return "RULE:partial_derivative"
+        if op == "gradient":
+            return "RULE:gradient"
         if op == "tangent_line":
-            return "RULE:power_rule"
+            return "RULE:tangent_line"
         if op == "diff":
             if isinstance(expr, dict) and "op" in expr:
                 sub_op = expr["op"]
