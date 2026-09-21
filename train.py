@@ -209,6 +209,9 @@ def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48, d
             tgt_mask = tgt_out != pad_id
             tgt_len = int(tgt_mask.sum().item())
             tgt_out_clean = tgt_out[:tgt_len]
+            if len(tgt_out_clean) > 0 and tgt_out_clean[-1] == eos_id:
+                tgt_out_clean = tgt_out_clean[:-1]
+                tgt_len = len(tgt_out_clean)
             
             generated = [bos_id]
             for _ in range(max_gen_len):
