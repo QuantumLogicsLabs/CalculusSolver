@@ -8,6 +8,7 @@ import torch
 
 parser = argparse.ArgumentParser(description="Run evaluation on benchmark files.")
 parser.add_argument("--sample", type=int, default=None, help="Evaluate only first N problems per category")
+parser.add_argument("--beam_size", type=int, default=2, help="Beam size for decoding (default 2)")
 args = parser.parse_args()
 
 torch.set_grad_enabled(False)
@@ -26,8 +27,8 @@ def main():
         print(f"Error: checkpoint {checkpoint_path} does not exist.")
         sys.exit(1)
 
-    print("Loading neural model (with beam_size=5 for fast evaluation)...")
-    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=5)
+    print(f"Loading neural model (with beam_size={args.beam_size} for evaluation)...")
+    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=args.beam_size)
 
     benchmark_dir = ROOT / "eval" / "benchmarks"
     benchmark_files = glob.glob(str(benchmark_dir / "*.json"))
