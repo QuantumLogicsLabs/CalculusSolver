@@ -309,7 +309,7 @@ def write_training_results(metrics_log, best_val_loss, git_commit_hash):
         f"- **Hidden Dim:** {config.get('hidden_dim')}",
         f"- **Max Len:** {MAX_LEN}",
         f"- **Max Steps/Epoch:** {config.get('max_steps')}",
-        f"- **Early Stopping:** patience={config.get('early_stopping', {}).get('patience', 'N/A')}, min_delta={config.get('early_stopping', {}).get('min_delta', 'N/A')}",
+        f"- **Early Stopping:** {'patience=' + str(config['early_stopping'].get('patience', 'N/A')) + ', min_delta=' + str(config['early_stopping'].get('min_delta', 'N/A')) if isinstance(config.get('early_stopping'), dict) else str(config.get('early_stopping', 'Disabled'))}",
         f"- **Vocab Size:** {REAL_VOCAB_SIZE}",
         f"- **Gradient Clipping:** max_norm={config.get('grad_clip_max_norm', 1.0)}",
         f"- **Rule Prediction:** Multi-head prediction output (decoder_logits, rule_logits, verifier_logits)",
@@ -397,16 +397,18 @@ def run_training_pipeline():
         patience = early_stopping_cfg.get("patience", 3)
         min_delta = early_stopping_cfg.get("min_delta", 1e-4)
         use_early_stopping = True
+    elif isinstance(early_stopping_cfg, bool):
+        use_early_stopping = early_stopping_cfg
+        patience = 3 if early_stopping_cfg else None
+        min_delta = 1e-4 if early_stopping_cfg else 0.0
     elif isinstance(early_stopping_cfg, int):
         patience = early_stopping_cfg
         min_delta = 1e-4
         use_early_stopping = True
-    elif isinstance(early_stopping_cfg, bool) and early_stopping_cfg:
-        patience = 3
-        min_delta = 1e-4
-        use_early_stopping = True
     else:
         use_early_stopping = False
+        patience = None
+        min_delta = 0.0
 
     global_step = 0
 
@@ -493,7 +495,7 @@ def run_training_pipeline():
             print(
                 f"  [Diag] Train-Val Gap: {train_val_gap:.4f} | "
                 f"LR: {scheduler.get_last_lr()[0]:.2e} | "
-                f"Patience Counter: {patience_counter}/{patience if use_early_stopping else 'N/A'}"
+                f"Patience Counter: {patience_counter}/{patience if use_early_stopping else 'Disabled'}"
             )
 
             epoch_metrics["val_loss"] = val_loss
@@ -513,7 +515,7 @@ def run_training_pipeline():
             else:
                 patience_counter += 1
                 print(f"  Epoch {epoch}: val loss {val_loss:.4f} did not improve from {best_val_loss:.4f}.")
-                if use_early_stopping and patience_counter >= patience:
+                if use_early_stopping and patience is not None and patience_counter >= patience:
                     print("Early stopping triggered. Training stopped.")
                     metrics_log.append(epoch_metrics)
                     break
