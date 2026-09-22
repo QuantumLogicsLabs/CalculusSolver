@@ -415,7 +415,7 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    for _ in range(10000):
+    for _ in range(25000):
         var = random.choice(VARIABLES)
         src, ans, rule_id = generate_integrate_diff(var)
         src_op = {"op": "integrate", "var": var, "expr": src}
@@ -438,7 +438,7 @@ def generate_slang_dataset():
             "verification_state": 1,
         })
 
-    for _ in range(10000):
+    for _ in range(20000):
         var = random.choice(VARIABLES)
         src_op, ans, _, rule_id = generate_tangent_line_diff(var)
         dataset.append({

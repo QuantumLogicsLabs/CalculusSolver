@@ -12,7 +12,7 @@
   "scheduled_sampling": {
     "enabled": true,
     "start_prob": 0.0,
-    "end_prob": 0.3,
+    "end_prob": 0.45,
     "schedule": "linear"
   },
   "proxy_eval_examples": 15,

@@ -1,20 +1,97 @@
 import json
+from typing import Any, Dict
 from tokenizer.slang_serializer import serialize_slang_math
+
+
+def _canonicalize_slang(expr: Any) -> Any:
+    if not isinstance(expr, dict):
+        return expr
+    # Unwrap {"gradient": {...}}
+    if set(expr.keys()) == {"gradient"} and isinstance(expr["gradient"], dict):
+        return {k: _canonicalize_slang(v) for k, v in expr["gradient"].items()}
+    # Gradient dict {var: expr}
+    if (
+        expr
+        and all(isinstance(v, (dict, list, int, float)) for v in expr.values())
+        and "numi" not in expr
+        and "op" not in expr
+        and "coeff" not in expr
+    ):
+        return {k: _canonicalize_slang(v) for k, v in expr.items()}
+    # Bare term -> fraction
+    if "coeff" in expr and "numi" not in expr and "op" not in expr:
+        return {"numi": {"terms": [expr]}, "deno": 1}
+    # Bare terms dict -> fraction
+    if "terms" in expr and "numi" not in expr:
+        return {"numi": expr, "deno": 1}
+    # Fraction normalization
+    if "numi" in expr and "deno" in expr:
+        deno = expr["deno"]
+        if isinstance(deno, dict) and "terms" in deno:
+            terms = deno.get("terms", [])
+            if len(terms) == 1 and terms[0].get("coeff") == 1 and not terms[0].get("var"):
+                deno = 1
+        numi = expr["numi"]
+        if isinstance(numi, dict) and "terms" in numi:
+            terms = numi.get("terms", [])
+            non_zero = [t for t in terms if isinstance(t, dict) and t.get("coeff", 0) != 0]
+            if non_zero:
+                numi = {"terms": non_zero}
+            else:
+                numi = {"terms": [{"coeff": 0}]}
+        elif isinstance(numi, list):
+            non_zero = [t for t in numi if isinstance(t, dict) and t.get("coeff", 0) != 0]
+            numi = {"terms": non_zero if non_zero else [{"coeff": 0}]}
+        return {"numi": numi, "deno": deno}
+    return expr
+
 
 def is_equivalent(a, b):
     if a == b:
         return True
     try:
-        tok_a = serialize_slang_math(a) if isinstance(a, dict) else a
-        tok_b = serialize_slang_math(b) if isinstance(b, dict) else b
-        # If string but looks like json, try parsing
-        if isinstance(tok_a, str) and tok_a.strip().startswith("{"):
-            tok_a = serialize_slang_math(json.loads(tok_a))
-        if isinstance(tok_b, str) and tok_b.strip().startswith("{"):
-            tok_b = serialize_slang_math(json.loads(tok_b))
-        return tok_a == tok_b
+        if isinstance(a, str) and a.strip().startswith("{"):
+            try:
+                a = json.loads(a)
+            except Exception:
+                pass
+        if isinstance(b, str) and b.strip().startswith("{"):
+            try:
+                b = json.loads(b)
+            except Exception:
+                pass
+
+        can_a = _canonicalize_slang(a)
+        can_b = _canonicalize_slang(b)
+        if can_a == can_b:
+            return True
+
+        tok_a = serialize_slang_math(can_a) if isinstance(can_a, dict) else can_a
+        tok_b = serialize_slang_math(can_b) if isinstance(can_b, dict) else can_b
+        if tok_a == tok_b:
+            return True
+
+        # Mathematical equivalence fallback
+        if isinstance(a, dict) and isinstance(b, dict):
+            from inference.verifier import compare_expressions
+            vars_list = ["x", "y", "z", "t", "r"]
+            if (
+                isinstance(can_a, dict)
+                and isinstance(can_b, dict)
+                and "numi" not in can_a
+                and "numi" not in can_b
+            ):
+                if set(can_a.keys()) == set(can_b.keys()) and can_a:
+                    return all(
+                        compare_expressions(can_a[k], can_b[k], vars_list).get("equivalent", False)
+                        for k in can_a
+                    )
+            res = compare_expressions(can_a, can_b, vars_list)
+            if res.get("equivalent", False):
+                return True
     except Exception:
-        return False
+        pass
+    return False
 
 def exact_match_accuracy(predictions, references):
     if not references:
