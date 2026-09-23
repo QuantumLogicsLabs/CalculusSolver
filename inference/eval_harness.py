@@ -6,10 +6,8 @@ from tokenizer.slang_serializer import serialize_slang_math
 def _canonicalize_slang(expr: Any) -> Any:
     if not isinstance(expr, dict):
         return expr
-    # Unwrap {"gradient": {...}}
     if set(expr.keys()) == {"gradient"} and isinstance(expr["gradient"], dict):
         return {k: _canonicalize_slang(v) for k, v in expr["gradient"].items()}
-    # Gradient dict {var: expr}
     if (
         expr
         and all(isinstance(v, (dict, list, int, float)) for v in expr.values())
@@ -18,13 +16,10 @@ def _canonicalize_slang(expr: Any) -> Any:
         and "coeff" not in expr
     ):
         return {k: _canonicalize_slang(v) for k, v in expr.items()}
-    # Bare term -> fraction
     if "coeff" in expr and "numi" not in expr and "op" not in expr:
         return {"numi": {"terms": [expr]}, "deno": 1}
-    # Bare terms dict -> fraction
     if "terms" in expr and "numi" not in expr:
         return {"numi": expr, "deno": 1}
-    # Fraction normalization
     if "numi" in expr and "deno" in expr:
         deno = expr["deno"]
         if isinstance(deno, dict) and "terms" in deno:
@@ -71,7 +66,6 @@ def is_equivalent(a, b):
         if tok_a == tok_b:
             return True
 
-        # Mathematical equivalence fallback
         if isinstance(a, dict) and isinstance(b, dict):
             from inference.verifier import compare_expressions
             vars_list = ["x", "y", "z", "t", "r"]

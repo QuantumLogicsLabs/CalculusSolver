@@ -463,7 +463,6 @@ def generate_slang_dataset(target_total: int = 50000):
         })
         return True
 
-    # Quota allocation for balanced 50k dataset
     categories = [
         ("single_term_diff", 1000),
         ("multi_term_diff", 12000),
@@ -545,7 +544,6 @@ def generate_slang_dataset(target_total: int = 50000):
 
         print(f"  - {cat_name}: {added_for_cat}/{quota} unique examples generated (attempts: {attempts}).")
 
-    # If below target_total, supplement with multi-term diff and multi-term integrate
     supplement_types = ["multi_term_diff", "multivar_diff", "integrate_multi", "gradient_2var", "tangent_line_multi"]
     extra_attempts = 0
     while len(dataset) < target_total and extra_attempts < 100000:

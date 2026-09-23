@@ -285,9 +285,6 @@ def beam_search(
         # search grinding out the full max_len budget on every problem.
         # A count-based cap (stop once completed >= beam_size) was deliberately
         # not used: it can fire while a better answer is still forming.
-        # NOTE: this relies on raw (un-normalised) scoring. If a GNMT-style
-        # length penalty is added, revisit -- a longer beam can then improve
-        # its normalised score and this exit would become unsound.
         if completed and len(completed) >= beam_size:
             break
 

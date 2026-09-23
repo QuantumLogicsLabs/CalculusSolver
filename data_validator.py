@@ -75,7 +75,6 @@ def validate_slang_data():
                     first_error = f"line {line_no}: missing keys {missing}"
                 continue
 
-            # Serializer round-trip check
             src_toks = None
             for field in ("src_tokens", "tgt_input_tokens", "tgt_output_tokens"):
                 try:
@@ -108,7 +107,6 @@ def validate_slang_data():
         else:
             print(f"   [OK] All {len(lines)} rows serialize cleanly with 0 duplicates and 0 benchmark leaks.")
 
-    # Inter-split disjointness check
     print("\nChecking Inter-Split Disjointness (Zero-Leakage Guarantee)...")
     split_names = [s for s in splits if s in split_signatures]
     for i in range(len(split_names)):
