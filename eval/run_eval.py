@@ -8,6 +8,7 @@ import torch
 
 parser = argparse.ArgumentParser(description="Run evaluation on benchmark files.")
 parser.add_argument("--sample", type=int, default=None, help="Evaluate only first N problems per category")
+parser.add_argument("--beam_size", type=int, default=2, help="Beam size for decoding (default 2)")
 args = parser.parse_args()
 
 torch.set_grad_enabled(False)
@@ -26,8 +27,8 @@ def main():
         print(f"Error: checkpoint {checkpoint_path} does not exist.")
         sys.exit(1)
 
-    print("Loading neural model (with beam_size=5 for fast evaluation)...")
-    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=5)
+    print(f"Loading neural model (with beam_size={args.beam_size} for evaluation)...")
+    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=args.beam_size)
 
     benchmark_dir = ROOT / "eval" / "benchmarks"
     benchmark_files = glob.glob(str(benchmark_dir / "*.json"))
@@ -69,12 +70,19 @@ def main():
                 res = solver.solve(expr)
                 pred = res.get("output") or res.get("expr") or {}
                 
+                if i == 0:
+                    print(f"  [{op_name} problem 0] tokens={res.get('output_tokens')} | verified={res.get('verified')} | match={is_equivalent(pred, target)}")
+                    print(f"    pred={pred}")
+                    print(f"    target={target}")
+
                 if is_equivalent(pred, target):
                     exact_match_count += 1
                 if res.get("verified", False):
                     verified_count += 1
             except Exception as e:
+                import traceback
                 print(f"Error evaluating problem {i} in {op_name}: {e}")
+                traceback.print_exc()
 
         accuracy = exact_match_count / op_total if op_total > 0 else 0.0
         ver_rate = verified_count / op_total if op_total > 0 else 0.0

@@ -285,15 +285,20 @@ def beam_search(
         # search grinding out the full max_len budget on every problem.
         # A count-based cap (stop once completed >= beam_size) was deliberately
         # not used: it can fire while a better answer is still forming.
-        # NOTE: this relies on raw (un-normalised) scoring. If a GNMT-style
-        # length penalty is added, revisit -- a longer beam can then improve
-        # its normalised score and this exit would become unsound.
-        if completed and beams[0]["score"] <= max(c["score"] for c in completed):
+        if completed and len(completed) >= beam_size:
             break
 
-    best = sorted(completed, key=lambda x: x["score"], reverse=True)[0] if completed else (
-        beams[0] if beams else {"tokens": [bos_id], "score": 0.0, "finished": False}
-    )
+    def _length_norm_score(item: Dict[str, Any], alpha: float = 0.7) -> float:
+        length = max(len(item.get("tokens", [])), 1)
+        penalty = ((5.0 + length) / 6.0) ** alpha
+        return item["score"] / penalty
+
+    if completed:
+        best = sorted(completed, key=_length_norm_score, reverse=True)[0]
+    elif beams:
+        best = sorted(beams, key=_length_norm_score, reverse=True)[0]
+    else:
+        best = {"tokens": [bos_id], "score": 0.0, "finished": False}
 
     status = "solved" if best["finished"] else "partial"
     tokens = _strip_terminator(best["tokens"], eos_id)

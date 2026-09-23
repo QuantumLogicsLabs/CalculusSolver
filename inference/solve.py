@@ -63,7 +63,7 @@ class CalculusSolverInference:
         model_path: str = os.path.join("model", "model.pkl"),
         vocab_path: str = os.path.join("tokenizer", "vocab.json"),
         beam_size: int = 5,
-        max_len: int = 256,
+        max_len: int = 64,
     ):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
@@ -174,10 +174,12 @@ class CalculusSolverInference:
         expr = input_env.get("expr", {})
         if op == "integrate":
             return "RULE:power_rule_integral"
-        if op in ("partial", "gradient"):
+        if op == "partial":
             return "RULE:partial_derivative"
+        if op == "gradient":
+            return "RULE:gradient"
         if op == "tangent_line":
-            return "RULE:power_rule"
+            return "RULE:tangent_line"
         if op == "diff":
             if isinstance(expr, dict) and "op" in expr:
                 sub_op = expr["op"]

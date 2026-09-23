@@ -121,7 +121,7 @@ def main(checkpoint_rel, max_len, out_json, only_op=None):
 
 if __name__ == "__main__":
     ckpt = sys.argv[1] if len(sys.argv) > 1 else "checkpoints/final/best.pt"
-    max_len = int(sys.argv[2]) if len(sys.argv) > 2 else 32
+    max_len = int(sys.argv[2]) if len(sys.argv) > 2 else 64
     out = sys.argv[3] if len(sys.argv) > 3 else "eval_detailed.json"
     only_op = sys.argv[4] if len(sys.argv) > 4 else None
     main(ckpt, max_len, out, only_op)

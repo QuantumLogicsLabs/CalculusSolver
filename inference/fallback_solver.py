@@ -32,7 +32,10 @@ def _copy(obj: Any) -> Any:
 
 
 def _norm_term(term: dict) -> dict:
-    clean: dict = {"coeff": term.get("coeff", 0)}
+    coeff = term.get("coeff", 0)
+    if isinstance(coeff, float) and coeff.is_integer():
+        coeff = int(coeff)
+    clean: dict = {"coeff": coeff}
     variables = {k: v for k, v in term.get("var", {}).items() if v != 0}
     if variables:
         clean["var"] = variables
@@ -75,7 +78,10 @@ def _integrate_fraction(expr: dict, variable: str) -> dict:
             )
         t = _copy(term)
         np1 = power + 1
-        t["coeff"] = t.get("coeff", 0) / np1
+        new_c = t.get("coeff", 0) / np1
+        if float(new_c).is_integer():
+            new_c = int(new_c)
+        t["coeff"] = new_c
         t.setdefault("var", {})[variable] = np1
         terms.append(_norm_term(t))
     return {"numi": {"terms": terms or [{"coeff": 0}]}, "deno": 1}
@@ -243,12 +249,17 @@ class FallbackSolver:
                     "after": tangent_latex,
                 },
             ]
+            if float(slope).is_integer():
+                slope = int(slope)
+            if float(intercept).is_integer():
+                intercept = int(intercept)
+            tangent_terms = []
+            if slope != 0:
+                tangent_terms.append({"coeff": slope, "var": {var: 1}})
+            tangent_terms.append({"coeff": intercept})
             result_expr = {
                 "numi": {
-                    "terms": [
-                        {"coeff": slope, "var": {var: 1}},
-                        {"coeff": intercept},
-                    ]
+                    "terms": tangent_terms
                 },
                 "deno": 1,
             }

@@ -178,7 +178,7 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
     return avg_loss, seq_acc, token_acc
 
 
-def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48):
+def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48, device="cpu"):
     """
     Free-running generation check: greedy decode (no beam search, no teacher forcing).
     """
@@ -202,17 +202,20 @@ def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48):
     with torch.no_grad():
         for idx in indices:
             item = val_dataset[idx]
-            src_seq = item["src_seq"].unsqueeze(0)
+            src_seq = item["src_seq"].unsqueeze(0).to(device)
             
             tgt_out_full = item["tgt_out_seq"]
             tgt_out = tgt_out_full[1:]
             tgt_mask = tgt_out != pad_id
             tgt_len = int(tgt_mask.sum().item())
             tgt_out_clean = tgt_out[:tgt_len]
+            if len(tgt_out_clean) > 0 and tgt_out_clean[-1] == eos_id:
+                tgt_out_clean = tgt_out_clean[:-1]
+                tgt_len = len(tgt_out_clean)
             
             generated = [bos_id]
             for _ in range(max_gen_len):
-                tgt_in = torch.tensor([generated], dtype=torch.long)
+                tgt_in = torch.tensor([generated], dtype=torch.long, device=device)
                 logits, _, _ = model(src_seq, tgt_in, true_rule_ids=None)
                 next_token = int(logits[0, -1, :].argmax().item())
                 generated.append(next_token)
@@ -309,7 +312,7 @@ def write_training_results(metrics_log, best_val_loss, git_commit_hash):
         f"- **Hidden Dim:** {config.get('hidden_dim')}",
         f"- **Max Len:** {MAX_LEN}",
         f"- **Max Steps/Epoch:** {config.get('max_steps')}",
-        f"- **Early Stopping:** patience={config.get('early_stopping', {}).get('patience', 'N/A')}, min_delta={config.get('early_stopping', {}).get('min_delta', 'N/A')}",
+        f"- **Early Stopping:** {'patience=' + str(config['early_stopping'].get('patience', 'N/A')) + ', min_delta=' + str(config['early_stopping'].get('min_delta', 'N/A')) if isinstance(config.get('early_stopping'), dict) else str(config.get('early_stopping', 'Disabled'))}",
         f"- **Vocab Size:** {REAL_VOCAB_SIZE}",
         f"- **Gradient Clipping:** max_norm={config.get('grad_clip_max_norm', 1.0)}",
         f"- **Rule Prediction:** Multi-head prediction output (decoder_logits, rule_logits, verifier_logits)",
@@ -397,16 +400,18 @@ def run_training_pipeline():
         patience = early_stopping_cfg.get("patience", 3)
         min_delta = early_stopping_cfg.get("min_delta", 1e-4)
         use_early_stopping = True
+    elif isinstance(early_stopping_cfg, bool):
+        use_early_stopping = early_stopping_cfg
+        patience = 3 if early_stopping_cfg else None
+        min_delta = 1e-4 if early_stopping_cfg else 0.0
     elif isinstance(early_stopping_cfg, int):
         patience = early_stopping_cfg
         min_delta = 1e-4
         use_early_stopping = True
-    elif isinstance(early_stopping_cfg, bool) and early_stopping_cfg:
-        patience = 3
-        min_delta = 1e-4
-        use_early_stopping = True
     else:
         use_early_stopping = False
+        patience = None
+        min_delta = 0.0
 
     global_step = 0
 
@@ -480,7 +485,7 @@ def run_training_pipeline():
             
             num_proxy_examples = config.get("proxy_eval_examples", 15)
             fr_seq_acc, fr_token_acc, fr_avg_len = evaluate_free_running(
-                model, val_dataset, num_examples=num_proxy_examples
+                model, val_dataset, num_examples=num_proxy_examples, device=device
             )
             print(
                 f"Epoch {epoch} - Val Loss: {val_loss:.4f} | "
@@ -493,7 +498,7 @@ def run_training_pipeline():
             print(
                 f"  [Diag] Train-Val Gap: {train_val_gap:.4f} | "
                 f"LR: {scheduler.get_last_lr()[0]:.2e} | "
-                f"Patience Counter: {patience_counter}/{patience if use_early_stopping else 'N/A'}"
+                f"Patience Counter: {patience_counter}/{patience if use_early_stopping else 'Disabled'}"
             )
 
             epoch_metrics["val_loss"] = val_loss
@@ -513,7 +518,7 @@ def run_training_pipeline():
             else:
                 patience_counter += 1
                 print(f"  Epoch {epoch}: val loss {val_loss:.4f} did not improve from {best_val_loss:.4f}.")
-                if use_early_stopping and patience_counter >= patience:
+                if use_early_stopping and patience is not None and patience_counter >= patience:
                     print("Early stopping triggered. Training stopped.")
                     metrics_log.append(epoch_metrics)
                     break

@@ -319,6 +319,20 @@ def compare_expressions(a: Any, b: Any, variables: List[str], tol: float = 1e-6)
 def get_variables(input_env: dict) -> List[str]:
     if isinstance(input_env.get("vars"), list) and len(input_env["vars"]) > 0:
         return input_env["vars"]
+    if input_env.get("op") == "gradient" and "expr" in input_env:
+        found = []
+        try:
+            expr_obj = input_env["expr"]
+            numi = expr_obj.get("numi") if isinstance(expr_obj, dict) else None
+            for term in extract_poly(numi):
+                if isinstance(term, dict) and "var" in term and isinstance(term["var"], dict):
+                    for v in term["var"].keys():
+                        if v not in found:
+                            found.append(v)
+        except Exception:
+            pass
+        if found:
+            return sorted(found)
     v = input_env.get("var")
     if isinstance(v, str):
         return [v]
