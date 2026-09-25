@@ -98,9 +98,13 @@ def repetition_penalty_targets(
 ) -> Set[int]:
     """Token ids whose logit should be penalised (soft guard).
 
-    min_count=4 is set from data: across all 155,000 targets the most any
-    single content token occurs within one target is 4, and only in 4 of
-    them -- so the penalty cannot fire on a correct answer.
+    The threshold is set from data and must be re-checked whenever the
+    dataset is regenerated. On the current 70,000-target dataset the most any
+    single content token occurs within one target is 6 (753 targets reach 4+,
+    3.3% of gradient rows), so the default of 7 cannot fire on a correct
+    answer. The previous default of 4 was calibrated on an older dataset
+    whose maximum was 4; after regeneration it began penalising legitimate
+    gradient answers. tests/unit/test_repetition_penalty.py guards this.
     """
     if min_count <= 0 or not tokens:
         return set()

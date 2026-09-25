@@ -104,7 +104,7 @@ def beam_search(
     max_token_run: int = 4,
     no_repeat_ngram_size: int = 2,
     repetition_penalty: float = 1.2,
-    repetition_min_count: int = 4,
+    repetition_min_count: int = 7,
     seed_rule_token: Optional[str] = None,
 ) -> Dict[str, Any]:
     device = src_tokens.device

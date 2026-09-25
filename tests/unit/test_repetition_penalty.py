@@ -132,7 +132,16 @@ def test_real_targets_stay_below_the_threshold():
                       if not t.startswith(("STRUCT:", "NODE:", "["))]
             if tokens:
                 worst = max(worst, max(collections.Counter(tokens).values()))
-    assert worst <= 4, f"a real target reuses one content token {worst} times"
+    import inspect
+
+    from inference.beam_search import beam_search
+
+    configured = inspect.signature(beam_search).parameters["repetition_min_count"].default
+    assert worst < configured, (
+        f"a real target reuses one content token {worst} times, but the "
+        f"penalty fires at {configured} -- it would penalise correct answers. "
+        f"Raise repetition_min_count above {worst}."
+    )
 
 
 @pytest.mark.parametrize("ast", [SIMPLE, MULTI_TERM], ids=["simple", "multi_term"])
