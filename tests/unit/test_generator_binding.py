@@ -16,6 +16,7 @@ term sat first in 100% of partial rows, so position alone identified it.
 These tests keep both properties fixed.
 """
 
+import collections
 import itertools
 import random
 
@@ -80,6 +81,9 @@ def test_multi_term_diff_never_emits_an_ambiguous_binding():
 
 
 def test_multivar_diff_never_emits_an_ambiguous_binding():
+    """The binding that determines the answer is coefficient -> exponent of
+    the DIFFERENTIATED variable. A mixed term's second variable rides along
+    untouched and is not part of it, so it is excluded from the check."""
     checked = 0
     for _ in range(600):
         result = G.generate_multivar_diff()
@@ -88,8 +92,7 @@ def test_multivar_diff_never_emits_an_ambiguous_binding():
         src, _, var, _ = result
         checked += 1
         terms = src[0]["numi"]["terms"]
-        pairs = [(t.get("coeff", 0), p)
-                 for t in terms for p in t.get("var", {}).values()]
+        pairs = G._term_pairs(terms, var)
         assert not _is_ambiguous(pairs), f"ambiguous sample emitted: {pairs}"
     assert checked > 100
 
@@ -112,6 +115,73 @@ def test_multivar_diff_does_not_always_put_the_target_variable_first():
     assert len(set(positions)) >= 3, "target variable never moves beyond two slots"
 
 
+def test_multivar_diff_emits_mixed_variable_terms():
+    """A term carrying two variables (3*x^2*y) forces the model to keep the
+    other variable in the answer. The dataset previously had zero such terms
+    anywhere, so this generalisation was never trained or tested."""
+    mixed = 0
+    seen = 0
+    for _ in range(600):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        seen += 1
+        terms = result[0][0]["numi"]["terms"]
+        if any(len(t.get("var", {})) > 1 for t in terms):
+            mixed += 1
+    assert seen > 100
+    assert mixed / seen > 0.05, f"only {mixed}/{seen} rows carry a mixed term"
+
+
+def test_mixed_term_derivative_keeps_the_other_variable():
+    """d/dx(3*x^2*y) = 6*x*y, not 6x."""
+    term = {"coeff": 3, "var": {"x": 2, "y": 1}}
+    assert G._differentiate_term(term, "x") == {"coeff": 6, "var": {"x": 1, "y": 1}}
+    # exponent falling to zero drops the variable, others survive
+    assert G._differentiate_term({"coeff": 4, "var": {"x": 1, "y": 2}}, "x") == {
+        "coeff": 4, "var": {"y": 2}
+    }
+    # a term without the variable vanishes
+    assert G._differentiate_term({"coeff": 5, "var": {"y": 2}}, "x") is None
+
+
+def test_multivar_diff_sometimes_puts_the_variable_in_two_terms():
+    """Previously the differentiated variable appeared in exactly one term in
+    100% of rows, so the answer was always a single term."""
+    counts = collections.Counter()
+    for _ in range(600):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        src, _, var, _ = result
+        terms = src[0]["numi"]["terms"]
+        counts[sum(1 for t in terms if var in t.get("var", {}))] += 1
+    assert counts[2] > 0, f"variable never appears in two terms: {dict(counts)}"
+
+
+def test_multivar_diff_always_has_at_least_two_variables():
+    for _ in range(400):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        terms = result[0][0]["numi"]["terms"]
+        assert len({v for t in terms for v in t.get("var", {})}) >= 2
+
+
+def test_multivar_diff_coefficients_and_exponents_are_distinct():
+    """The constructive guarantee behind unambiguous binding: with all
+    coefficients and exponents distinct, c_i * p_j can never equal c_i * p_i."""
+    for _ in range(400):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        terms = result[0][0]["numi"]["terms"]
+        coeffs = [t.get("coeff", 0) for t in terms]
+        exps = [p for t in terms for p in t.get("var", {}).values()]
+        assert len(set(coeffs)) == len(coeffs)
+        assert len(set(exps)) == len(exps)
+
+
 def test_multivar_diff_varies_term_count():
     counts = set()
     for _ in range(600):
@@ -130,14 +200,20 @@ def test_multivar_diff_answer_matches_the_named_variable():
             continue
         src, ans, var, rule = result
         terms = src[0]["numi"]["terms"]
+        # Independent recomputation -- deliberately not calling the
+        # generator's own _differentiate_term, so this stays a real check.
         expected = []
         for t in terms:
-            p = t.get("var", {}).get(var, 0)
+            powers = t.get("var", {})
+            p = powers.get(var, 0)
             if not p:
                 continue
-            term = {"coeff": t["coeff"] * p}
+            remaining = {v: q for v, q in powers.items() if v != var}
             if p - 1 != 0:
-                term["var"] = {var: p - 1}
+                remaining[var] = p - 1
+            term = {"coeff": t["coeff"] * p}
+            if remaining:
+                term["var"] = dict(sorted(remaining.items()))
             expected.append(term)
         if not expected:
             expected = [{"coeff": 0}]
