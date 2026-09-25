@@ -432,7 +432,7 @@ def generate_multi_term_tangent_line(var="x"):
     return generate_tangent_line_diff(var)
 
 
-def generate_slang_dataset(target_total: int = 50000):
+def generate_slang_dataset(target_total: int = 70000):  # Increased total target row count
     print("[Dataset Engine] Synthesizing clean, deduplicated, zero-leakage SLaNg dataset...")
     splits_dir = Path("data/splits")
     splits_dir.mkdir(parents=True, exist_ok=True)
@@ -463,12 +463,13 @@ def generate_slang_dataset(target_total: int = 50000):
         })
         return True
 
+    # DEV 1 FIX: Scaled up quotas for multivar_diff and added gradient_3var
     categories = [
         ("single_term_diff", 1000),
         ("multi_term_diff", 12000),
         ("constant_term", 30),
         ("negative_exp_diff", 1500),
-        ("multivar_diff", 10000),
+        ("multivar_diff", 20000),          # Increased from 10,000 to 20,000 (Dev 1 task)
         ("sin_diff", 80),
         ("cos_diff", 80),
         ("tan_diff", 80),
@@ -476,7 +477,8 @@ def generate_slang_dataset(target_total: int = 50000):
         ("ln_diff", 80),
         ("integrate_single", 1000),
         ("integrate_multi", 8000),
-        ("gradient_2var", 12000),
+        ("gradient_2var", 10000),          # 2-variable gradient generator
+        ("gradient_3var", 10000),          # Added: 3-variable gradient generator (Dev 1 task)
         ("tangent_line_single", 3000),
         ("tangent_line_multi", 4000),
     ]
@@ -531,7 +533,10 @@ def generate_slang_dataset(target_total: int = 50000):
                 src_op = {"op": "integrate", "var": var, "expr": src}
             elif cat_name == "gradient_2var":
                 expr, ans, rid = generate_gradient_diff()
-                src_op = {"op": "gradient", "var": "x", "expr": expr}
+                src_op = {"op": "gradient", "var": var, "expr": expr}  # Fixed hardcoded 'x' to dynamic var
+            elif cat_name == "gradient_3var":
+                expr, ans, rid = generate_gradient_diff_3var()
+                src_op = {"op": "gradient", "var": var, "expr": expr}  # Added 3-variable caller
             elif cat_name == "tangent_line_single":
                 src_op, ans, _, rid = generate_tangent_line_diff(var)
             elif cat_name == "tangent_line_multi":
@@ -544,7 +549,8 @@ def generate_slang_dataset(target_total: int = 50000):
 
         print(f"  - {cat_name}: {added_for_cat}/{quota} unique examples generated (attempts: {attempts}).")
 
-    supplement_types = ["multi_term_diff", "multivar_diff", "integrate_multi", "gradient_2var", "tangent_line_multi"]
+    # DEV 1 FIX: Added gradient_3var to supplement_types
+    supplement_types = ["multi_term_diff", "multivar_diff", "integrate_multi", "gradient_2var", "gradient_3var", "tangent_line_multi"]
     extra_attempts = 0
     while len(dataset) < target_total and extra_attempts < 100000:
         extra_attempts += 1
@@ -563,7 +569,10 @@ def generate_slang_dataset(target_total: int = 50000):
             src_op = {"op": "integrate", "var": var, "expr": src}
         elif st == "gradient_2var":
             expr, ans, rid = generate_gradient_diff()
-            src_op = {"op": "gradient", "var": "x", "expr": expr}
+            src_op = {"op": "gradient", "var": var, "expr": expr}
+        elif st == "gradient_3var":
+            expr, ans, rid = generate_gradient_diff_3var()
+            src_op = {"op": "gradient", "var": var, "expr": expr}
         else:
             src_op, ans, _, rid = generate_multi_term_tangent_line(var)
 
@@ -598,7 +607,6 @@ def generate_slang_dataset(target_total: int = 50000):
 
     print(f"\n[Dataset Engine] Rule distribution: {rule_counts}")
     print("[Dataset Engine] Dataset generation and split complete with 0% benchmark leakage and 0 duplicates.")
-
 
 if __name__ == "__main__":
     generate_slang_dataset()
