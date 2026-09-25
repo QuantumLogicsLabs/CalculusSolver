@@ -1,8 +1,9 @@
 import glob
+import itertools
 import json
 import random
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from tokenizer.slang_serializer import serialize_slang_math
 
@@ -24,6 +25,78 @@ RULE_ID_EXP = 11
 RULE_ID_LOG = 12
 RULE_ID_GRADIENT = 13
 RULE_ID_TANGENT_LINE = 14
+
+
+def _differentiate_term(term: Dict, var: str) -> Optional[Dict]:
+    """Partial derivative of one SLaNg term w.r.t. var, or None if it vanishes.
+
+    Handles mixed terms (e.g. 3*x^2*y): the other variables are carried through
+    untouched, which is what makes d/dx(3x^2*y) = 6*x*y rather than 6x.
+    """
+    powers = term.get("var", {})
+    p = powers.get(var, 0)
+    if not p:
+        return None
+    remaining = {v: q for v, q in powers.items() if v != var}
+    if p - 1 != 0:
+        remaining[var] = p - 1
+    out: Dict = {"coeff": term.get("coeff", 0) * p}
+    if remaining:
+        out["var"] = dict(sorted(remaining.items()))
+    return out
+
+
+def _term_in_vocab(term: Dict) -> bool:
+    """Every coefficient and exponent of a term must be representable."""
+    if term.get("coeff", 0) not in SAFE_COEFFS:
+        return False
+    for q in term.get("var", {}).values():
+        if q not in SAFE_EXPONENTS or q == 0:
+            return False
+    return True
+
+
+def _binding_is_unambiguous(pairs: List[Tuple[int, int]]) -> bool:
+    """True if only the correct coefficient-to-exponent pairing yields this answer.
+
+    An example is binding-AMBIGUOUS when some cross-pairing of the terms'
+    coefficients onto other terms' exponents reproduces the identical answer
+    multiset. Such a row cannot teach the model to bind a coefficient to its
+    own exponent, because the wrong binding scores exactly the same.
+
+    Measured on the previous dataset: 14.06% of multi-term diff rows were
+    ambiguous (20.99% of 3-term rows), while 0 of the 11 failing benchmark
+    problems were -- so the benchmark demands correct binding that roughly one
+    training row in seven actively taught was optional. The observed failure
+    mode matched exactly: the model emitted c_i * p_j for i != j.
+
+    With exponents already distinct, this reduces to "no two terms share a
+    coefficient", but the permutation check is kept explicit so the property
+    still holds if the exponent constraint is ever relaxed.
+    """
+    pairs = [(c, p) for c, p in pairs if p]
+    if len(pairs) < 2:
+        return True
+    coeffs = [c for c, _ in pairs]
+    powers = [p for _, p in pairs]
+    correct = sorted((c * p, p - 1) for c, p in pairs)
+    for perm in itertools.permutations(range(len(pairs))):
+        if all(perm[i] == i for i in range(len(pairs))):
+            continue
+        alt = sorted((coeffs[i] * powers[perm[i]], powers[perm[i]] - 1)
+                     for i in range(len(pairs)))
+        if alt == correct:
+            return False
+    return True
+
+
+def _term_pairs(terms: List[Dict], var: str) -> List[Tuple[int, int]]:
+    """(coefficient, exponent-of-var) for each term that contains var."""
+    return [
+        (t.get("coeff", 0), t.get("var", {}).get(var, 0))
+        for t in terms
+        if t.get("var", {}).get(var, 0)
+    ]
 
 
 def _output_in_vocab(coeff: int, power: int) -> bool:
@@ -126,6 +199,11 @@ def generate_multi_term_diff(var="x", num_terms=None):
     if not ans_terms:
         ans_terms = [{"coeff": 0}]
 
+    # Reject binding-ambiguous samples: if a cross-pairing of coefficients and
+    # exponents gives the same answer, this row teaches nothing about binding.
+    if not _binding_is_unambiguous(_term_pairs(src_terms, var)):
+        return None
+
     src_expr = {"numi": {"terms": src_terms}, "deno": 1}
     ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
     return [src_expr], [ans_expr], RULE_ID_SUM
@@ -149,27 +227,107 @@ def generate_negative_exp_diff(var="x"):
 
 
 def generate_multivar_diff():
+    """Partial derivative over a multi-variable polynomial.
+
+    Every property here comes from a measured defect in the 300-problem
+    benchmark, where partial scored 35.0% and 27 of 39 failures used the
+    wrong term entirely (e.g. d/dy(-2y^2 + 4z^4) should be -4y; the model
+    emitted -8y^3, which is c_y * p_z -- the y coefficient bound to z's
+    exponent).
+
+    1. Term order is shuffled. The differentiated variable's term was first
+       in 100% of rows, so position alone identified it and the model never
+       had to read the variable named in the op envelope.
+    2. Coefficients and exponents are globally distinct, which makes the
+       coefficient-to-exponent binding unique (see _binding_is_unambiguous).
+    3. Three source shapes instead of one fixed two-term form:
+         single       - the variable appears in exactly one term
+         two_target   - it appears in two terms, so the answer has two terms
+         mixed        - a term carries two variables (3*x^2*y), so the model
+                        must keep the other variable in the answer
+       Previously 100% of rows were the "single" shape with no mixed terms
+       anywhere in the dataset.
+    """
     var = random.choice(VARIABLES)
-    other_vars = [v for v in VARIABLES if v != var]
+    others = [v for v in VARIABLES if v != var]
+    shape = random.choices(
+        ["single", "two_target", "mixed"], weights=[50, 27, 23], k=1
+    )[0]
 
-    src_terms = []
-    ans_terms = []
+    used_coeffs: Set[int] = set()
+    used_exps: Set[int] = set()
 
-    t_src, t_ans, _ = generate_single_term_diff(var)
-    src_terms.extend(t_src["numi"]["terms"])
-    for t in t_ans["numi"]["terms"]:
-        if t.get("coeff", 0) != 0:
-            ans_terms.append(t)
-
-    if other_vars:
-        num_others = random.randint(1, len(other_vars))
-        for ov in random.sample(other_vars, num_others):
+    def pick_pair():
+        """A (coefficient, exponent) whose derivative stays in vocabulary and
+        whose parts have not been used, keeping the binding unambiguous."""
+        for _ in range(60):
             c = random.choice(SAFE_NONZERO_COEFFS)
             p = random.choice(SAFE_POS_EXPONENTS)
-            src_terms.append({"coeff": c, "var": {ov: p}})
+            if c in used_coeffs or p in used_exps:
+                continue
+            if not _output_in_vocab(c, p):
+                continue
+            used_coeffs.add(c)
+            used_exps.add(p)
+            return c, p
+        return None
 
+    src_terms: List[Dict] = []
+
+    num_target_terms = 2 if shape == "two_target" else 1
+    for _ in range(num_target_terms):
+        pair = pick_pair()
+        if pair is None:
+            return None
+        c, p = pair
+        powers = {var: p}
+        if shape == "mixed" and others:
+            spare = [e for e in SAFE_POS_EXPONENTS if e not in used_exps]
+            if spare:
+                q = random.choice(spare)
+                used_exps.add(q)
+                powers[random.choice(others)] = q
+        src_terms.append({"coeff": c, "var": dict(sorted(powers.items()))})
+
+    for i in range(random.randint(1, 2)):
+        pair = pick_pair()
+        if pair is None:
+            break
+        c, p = pair
+        src_terms.append({"coeff": c, "var": {others[i % len(others)]: p}})
+
+    if len(src_terms) < 2:
+        return None
+
+    # The differentiated variable must not be identifiable by position alone.
+    random.shuffle(src_terms)
+
+    ans_terms = [d for d in (_differentiate_term(t, var) for t in src_terms) if d]
     if not ans_terms:
         ans_terms = [{"coeff": 0}]
+    if not all(_term_in_vocab(t) for t in ans_terms):
+        return None
+
+    # The binding that determines the answer is coefficient -> exponent OF THE
+    # DIFFERENTIATED VARIABLE. A mixed term's second variable is carried
+    # through untouched and is not part of that binding, so it must not be
+    # flattened into the check -- doing so makes every mixed term look
+    # ambiguous (one coefficient against two exponents) and rejects them all.
+    if not _binding_is_unambiguous(_term_pairs(src_terms, var)):
+        return None
+
+    # Cross-VARIABLE confusion (the observed c_y * p_z error) is prevented
+    # constructively: with all coefficients and all exponents globally
+    # distinct, c_i * p_j can never equal c_i * p_i for j != i. Asserted here
+    # so the guarantee cannot silently lapse if construction changes.
+    coeffs = [t.get("coeff", 0) for t in src_terms]
+    exponents = [p for t in src_terms for p in t.get("var", {}).values()]
+    if len(set(coeffs)) != len(coeffs) or len(set(exponents)) != len(exponents):
+        return None
+
+    # A partial-derivative example needs more than one variable present.
+    if len({v for t in src_terms for v in t.get("var", {})}) < 2:
+        return None
 
     src_expr = {"numi": {"terms": src_terms}, "deno": 1}
     ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
@@ -497,7 +655,10 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
                 src, ans, rid = generate_single_term_diff(var)
                 src_op = {"op": "diff", "var": var, "expr": src}
             elif cat_name == "multi_term_diff":
-                src_terms, ans_terms, rid = generate_multi_term_diff(var)
+                result = generate_multi_term_diff(var)
+                if result is None:
+                    continue  # binding-ambiguous sample, rejected
+                src_terms, ans_terms, rid = result
                 src_op = {"op": "diff", "var": var, "expr": src_terms[0]}
                 ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
             elif cat_name == "constant_term":
@@ -507,7 +668,10 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
                 src, ans, rid = generate_negative_exp_diff(var)
                 src_op = {"op": "diff", "var": var, "expr": src}
             elif cat_name == "multivar_diff":
-                src_terms, ans_terms, mvar, rid = generate_multivar_diff()
+                result = generate_multivar_diff()
+                if result is None:
+                    continue  # binding-ambiguous sample, rejected
+                src_terms, ans_terms, mvar, rid = result
                 src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
                 ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
             elif cat_name == "sin_diff":
@@ -557,11 +721,17 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
         st = random.choice(supplement_types)
         var = random.choice(VARIABLES)
         if st == "multi_term_diff":
-            src_terms, ans_terms, rid = generate_multi_term_diff(var)
+            result = generate_multi_term_diff(var)
+            if result is None:
+                continue  # binding-ambiguous sample, rejected
+            src_terms, ans_terms, rid = result
             src_op = {"op": "diff", "var": var, "expr": src_terms[0]}
             ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
         elif st == "multivar_diff":
-            src_terms, ans_terms, mvar, rid = generate_multivar_diff()
+            result = generate_multivar_diff()
+            if result is None:
+                continue  # binding-ambiguous sample, rejected
+            src_terms, ans_terms, mvar, rid = result
             src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
             ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
         elif st == "integrate_multi":
