@@ -110,7 +110,8 @@ def main():
     with open(eval_results_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines) + "\n")
 
-    print(f"Saved evaluation results to {eval_results_path}")
+    print(f"Saved evaluation results to {eval_results_path}\n")
+    print("\n".join(report_lines))
 
 if __name__ == "__main__":
     main()
