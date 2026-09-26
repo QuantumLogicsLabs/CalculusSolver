@@ -417,7 +417,8 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
     max_steps_cfg = override_max_steps if override_max_steps is not None else config.get("max_steps", 3500)
 
     base_lr = config["learning_rate"]
-    optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
+    weight_decay = config.get("weight_decay", 1e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
 
     warmup_steps = config.get("warmup_steps", 1000)
     total_training_steps = epochs * min(max_steps_cfg, len(train_loader))

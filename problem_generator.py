@@ -827,5 +827,12 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
     print(f"\n[Dataset Engine] Rule distribution: {rule_counts}")
     print("[Dataset Engine] Dataset generation and split complete with 0% benchmark leakage and 0 duplicates.")
 
+    print("\n[Dataset Engine] Running anti-overfitting & clean-data verification...")
+    try:
+        from data_validator import validate_slang_data
+        validate_slang_data()
+    except Exception as e:
+        print(f"[Dataset Engine] Validation warning: {e}")
+
 if __name__ == "__main__":
     generate_slang_dataset()
