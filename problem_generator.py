@@ -345,8 +345,15 @@ def generate_partial_constant_vanish(var=None):
         var = random.choice(VARIABLES)
     others = [v for v in VARIABLES if v != var]
 
-    target_power = 1 if random.random() < 0.60 else 2
-    target_coeff = random.choice(SAFE_NONZERO_COEFFS)
+    for _ in range(60):
+        target_coeff = random.choice(SAFE_NONZERO_COEFFS)
+        target_power = 1 if random.random() < 0.60 else 2
+        if _output_in_vocab(target_coeff, target_power):
+            break
+    else:
+        target_coeff = 2
+        target_power = 1
+
     target_term = {"coeff": target_coeff, "var": {var: target_power}}
 
     non_target_terms = []
