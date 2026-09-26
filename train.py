@@ -100,12 +100,18 @@ class SlangDatasetLoader(Dataset):
         src_ids = self._tokenize(item["src_tokens"], add_boundaries=False)
         tgt_in_ids = self._tokenize(item["tgt_input_tokens"], extra_prefix_tokens=prefix, add_boundaries=True)
         tgt_out_ids = self._tokenize(item["tgt_output_tokens"], extra_prefix_tokens=prefix, add_boundaries=True)
+        op = (
+            item["src_tokens"].get("op", "unknown")
+            if isinstance(item.get("src_tokens"), dict)
+            else "unknown"
+        )
         return {
             "src_seq": src_ids,
             "tgt_in_seq": tgt_in_ids,
             "tgt_out_seq": tgt_out_ids,
             "rule_id": torch.tensor(item["rule_ids"], dtype=torch.long),
             "v_state": torch.tensor(item["verification_state"], dtype=torch.float),
+            "op": op,
         }
 
 
@@ -142,12 +148,16 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
     total_seq = 0
     steps = 0
 
+    category_correct = {}
+    category_total = {}
+
     with torch.no_grad():
         for batch in val_loader:
             src_seq = batch["src_seq"].to(device)
             tgt_in = batch["tgt_in_seq"][:, :-1].to(device)
             tgt_out = batch["tgt_out_seq"][:, 1:].to(device)
             rule_id = batch["rule_id"].to(device)
+            ops = batch.get("op", None)
 
             decoder_logits, rule_logits, verifier_logits = model(src_seq, tgt_in, true_rule_ids=rule_id)
             loss = criterion(decoder_logits.reshape(-1, REAL_VOCAB_SIZE), tgt_out.reshape(-1))
@@ -162,10 +172,17 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
             correct_seq = ((preds == tgt_out) | ~mask).all(dim=1)
             total_correct_seq += correct_seq.sum().item()
             total_seq += tgt_out.size(0)
+
+            if ops is not None:
+                for i, op in enumerate(ops):
+                    category_total[op] = category_total.get(op, 0) + 1
+                    if correct_seq[i].item():
+                        category_correct[op] = category_correct.get(op, 0) + 1
+
             steps += 1
 
     if steps == 0:
-        return 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, {}
 
     avg_loss = total_loss / steps
     seq_acc = total_correct_seq / max(total_seq, 1)
@@ -174,11 +191,18 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
         if total_valid_tokens > 0
         else 0.0
     )
+    category_acc = {
+        op: category_correct.get(op, 0) / category_total[op]
+        for op in sorted(category_total.keys())
+        if category_total[op] > 0
+    }
 
-    return avg_loss, seq_acc, token_acc
+    return avg_loss, seq_acc, token_acc, category_acc
 
 
-def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48, device="cpu"):
+def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=None, device="cpu"):
+    if max_gen_len is None:
+        max_gen_len = MAX_LEN
     """
     Free-running generation check: greedy decode (no beam search, no teacher forcing).
     """
@@ -302,6 +326,24 @@ def write_training_results(metrics_log, best_val_loss, git_commit_hash):
         lines.append(
             f"| {m['epoch']} | {m['train_loss']:.4f} | {val_loss} | {token_acc} | {val_acc} | {fr_seq} | {fr_tok} | {fr_len} | {saved} |"
         )
+
+    has_cat = any(m.get("val_category_acc") for m in metrics_log)
+    if has_cat:
+        all_cats = sorted({cat for m in metrics_log for cat in m.get("val_category_acc", {}).keys()})
+        cat_header = " | ".join(c.capitalize() for c in all_cats)
+        cat_sep = " | ".join(["---"] * len(all_cats))
+        lines.extend([
+            "",
+            "## Per-Category Validation Sequence Accuracy",
+            "",
+            f"| Epoch | {cat_header} |",
+            f"|-------|{cat_sep}|",
+        ])
+        for m in metrics_log:
+            cats = m.get("val_category_acc", {})
+            row_vals = " | ".join(f"{cats.get(c, 0.0):.4f}" if c in cats else "N/A" for c in all_cats)
+            lines.append(f"| {m['epoch']} | {row_vals} |")
+
     lines.extend([
         "",
         "## Configuration Snapshot",
@@ -324,9 +366,12 @@ def write_training_results(metrics_log, best_val_loss, git_commit_hash):
     print(f"Training results written to docs/TRAINING_RESULTS.md")
 
 
-def run_training_pipeline():
+def run_training_pipeline(from_scratch=False, override_epochs=None, override_max_steps=None):
     commit_hash = get_git_commit_hash()
     print(f"--- Training CalculusSolverModel (commit: {commit_hash}, vocab: {REAL_VOCAB_SIZE}) ---")
+
+    if from_scratch:
+        print("Retraining from scratch: initializing fresh model weights.")
 
     train_file = Path("data/splits/train.jsonl")
     if not train_file.exists():
@@ -367,13 +412,15 @@ def run_training_pipeline():
     check_forward_contract(model, vocab_size=REAL_VOCAB_SIZE, num_rules=len(RULE_LABELS))
     print("[Preflight] Model forward contract OK", flush=True)
 
-    epochs = config.get("epochs", 1)
+    epochs = override_epochs if override_epochs is not None else config.get("epochs", 15)
+    max_steps_cfg = override_max_steps if override_max_steps is not None else config.get("max_steps", 3500)
 
     base_lr = config["learning_rate"]
-    optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
+    weight_decay = config.get("weight_decay", 1e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
 
     warmup_steps = config.get("warmup_steps", 1000)
-    total_training_steps = epochs * min(config.get("max_steps", 3500), len(train_loader))
+    total_training_steps = epochs * min(max_steps_cfg, len(train_loader))
     lr_decay_cfg = config.get("lr_decay", {})
     min_lr_ratio = lr_decay_cfg.get("min_lr_ratio", 0.1)
     
@@ -397,9 +444,9 @@ def run_training_pipeline():
 
     early_stopping_cfg = config.get("early_stopping", False)
     if isinstance(early_stopping_cfg, dict):
+        use_early_stopping = early_stopping_cfg.get("enabled", True)
         patience = early_stopping_cfg.get("patience", 3)
         min_delta = early_stopping_cfg.get("min_delta", 1e-4)
-        use_early_stopping = True
     elif isinstance(early_stopping_cfg, bool):
         use_early_stopping = early_stopping_cfg
         patience = 3 if early_stopping_cfg else None
@@ -428,7 +475,7 @@ def run_training_pipeline():
             print(f"  [Scheduled Sampling] Epoch {epoch}: model-token prob = {ss_prob:.3f}")
 
         for step, batch in enumerate(train_loader):
-            if step >= config.get("max_steps", 1500):
+            if step >= max_steps_cfg:
                 break
             if step < 3 or step % 10 == 0:
                 print(f"[DEBUG] epoch {epoch} step {step} - batch received, running forward/backward...", flush=True)
@@ -481,11 +528,13 @@ def run_training_pipeline():
         }
 
         if val_loader is not None:
-            val_loss, val_seq_acc, val_token_acc = evaluate_validation(model, val_loader, criterion, device=device)
+            val_loss, val_seq_acc, val_token_acc, val_cat_acc = evaluate_validation(
+                model, val_loader, criterion, device=device
+            )
             
             num_proxy_examples = config.get("proxy_eval_examples", 15)
             fr_seq_acc, fr_token_acc, fr_avg_len = evaluate_free_running(
-                model, val_dataset, num_examples=num_proxy_examples, device=device
+                model, val_dataset, num_examples=num_proxy_examples, max_gen_len=MAX_LEN, device=device
             )
             print(
                 f"Epoch {epoch} - Val Loss: {val_loss:.4f} | "
@@ -493,6 +542,9 @@ def run_training_pipeline():
                 f"Free-Run Seq Acc: {fr_seq_acc:.4f} | Free-Run Token Acc: {fr_token_acc:.4f} | "
                 f"Avg Gen Len: {fr_avg_len:.1f}"
             )
+            if val_cat_acc:
+                cat_summary = " | ".join(f"{op}: {val_cat_acc[op]:.2%}" for op in sorted(val_cat_acc.keys()))
+                print(f"  [Per-Category Val Seq Acc] {cat_summary}")
             
             train_val_gap = avg_train_loss - val_loss
             print(
@@ -504,6 +556,7 @@ def run_training_pipeline():
             epoch_metrics["val_loss"] = val_loss
             epoch_metrics["val_token_acc"] = val_token_acc
             epoch_metrics["val_seq_acc"] = val_seq_acc
+            epoch_metrics["val_category_acc"] = val_cat_acc
             epoch_metrics["free_run_seq_acc"] = fr_seq_acc
             epoch_metrics["free_run_token_acc"] = fr_token_acc
             epoch_metrics["free_run_avg_len"] = fr_avg_len
@@ -535,4 +588,14 @@ def run_training_pipeline():
 
 
 if __name__ == "__main__":
-    run_training_pipeline()
+    import argparse
+    parser = argparse.ArgumentParser(description="Train CalculusSolverModel")
+    parser.add_argument("--from-scratch", action="store_true", help="Delete existing checkpoint before training")
+    parser.add_argument("--epochs", type=int, default=None, help="Override epochs from config.json")
+    parser.add_argument("--max-steps", type=int, default=None, help="Override max_steps per epoch")
+    args = parser.parse_args()
+    run_training_pipeline(
+        from_scratch=args.from_scratch,
+        override_epochs=args.epochs,
+        override_max_steps=args.max_steps,
+    )
