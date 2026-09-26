@@ -370,9 +370,8 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
     commit_hash = get_git_commit_hash()
     print(f"--- Training CalculusSolverModel (commit: {commit_hash}, vocab: {REAL_VOCAB_SIZE}) ---")
 
-    if from_scratch and FINAL_CHECKPOINT_PATH.exists():
-        FINAL_CHECKPOINT_PATH.unlink()
-        print(f"Removed prior checkpoint {FINAL_CHECKPOINT_PATH} to retrain from scratch.")
+    if from_scratch:
+        print("Retraining from scratch: initializing fresh model weights.")
 
     train_file = Path("data/splits/train.jsonl")
     if not train_file.exists():
