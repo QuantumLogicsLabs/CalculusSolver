@@ -200,7 +200,9 @@ def evaluate_validation(model, val_loader, criterion, device="cpu"):
     return avg_loss, seq_acc, token_acc, category_acc
 
 
-def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=48, device="cpu"):
+def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=None, device="cpu"):
+    if max_gen_len is None:
+        max_gen_len = MAX_LEN
     """
     Free-running generation check: greedy decode (no beam search, no teacher forcing).
     """
@@ -532,7 +534,7 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
             
             num_proxy_examples = config.get("proxy_eval_examples", 15)
             fr_seq_acc, fr_token_acc, fr_avg_len = evaluate_free_running(
-                model, val_dataset, num_examples=num_proxy_examples, device=device
+                model, val_dataset, num_examples=num_proxy_examples, max_gen_len=MAX_LEN, device=device
             )
             print(
                 f"Epoch {epoch} - Val Loss: {val_loss:.4f} | "

@@ -33,6 +33,7 @@ def main():
     solver = CalculusSolverInference(
         model_path=str(checkpoint_path),
         beam_size=args.beam_size,
+        max_len=80,
         enable_fallback=not args.no_fallback,
     )
 
