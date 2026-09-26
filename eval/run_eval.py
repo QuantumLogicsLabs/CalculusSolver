@@ -9,6 +9,7 @@ import torch
 parser = argparse.ArgumentParser(description="Run evaluation on benchmark files.")
 parser.add_argument("--sample", type=int, default=None, help="Evaluate only first N problems per category")
 parser.add_argument("--beam_size", type=int, default=2, help="Beam size for decoding (default 2)")
+parser.add_argument("--no_fallback", action="store_true", help="Disable fallback solver for pure neural evaluation")
 args = parser.parse_args()
 
 torch.set_grad_enabled(False)
@@ -27,8 +28,13 @@ def main():
         print(f"Error: checkpoint {checkpoint_path} does not exist.")
         sys.exit(1)
 
-    print(f"Loading neural model (with beam_size={args.beam_size} for evaluation)...")
-    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=args.beam_size)
+    mode_str = "pure neural" if args.no_fallback else "hybrid (neural + verifier fallback)"
+    print(f"Loading {mode_str} model (with beam_size={args.beam_size} for evaluation)...")
+    solver = CalculusSolverInference(
+        model_path=str(checkpoint_path),
+        beam_size=args.beam_size,
+        enable_fallback=not args.no_fallback,
+    )
 
     benchmark_dir = ROOT / "eval" / "benchmarks"
     benchmark_files = glob.glob(str(benchmark_dir / "*.json"))

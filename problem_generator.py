@@ -334,6 +334,45 @@ def generate_multivar_diff():
     return [src_expr], [ans_expr], var, RULE_ID_PARTIAL
 
 
+def generate_partial_constant_vanish(var=None):
+    """Generate partial derivative problems where non-target variables explicitly vanish.
+
+    Specifically targets the primary failure mode in multivariable benchmarks:
+    The target variable has degree 1 or 2 (yielding a constant or linear derivative),
+    while 1 to 2 other variables are present with zero derivative w.r.t var.
+    """
+    if var is None:
+        var = random.choice(VARIABLES)
+    others = [v for v in VARIABLES if v != var]
+
+    target_power = 1 if random.random() < 0.60 else 2
+    target_coeff = random.choice(SAFE_NONZERO_COEFFS)
+    target_term = {"coeff": target_coeff, "var": {var: target_power}}
+
+    non_target_terms = []
+    num_others = random.randint(1, 2)
+    used_coeffs = {target_coeff}
+    for i in range(num_others):
+        other_var = others[i % len(others)]
+        c = random.choice([x for x in SAFE_NONZERO_COEFFS if x not in used_coeffs] or SAFE_NONZERO_COEFFS)
+        used_coeffs.add(c)
+        p = random.choice(SAFE_POS_EXPONENTS)
+        non_target_terms.append({"coeff": c, "var": {other_var: p}})
+
+    src_terms = [target_term] + non_target_terms
+    random.shuffle(src_terms)
+
+    ans_coeff = target_coeff * target_power
+    if target_power == 1:
+        ans_terms = [{"coeff": ans_coeff}]
+    else:
+        ans_terms = [{"coeff": ans_coeff, "var": {var: target_power - 1}}]
+
+    src_expr = {"numi": {"terms": src_terms}, "deno": 1}
+    ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
+    return [src_expr], [ans_expr], var, RULE_ID_PARTIAL
+
+
 def generate_sin_diff(var="x"):
     k = random.choice(SAFE_NONZERO_COEFFS)
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
@@ -590,7 +629,7 @@ def generate_multi_term_tangent_line(var="x"):
     return generate_tangent_line_diff(var)
 
 
-def generate_slang_dataset(target_total: int = 70000):  # Increased total target row count
+def generate_slang_dataset(target_total: int = 75000):  # Scaled total target row count
     print("[Dataset Engine] Synthesizing clean, deduplicated, zero-leakage SLaNg dataset...")
     splits_dir = Path("data/splits")
     splits_dir.mkdir(parents=True, exist_ok=True)
@@ -621,13 +660,14 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
         })
         return True
 
-    # DEV 1 FIX: Scaled up quotas for multivar_diff and added gradient_3var
+    # Quotas for balanced training coverage across all 5 calculus categories
     categories = [
         ("single_term_diff", 1000),
         ("multi_term_diff", 12000),
         ("constant_term", 30),
         ("negative_exp_diff", 1500),
-        ("multivar_diff", 20000),          # Increased from 10,000 to 20,000 (Dev 1 task)
+        ("multivar_diff", 15000),
+        ("partial_constant_vanish", 10000),  # Multivariable vanishing constant targets
         ("sin_diff", 80),
         ("cos_diff", 80),
         ("tan_diff", 80),
@@ -674,6 +714,11 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
                 src_terms, ans_terms, mvar, rid = result
                 src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
                 ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            elif cat_name == "partial_constant_vanish":
+                result = generate_partial_constant_vanish(var)
+                src_terms, ans_terms, mvar, rid = result
+                src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+                ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
             elif cat_name == "sin_diff":
                 src, ans, rid = generate_sin_diff(var)
                 src_op = {"op": "diff", "var": var, "expr": src}
@@ -713,8 +758,7 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
 
         print(f"  - {cat_name}: {added_for_cat}/{quota} unique examples generated (attempts: {attempts}).")
 
-    # DEV 1 FIX: Added gradient_3var to supplement_types
-    supplement_types = ["multi_term_diff", "multivar_diff", "integrate_multi", "gradient_2var", "gradient_3var", "tangent_line_multi"]
+    supplement_types = ["multi_term_diff", "multivar_diff", "partial_constant_vanish", "integrate_multi", "gradient_2var", "gradient_3var", "tangent_line_multi"]
     extra_attempts = 0
     while len(dataset) < target_total and extra_attempts < 100000:
         extra_attempts += 1
@@ -731,6 +775,11 @@ def generate_slang_dataset(target_total: int = 70000):  # Increased total target
             result = generate_multivar_diff()
             if result is None:
                 continue  # binding-ambiguous sample, rejected
+            src_terms, ans_terms, mvar, rid = result
+            src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+            ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+        elif st == "partial_constant_vanish":
+            result = generate_partial_constant_vanish(var)
             src_terms, ans_terms, mvar, rid = result
             src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
             ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
