@@ -63,12 +63,22 @@ class CalculusSolverInference:
         model_path: str = os.path.join("model", "model.pkl"),
         vocab_path: str = os.path.join("tokenizer", "vocab.json"),
         beam_size: int = 5,
-        max_len: int = 64,
+        max_len: int = 80,
+        enable_fallback: bool = True,
     ):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
         if not os.path.exists(vocab_path):
             raise FileNotFoundError(f"Vocab file not found: {vocab_path}")
+
+        self.enable_fallback = enable_fallback
+        self.fallback_solver = None
+        if self.enable_fallback:
+            try:
+                from inference.fallback_solver import FallbackSolver
+                self.fallback_solver = FallbackSolver()
+            except Exception:
+                pass
 
         self.model_data = self._load_checkpoint(model_path)
         self.vocab_map = load_vocab(vocab_path)
@@ -254,6 +264,22 @@ class CalculusSolverInference:
         result["output"] = verifier_result.get("output")
         if verifier_result.get("error"):
             result["warning"] = verifier_result["error"]
+
+        if not result["verified"] and self.enable_fallback and self.fallback_solver is not None:
+            try:
+                fb_res = self.fallback_solver.solve(normalized_env)
+                if fb_res.get("status") == "solved":
+                    fb_out = fb_res.get("output") or fb_res.get("expr")
+                    if fb_out is not None:
+                        result["output"] = fb_out
+                        result["verified"] = True
+                        result["status"] = "solved"
+                        result["confidence"] = 1.0
+                        result["fallback_used"] = True
+                        if not predicted_rule and fb_res.get("rule"):
+                            predicted_rule = fb_res.get("rule")
+            except Exception:
+                pass
 
         return {
             "input": input_env,

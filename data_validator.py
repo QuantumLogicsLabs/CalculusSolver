@@ -44,6 +44,15 @@ def validate_slang_data():
     benchmark_sigs = load_benchmark_signatures(benchmark_dir)
     print(f"Loaded {len(benchmark_sigs)} benchmark problem signatures for leakage screening.\n")
 
+    vocab_path = Path("tokenizer/vocab.json")
+    valid_tokens = set()
+    if vocab_path.exists():
+        with open(vocab_path, "r", encoding="utf-8") as vf:
+            raw_vocab = json.load(vf)
+        for v in raw_vocab.values():
+            if isinstance(v, dict):
+                valid_tokens.update(v.keys())
+
     split_signatures: Dict[str, Set[str]] = {}
 
     for s in splits:
@@ -60,6 +69,7 @@ def validate_slang_data():
 
         key_failures = 0
         serializer_failures = 0
+        vocab_failures = 0
         duplicates = 0
         leaks = 0
         first_error = None
@@ -81,6 +91,12 @@ def validate_slang_data():
                     toks = serialize_slang_math(entry[field])
                     if field == "src_tokens":
                         src_toks = toks
+                    if valid_tokens:
+                        for tok in toks:
+                            if tok not in valid_tokens:
+                                vocab_failures += 1
+                                if first_error is None:
+                                    first_error = f"line {line_no}, field '{field}': token '{tok}' missing from vocab.json"
                 except Exception as e:
                     serializer_failures += 1
                     if first_error is None:
@@ -99,13 +115,13 @@ def validate_slang_data():
 
         split_signatures[s] = seen_in_split
 
-        if key_failures or serializer_failures or duplicates > 0 or leaks > 0:
+        if key_failures or serializer_failures or vocab_failures or duplicates > 0 or leaks > 0:
             any_failures = True
-            print(f"   [FAIL] {key_failures} key errors | {serializer_failures} serializer errors | {duplicates} duplicates | {leaks} benchmark leaks")
+            print(f"   [FAIL] {key_failures} key errors | {serializer_failures} serializer errors | {vocab_failures} out-of-vocab tokens | {duplicates} duplicates | {leaks} benchmark leaks")
             if first_error:
                 print(f"   first failure: {first_error}")
         else:
-            print(f"   [OK] All {len(lines)} rows serialize cleanly with 0 duplicates and 0 benchmark leaks.")
+            print(f"   [OK] All {len(lines)} rows serialize cleanly with 0 out-of-vocab tokens, 0 duplicates, and 0 benchmark leaks.")
 
     print("\nChecking Inter-Split Disjointness (Zero-Leakage Guarantee)...")
     split_names = [s for s in splits if s in split_signatures]
