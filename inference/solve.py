@@ -119,7 +119,11 @@ class CalculusSolverInference:
                     rule_labels=rule_labels,
                 ).to(self.device)
 
-            self.model.load_state_dict(state_dict)
+            try:
+                self.model.load_state_dict(state_dict, strict=True)
+            except RuntimeError:
+                print("⚠️  Warning: Checkpoint state dict mismatch detected. Loading with strict=False...")
+                self.model.load_state_dict(state_dict, strict=False)
 
         self.model.eval()
 
