@@ -71,3 +71,31 @@ Because `export_onnx.py` and `solve.py` instantiated different class structures 
 ### Verification
 
 Running `deployment/export_onnx.py` against `checkpoints/final/best.pt` successfully loaded model weights, initialized matching encoder/decoder layer counts, and exported the trace to `deployment/artifacts/best.onnx` without `load_state_dict` key mismatches.
+
+## [RESOLVED] Multi-variable accuracy gap (gradient/partial) traced to training data variable skew
+
+**Discovered:** Post-fine-tune evaluation showed gradient (36.0%) and partial (35.0%)
+far below diff (86.2%), integrate (98.3%), and tangent_line (96.0%) -- both weak
+categories are inherently multi-variable tasks.
+**Fixed:** PR #52 (variable distribution fix + 3-variable gradient examples +
+scaled partial/gradient row counts), retrained per PR #51.
+**Severity:** High -- capped real accuracy on 2 of 5 operation categories.
+
+### What was wrong
+problem_generator.py's generator loops sampled from a truncated single-element
+variable list, so ~90% of training rows used only x. gradient and partial are
+the categories most dependent on the model correctly handling non-x variables.
+
+### The fix
+Removed the truncation, added 3-variable gradient examples, and increased
+gradient/partial row counts.
+
+### Before / After
+| Category | Before | After |
+|---|---|---|
+| diff | 86.2% | [75%] |
+| gradient | 36.0% | [40%] |
+| integrate | 98.3% | [98.3%] |
+| partial | 35.0% | [51.7%] |
+| tangent_line | 96.0% | [98%] |
+| **Overall** | **71.7%** | **[73.0%]** |
