@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "evaluation_mode": "hybrid_verifier_fallback",
+  "settings": {
+    "beam_size": 3,
+    "max_len": 64,
+    "seed": 0,
+    "sample_per_category": null,
+    "fallback_enabled": true
+  },
+  "inputs": {
+    "checkpoint": "checkpoints/final/best.pt",
+    "checkpoint_sha256": "f5166332750d6260007e8efe3e0018e01e9ce0cafbaa91456b5f8b1f16afcb81",
+    "evaluator": "eval/run_eval.py",
+    "evaluator_sha256": "a3c3ed0cdb7a6e34a47270cf6608294acfe2eea18455ac52838722dc2c500ccd",
+    "benchmarks": [
+      {
+        "file": "eval/benchmarks/benchmark_diff.json",
+        "operation": "diff",
+        "records_in_file": 80,
+        "records_evaluated": 80,
+        "sha256": "d3de159d4f4d5e18568debf736039ab4a1679893829253016e4c68ba2ad6a09a"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_gradient.json",
+        "operation": "gradient",
+        "records_in_file": 18,
+        "records_evaluated": 18,
+        "sha256": "babafba316c4c5362bdbb0ae0d207f9c934a8b26c1a3bf3ea8c86c73dfc0e09b"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_integrate.json",
+        "operation": "integrate",
+        "records_in_file": 60,
+        "records_evaluated": 60,
+        "sha256": "21c659bc24dcb4b5827b10661407f26203fb1143e4cd4196385e46c106a845b4"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_partial.json",
+        "operation": "partial",
+        "records_in_file": 60,
+        "records_evaluated": 60,
+        "sha256": "1aadeb957ae3934ff4c87a3c00ebf83e0a7eb51c5b00e33fd396b62390a9fad9"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_tangent_line.json",
+        "operation": "tangent_line",
+        "records_in_file": 50,
+        "records_evaluated": 50,
+        "sha256": "fe537963b53320f7c7b2bb8c2d47ccb3cc01ac8c61047d472ab3b6bb8cee4ef5"
+      }
+    ]
+  },
+  "environment": {
+    "git_commit": "00e8d3eba8db6bad5572f646e16935f3e947b2eb",
+    "git_dirty": true,
+    "python": "3.12.14",
+    "torch": "2.3.1+cpu",
+    "numpy": "1.26.4",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "summary": {
+    "diff": {
+      "total": 80,
+      "exact_match": 77,
+      "verified": 80,
+      "accuracy": 0.9625,
+      "verification_rate": 1.0
+    },
+    "gradient": {
+      "total": 18,
+      "exact_match": 12,
+      "verified": 18,
+      "accuracy": 0.6666666666666666,
+      "verification_rate": 1.0
+    },
+    "integrate": {
+      "total": 60,
+      "exact_match": 60,
+      "verified": 60,
+      "accuracy": 1.0,
+      "verification_rate": 1.0
+    },
+    "partial": {
+      "total": 60,
+      "exact_match": 60,
+      "verified": 60,
+      "accuracy": 1.0,
+      "verification_rate": 1.0
+    },
+    "tangent_line": {
+      "total": 50,
+      "exact_match": 50,
+      "verified": 50,
+      "accuracy": 1.0,
+      "verification_rate": 1.0
+    }
+  },
+  "overall": {
+    "total": 268,
+    "exact_match": 259,
+    "verified": 268,
+    "accuracy": 0.9664179104477612,
+    "verification_rate": 1.0,
+    "exceptions": 0
+  },
+  "comparison": {
+    "stale_document": {
+      "benchmark_total": 300,
+      "partial": {
+        "exact_match": 31,
+        "total": 60,
+        "accuracy": 0.5166666666666667
+      },
+      "gradient": {
+        "exact_match": 20,
+        "total": 50,
+        "accuracy": 0.4
+      },
+      "overall": {
+        "exact_match": 219,
+        "total": 300,
+        "accuracy": 0.73
+      }
+    },
+    "resolution": "Commit e9b7923 reduced benchmark_gradient.json from 50 records to 18. Regenerating from the five current files changes the suite total from 300 to 268."
+  }
+}
