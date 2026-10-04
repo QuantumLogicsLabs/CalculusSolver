@@ -263,6 +263,7 @@ def gradient_oracle(expr: dict, variables: List[str]) -> Dict[str, dict]:
         res[var] = differentiate_fraction(expr, var)
     return res
 
+
 def tangent_line_oracle(expr: dict, variable: str, x0: float) -> dict:
     """Tangent line at x=x0: y = f'(x0)*(x - x0) + f(x0), expanded to
     standard polynomial form (slope*x + intercept)."""
@@ -412,6 +413,20 @@ def verify(input_env: Dict[str, Any], output_tokens: List[str]) -> Dict[str, Any
                 "confidence": 0.0,
                 "output": output,
             }
+        
+        # FIX: reject spurious components. The oracle's key set is the exact,
+        # correct set of variables this gradient should be differentiated
+        # with respect to. An output containing extra keys is incorrect.
+        extra_keys = set(output.keys()) - set(oracle.keys())
+        if extra_keys:
+            return {
+                "status": "unverified",
+                "verified": False,
+                "confidence": 0.0,
+                "output": output,
+                "error": f"Output contains unexpected gradient component(s) not present in input: {sorted(extra_keys)}",
+            }
+
         for key in oracle.keys():
             if key not in output:
                 return {

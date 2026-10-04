@@ -99,3 +99,16 @@ gradient/partial row counts.
 | partial | 35.0% | [51.7%] |
 | tangent_line | 96.0% | [98%] |
 | **Overall** | **71.7%** | **[73.0%]** |
+## [RESOLVED] Gradient verifier accepted spurious extra components
+
+**Discovered:** GRADIENT_PARTIAL_ANALYSIS.pdf report — 6/18 gradient outputs had mathematically correct x/y components but also included an invented non-zero z component not present in the input; verify() reported all 18 as verified regardless.
+
+**Fixed:** inference/verifier.py's gradient branch now checks `set(output.keys()) - set(oracle.keys())` and rejects any extra component.
+
+**Severity:** Medium — inflated reported verification rate without reflecting true correctness.
+
+### The fix
+Added an extra-key check before the existing per-key equivalence loop in `verify()`'s gradient branch. An output variable not present in the oracle's key set now fails verification immediately.
+
+### Before / After
+Gradient verification rate: 100% (18/18) -> 66.7% (12/18)
