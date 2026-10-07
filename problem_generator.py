@@ -635,7 +635,25 @@ def generate_multi_term_tangent_line(var="x"):
 
     return generate_tangent_line_diff(var)
 
-
+def generate_gradient(self):
+    # Equal distribution choice between 2-variable pairs and 3-variable sets
+    num_vars = random.choice([2, 3])
+    
+    if num_vars == 2:
+        # Balanced sampling among valid pairs
+        pair = random.choice([('x', 'y'), ('x', 'z'), ('y', 'z')])
+        vars_to_use = list(pair)
+    else:
+        vars_to_use = ['x', 'y', 'z']
+        
+    # Generate polynomial expression using only the selected variables
+    expr = self._generate_poly_expr(vars_to_use)
+    
+    return {
+        "op": "gradient",
+        "expr": expr,
+        "vars": vars_to_use
+    }
 def generate_slang_dataset(target_total: int = 75000):  # Scaled total target row count
     print("[Dataset Engine] Synthesizing clean, deduplicated, zero-leakage SLaNg dataset...")
     splits_dir = Path("data/splits")
