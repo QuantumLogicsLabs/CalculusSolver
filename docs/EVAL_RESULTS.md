@@ -11,13 +11,13 @@
 | Operation | Problems | Exact match | Verification rate |
 |---|---:|---:|---:|
 | diff | 80 | 77/80 (96.2%) | 80/80 (100.0%) |
-| gradient | 18 | 12/18 (66.7%) | 18/18 (100.0%) |
+| gradient | 18 | 18/18 (100.0%) | 18/18 (100.0%) |
 | integrate | 60 | 60/60 (100.0%) | 60/60 (100.0%) |
 | partial | 60 | 60/60 (100.0%) | 60/60 (100.0%) |
 | tangent_line | 50 | 50/50 (100.0%) | 50/50 (100.0%) |
-| **Overall** | **268** | **259/268 (96.6%)** | **268/268 (100.0%)** |
+| **Overall** | **268** | **265/268 (98.9%)** | **268/268 (100.0%)** |
 
-> Partial is not an active accuracy shortfall in this baseline: it is 60/60 (100.0%). Gradient is 12/18 (66.7%), and the gradient benchmark contains 18 records.
+> Partial is not an active accuracy shortfall in this baseline: it is 60/60 (100.0%). Gradient is 18/18 (100.0%), and the gradient benchmark contains 18 records.
 
 > Exact match and verification rate are distinct measurements. In particular, the current gradient verifier accepts predictions with an extra component, so verification can exceed exact match. This report records both without treating verifier acceptance as exact correctness.
 
@@ -29,8 +29,8 @@ The previous table was generated for an older 300-record suite and older checkpo
 |---|---:|---:|
 | Benchmark total | 300 | 268 |
 | Partial exact match | 31/60 (51.7%) | 60/60 (100.0%) |
-| Gradient exact match | 20/50 (40.0%) | 12/18 (66.7%) |
-| Overall exact match | 219/300 (73.0%) | 259/268 (96.6%) |
+| Gradient exact match | 20/50 (40.0%) | 18/18 (100.0%) |
+| Overall exact match | 219/300 (73.0%) | 265/268 (98.9%) |
 
 ## Benchmark manifest
 
@@ -38,11 +38,11 @@ The hashes below define the exact benchmark inputs. Record counts are read from 
 
 | File | Records | SHA-256 |
 |---|---:|---|
-| `eval/benchmarks/benchmark_diff.json` | 80 | `d3de159d4f4d5e18568debf736039ab4a1679893829253016e4c68ba2ad6a09a` |
-| `eval/benchmarks/benchmark_gradient.json` | 18 | `babafba316c4c5362bdbb0ae0d207f9c934a8b26c1a3bf3ea8c86c73dfc0e09b` |
-| `eval/benchmarks/benchmark_integrate.json` | 60 | `21c659bc24dcb4b5827b10661407f26203fb1143e4cd4196385e46c106a845b4` |
-| `eval/benchmarks/benchmark_partial.json` | 60 | `1aadeb957ae3934ff4c87a3c00ebf83e0a7eb51c5b00e33fd396b62390a9fad9` |
-| `eval/benchmarks/benchmark_tangent_line.json` | 50 | `fe537963b53320f7c7b2bb8c2d47ccb3cc01ac8c61047d472ab3b6bb8cee4ef5` |
+| `eval/benchmarks/benchmark_diff.json` | 80 | `83d553720fea733c72b0a6ae28edbc6ed1c129c262cd5dfadb67d6482e9372a1` |
+| `eval/benchmarks/benchmark_gradient.json` | 18 | `2b33d54b0da7c7948651179e86b80171d2385a07b37d5538eba037cb28822d2f` |
+| `eval/benchmarks/benchmark_integrate.json` | 60 | `061f1e69bb289fd55cba5979c35179592963c82f7a7faf52fa61d01a18f275de` |
+| `eval/benchmarks/benchmark_partial.json` | 60 | `83588d1fbd90602515ca43e75d07a6db78b9791f9c52df15a61f2b240430f73d` |
+| `eval/benchmarks/benchmark_tangent_line.json` | 50 | `5f06315bbde35e01f9baa87cccbcc57d5a7591c7ed72bc5216daae9964b6a3b0` |
 | **Total** | **268** | |
 
 ## Reproduce this evaluation
@@ -59,13 +59,13 @@ The command regenerates this file and `docs/eval_results.json`. A matching run m
 
 ## Recorded environment
 
-- **Git commit:** `00e8d3eba8db6bad5572f646e16935f3e947b2eb`
+- **Git commit:** `f7210f5c850a1a0360a04695b6a7e17a9a5e898a`
 - **Git working tree dirty:** `True`
 - **Evaluator SHA-256:** `a3c3ed0cdb7a6e34a47270cf6608294acfe2eea18455ac52838722dc2c500ccd`
-- **Python:** `3.12.14`
-- **PyTorch:** `2.3.1+cpu`
-- **NumPy:** `1.26.4`
-- **Platform:** `Windows-11-10.0.26200-SP0`
+- **Python:** `3.13.15`
+- **PyTorch:** `2.11.0+cu130`
+- **NumPy:** `2.1.3`
+- **Platform:** `Linux-6.6.122+-x86_64-with-glibc2.39`
 - **Evaluation exceptions:** `0`
 
 The machine-readable before/after evidence for future comparisons is committed in `docs/eval_results.json`; the console output reports the same per-category numerators and denominators.
