@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from tokenizer.slang_serializer import serialize_slang_math
 
 # ---------------------------------------------------------------------------
-# Vocabulary constants (kept for backward compatibility)
+# Vocabulary constants
 # ---------------------------------------------------------------------------
 SAFE_COEFFS = list(range(-10, 11)) + [12]
 SAFE_POS_COEFFS = [c for c in SAFE_COEFFS if c > 0]
@@ -29,7 +29,7 @@ RULE_ID_GRADIENT = 13
 RULE_ID_TANGENT_LINE = 14
 
 # ---------------------------------------------------------------------------
-# Strict vocabulary loading – only tokens that really exist in vocab.json
+# Strict vocabulary loading
 # ---------------------------------------------------------------------------
 with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
     RAW_VOCAB = json.load(f)
@@ -166,7 +166,6 @@ def generate_single_term_diff(var: str = "x"):
                 ans_term["var"] = {var: power - 1}
             ans = {"numi": {"terms": [ans_term]}, "deno": 1}
             return src, ans, RULE_ID_POWER
-    # guaranteed fallback
     return (
         {"numi": {"terms": [{"coeff": 2, "var": {var: 2}}]}, "deno": 1},
         {"numi": {"terms": [{"coeff": 4, "var": {var: 1}}]}, "deno": 1},
@@ -472,6 +471,7 @@ def generate_multi_term_integrate(var: str = "x", num_terms: Optional[int] = Non
 
 
 def _choose_2var_pair() -> Tuple[str, str]:
+    """Bias pair choice toward {x, y} (60/20/20)."""
     r = random.random()
     if r < 0.6:
         return ("x", "y")
@@ -569,6 +569,7 @@ def generate_gradient_diff_3var():
 
 
 def generate_gradient_diff_1var():
+    """Single-variable gradient (forces the model to handle 1-component output)."""
     v = random.choice(VARIABLES)
     valid_coeffs = safe_nonzero_coeffs()
     valid_exps = safe_pos_exponents()
@@ -588,7 +589,7 @@ def generate_gradient_diff_1var():
     else:
         d = {"numi": {"terms": [{"coeff": c * p, "var": {v: p - 1}}]}, "deno": 1}
 
-    return expr, {"gradient": {v: d}}, 7
+    return expr, {"gradient": {v: d}}, RULE_ID_GRADIENT
 
 
 def generate_tangent_line_diff(var: str = "x"):
@@ -619,7 +620,6 @@ def generate_tangent_line_diff(var: str = "x"):
         src_op = {"op": "tangent_line", "var": var, "expr": src, "point": {var: x0}}
         return src_op, ans, x0, RULE_ID_TANGENT_LINE
 
-    # guaranteed fallback
     fallback_src = {"numi": {"terms": [{"coeff": 1, "var": {var: 2}}]}, "deno": 1}
     fallback_ans = {
         "numi": {"terms": [{"coeff": 2, "var": {var: 1}}, {"coeff": -1}]},
@@ -684,7 +684,7 @@ def generate_slang_dataset(target_total: int = 75000):
     def try_add(src_op: Dict, ans: Dict, rule_id: int) -> bool:
         try:
             src_toks = serialize_slang_math(src_op)
-            _ = serialize_slang_math(ans)  # just to validate
+            _ = serialize_slang_math(ans)
         except Exception:
             return False
 
@@ -820,7 +820,7 @@ def generate_slang_dataset(target_total: int = 75000):
             f"generated (attempts: {attempts})."
         )
 
-    # Fill remaining quota with high-value categories
+    # Fill remaining quota
     supplement_types = [
         "multi_term_diff",
         "multivar_diff",
@@ -921,7 +921,6 @@ def generate_slang_dataset(target_total: int = 75000):
     print("\n[Dataset Engine] Running anti-overfitting & clean-data verification...")
     try:
         from data_validator import validate_slang_data
-
         validate_slang_data()
     except Exception as e:
         print(f"[Dataset Engine] Validation warning: {e}")
