@@ -1,4 +1,3 @@
-import glob
 import itertools
 import json
 import random
@@ -7,6 +6,9 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from tokenizer.slang_serializer import serialize_slang_math
 
+# ---------------------------------------------------------------------------
+# Vocabulary constants
+# ---------------------------------------------------------------------------
 SAFE_COEFFS = list(range(-10, 11)) + [12]
 SAFE_POS_COEFFS = [c for c in SAFE_COEFFS if c > 0]
 SAFE_NONZERO_COEFFS = [c for c in SAFE_COEFFS if c != 0]
@@ -26,13 +28,54 @@ RULE_ID_LOG = 12
 RULE_ID_GRADIENT = 13
 RULE_ID_TANGENT_LINE = 14
 
+# ---------------------------------------------------------------------------
+# Strict vocabulary loading
+# ---------------------------------------------------------------------------
+with open("tokenizer/vocab.json", "r", encoding="utf-8") as f:
+    RAW_VOCAB = json.load(f)
 
+VOCAB_SET: Set[str] = set()
+for category in RAW_VOCAB.values():
+    if isinstance(category, dict):
+        VOCAB_SET.update(category.keys())
+    elif isinstance(category, list):
+        VOCAB_SET.update(category)
+
+
+def is_valid_num(n: int) -> bool:
+    """True only when the integer produces a token that exists in vocab.json."""
+    return f"COEF:{n}" in VOCAB_SET or str(n) in VOCAB_SET
+
+
+def safe_nonzero_coeffs() -> List[int]:
+    return [c for c in SAFE_NONZERO_COEFFS if is_valid_num(c)]
+
+
+def safe_pos_exponents() -> List[int]:
+    return [e for e in SAFE_POS_EXPONENTS if is_valid_num(e)]
+
+
+def _output_in_vocab(coeff: int, power: int) -> bool:
+    """Both the product coeff*power and the residual exponent must be in vocab."""
+    out_coeff = coeff * power
+    out_exp = power - 1
+    return is_valid_num(out_coeff) and (out_exp in SAFE_EXPONENTS)
+
+
+def _integral_in_vocab(coeff: int, power: int) -> bool:
+    new_power = power + 1
+    if new_power == 0:
+        return False
+    new_coeff = coeff / new_power
+    if not float(new_coeff).is_integer():
+        return False
+    return is_valid_num(int(new_coeff)) and new_power in SAFE_EXPONENTS
+
+
+# ---------------------------------------------------------------------------
+# Core helpers
+# ---------------------------------------------------------------------------
 def _differentiate_term(term: Dict, var: str) -> Optional[Dict]:
-    """Partial derivative of one SLaNg term w.r.t. var, or None if it vanishes.
-
-    Handles mixed terms (e.g. 3*x^2*y): the other variables are carried through
-    untouched, which is what makes d/dx(3x^2*y) = 6*x*y rather than 6x.
-    """
     powers = term.get("var", {})
     p = powers.get(var, 0)
     if not p:
@@ -47,8 +90,7 @@ def _differentiate_term(term: Dict, var: str) -> Optional[Dict]:
 
 
 def _term_in_vocab(term: Dict) -> bool:
-    """Every coefficient and exponent of a term must be representable."""
-    if term.get("coeff", 0) not in SAFE_COEFFS:
+    if not is_valid_num(term.get("coeff", 0)):
         return False
     for q in term.get("var", {}).values():
         if q not in SAFE_EXPONENTS or q == 0:
@@ -57,23 +99,6 @@ def _term_in_vocab(term: Dict) -> bool:
 
 
 def _binding_is_unambiguous(pairs: List[Tuple[int, int]]) -> bool:
-    """True if only the correct coefficient-to-exponent pairing yields this answer.
-
-    An example is binding-AMBIGUOUS when some cross-pairing of the terms'
-    coefficients onto other terms' exponents reproduces the identical answer
-    multiset. Such a row cannot teach the model to bind a coefficient to its
-    own exponent, because the wrong binding scores exactly the same.
-
-    Measured on the previous dataset: 14.06% of multi-term diff rows were
-    ambiguous (20.99% of 3-term rows), while 0 of the 11 failing benchmark
-    problems were -- so the benchmark demands correct binding that roughly one
-    training row in seven actively taught was optional. The observed failure
-    mode matched exactly: the model emitted c_i * p_j for i != j.
-
-    With exponents already distinct, this reduces to "no two terms share a
-    coefficient", but the permutation check is kept explicit so the property
-    still holds if the exponent constraint is ever relaxed.
-    """
     pairs = [(c, p) for c, p in pairs if p]
     if len(pairs) < 2:
         return True
@@ -83,15 +108,16 @@ def _binding_is_unambiguous(pairs: List[Tuple[int, int]]) -> bool:
     for perm in itertools.permutations(range(len(pairs))):
         if all(perm[i] == i for i in range(len(pairs))):
             continue
-        alt = sorted((coeffs[i] * powers[perm[i]], powers[perm[i]] - 1)
-                     for i in range(len(pairs)))
+        alt = sorted(
+            (coeffs[i] * powers[perm[i]], powers[perm[i]] - 1)
+            for i in range(len(pairs))
+        )
         if alt == correct:
             return False
     return True
 
 
 def _term_pairs(terms: List[Dict], var: str) -> List[Tuple[int, int]]:
-    """(coefficient, exponent-of-var) for each term that contains var."""
     return [
         (t.get("coeff", 0), t.get("var", {}).get(var, 0))
         for t in terms
@@ -99,26 +125,7 @@ def _term_pairs(terms: List[Dict], var: str) -> List[Tuple[int, int]]:
     ]
 
 
-def _output_in_vocab(coeff: int, power: int) -> bool:
-    """Check that derivative output (coeff*power, power-1) stays in vocab range."""
-    out_coeff = coeff * power
-    out_exp = power - 1
-    return out_coeff in SAFE_COEFFS and out_exp in SAFE_EXPONENTS
-
-
-def _integral_in_vocab(coeff: int, power: int) -> bool:
-    """Check that integral output (coeff/(power+1), power+1) stays in vocab range."""
-    new_power = power + 1
-    if new_power == 0:
-        return False
-    new_coeff = coeff / new_power
-    if not float(new_coeff).is_integer():
-        return False
-    return int(new_coeff) in SAFE_COEFFS and new_power in SAFE_EXPONENTS
-
-
 def load_quarantined_benchmarks() -> Set[str]:
-    """Load canonical serialized tokens of all benchmark problems to guarantee 0% leakage."""
     benchmark_signatures: Set[str] = set()
     benchmark_dir = Path("eval/benchmarks")
     if not benchmark_dir.exists():
@@ -136,14 +143,22 @@ def load_quarantined_benchmarks() -> Set[str]:
             except Exception as e:
                 print(f"[Warning] Could not parse benchmark file {bf}: {e}")
 
-    print(f"[Dataset Engine] Quarantined {len(benchmark_signatures)} benchmark signatures to guarantee 0% leakage.")
+    print(
+        f"[Dataset Engine] Quarantined {len(benchmark_signatures)} "
+        "benchmark signatures to guarantee 0% leakage."
+    )
     return benchmark_signatures
 
 
-def generate_single_term_diff(var="x"):
-    for _ in range(100):
-        coeff = random.choice(SAFE_NONZERO_COEFFS)
-        power = random.choice(SAFE_POS_EXPONENTS)
+# ---------------------------------------------------------------------------
+# Generators
+# ---------------------------------------------------------------------------
+def generate_single_term_diff(var: str = "x"):
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
+    for _ in range(200):
+        coeff = random.choice(valid_coeffs)
+        power = random.choice(valid_exps)
         if _output_in_vocab(coeff, power):
             src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
             ans_term = {"coeff": coeff * power}
@@ -159,22 +174,22 @@ def generate_single_term_diff(var="x"):
 
 
 def generate_constant_term():
-    coeff = random.choice(SAFE_NONZERO_COEFFS)
+    coeff = random.choice(safe_nonzero_coeffs())
     src = {"numi": {"terms": [{"coeff": coeff}]}, "deno": 1}
     ans = {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
     return src, ans, RULE_ID_CONSTANT
 
 
-def generate_multi_term_diff(var="x", num_terms=None):
+def generate_multi_term_diff(var: str = "x", num_terms: Optional[int] = None):
     if num_terms is None:
         num_terms = random.randint(2, 3)
 
-    src_terms = []
-    ans_terms = []
+    src_terms: List[Dict] = []
+    ans_terms: List[Dict] = []
 
     for i in range(num_terms):
         if i == num_terms - 1 and random.random() < 0.25:
-            c_src, c_ans, _ = generate_constant_term()
+            c_src, _, _ = generate_constant_term()
             src_terms.extend(c_src["numi"]["terms"])
         else:
             for _ in range(50):
@@ -199,8 +214,6 @@ def generate_multi_term_diff(var="x", num_terms=None):
     if not ans_terms:
         ans_terms = [{"coeff": 0}]
 
-    # Reject binding-ambiguous samples: if a cross-pairing of coefficients and
-    # exponents gives the same answer, this row teaches nothing about binding.
     if not _binding_is_unambiguous(_term_pairs(src_terms, var)):
         return None
 
@@ -209,15 +222,19 @@ def generate_multi_term_diff(var="x", num_terms=None):
     return [src_expr], [ans_expr], RULE_ID_SUM
 
 
-def generate_negative_exp_diff(var="x"):
+def generate_negative_exp_diff(var: str = "x"):
     neg_exps = [e for e in SAFE_EXPONENTS if e < 0]
+    valid_coeffs = safe_nonzero_coeffs()
     for _ in range(100):
-        coeff = random.choice(SAFE_NONZERO_COEFFS)
+        coeff = random.choice(valid_coeffs)
         power = random.choice(neg_exps)
         if _output_in_vocab(coeff, power):
             src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
             new_exp = power - 1
-            ans = {"numi": {"terms": [{"coeff": coeff * power, "var": {var: new_exp}}]}, "deno": 1}
+            ans = {
+                "numi": {"terms": [{"coeff": coeff * power, "var": {var: new_exp}}]},
+                "deno": 1,
+            }
             return src, ans, RULE_ID_POWER
     return (
         {"numi": {"terms": [{"coeff": 1, "var": {var: -1}}]}, "deno": 1},
@@ -227,27 +244,6 @@ def generate_negative_exp_diff(var="x"):
 
 
 def generate_multivar_diff():
-    """Partial derivative over a multi-variable polynomial.
-
-    Every property here comes from a measured defect in the 300-problem
-    benchmark, where partial scored 35.0% and 27 of 39 failures used the
-    wrong term entirely (e.g. d/dy(-2y^2 + 4z^4) should be -4y; the model
-    emitted -8y^3, which is c_y * p_z -- the y coefficient bound to z's
-    exponent).
-
-    1. Term order is shuffled. The differentiated variable's term was first
-       in 100% of rows, so position alone identified it and the model never
-       had to read the variable named in the op envelope.
-    2. Coefficients and exponents are globally distinct, which makes the
-       coefficient-to-exponent binding unique (see _binding_is_unambiguous).
-    3. Three source shapes instead of one fixed two-term form:
-         single       - the variable appears in exactly one term
-         two_target   - it appears in two terms, so the answer has two terms
-         mixed        - a term carries two variables (3*x^2*y), so the model
-                        must keep the other variable in the answer
-       Previously 100% of rows were the "single" shape with no mixed terms
-       anywhere in the dataset.
-    """
     var = random.choice(VARIABLES)
     others = [v for v in VARIABLES if v != var]
     shape = random.choices(
@@ -256,13 +252,13 @@ def generate_multivar_diff():
 
     used_coeffs: Set[int] = set()
     used_exps: Set[int] = set()
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
 
     def pick_pair():
-        """A (coefficient, exponent) whose derivative stays in vocabulary and
-        whose parts have not been used, keeping the binding unambiguous."""
         for _ in range(60):
-            c = random.choice(SAFE_NONZERO_COEFFS)
-            p = random.choice(SAFE_POS_EXPONENTS)
+            c = random.choice(valid_coeffs)
+            p = random.choice(valid_exps)
             if c in used_coeffs or p in used_exps:
                 continue
             if not _output_in_vocab(c, p):
@@ -273,7 +269,6 @@ def generate_multivar_diff():
         return None
 
     src_terms: List[Dict] = []
-
     num_target_terms = 2 if shape == "two_target" else 1
     for _ in range(num_target_terms):
         pair = pick_pair()
@@ -282,7 +277,7 @@ def generate_multivar_diff():
         c, p = pair
         powers = {var: p}
         if shape == "mixed" and others:
-            spare = [e for e in SAFE_POS_EXPONENTS if e not in used_exps]
+            spare = [e for e in valid_exps if e not in used_exps]
             if spare:
                 q = random.choice(spare)
                 used_exps.add(q)
@@ -299,7 +294,6 @@ def generate_multivar_diff():
     if len(src_terms) < 2:
         return None
 
-    # The differentiated variable must not be identifiable by position alone.
     random.shuffle(src_terms)
 
     ans_terms = [d for d in (_differentiate_term(t, var) for t in src_terms) if d]
@@ -308,24 +302,14 @@ def generate_multivar_diff():
     if not all(_term_in_vocab(t) for t in ans_terms):
         return None
 
-    # The binding that determines the answer is coefficient -> exponent OF THE
-    # DIFFERENTIATED VARIABLE. A mixed term's second variable is carried
-    # through untouched and is not part of that binding, so it must not be
-    # flattened into the check -- doing so makes every mixed term look
-    # ambiguous (one coefficient against two exponents) and rejects them all.
     if not _binding_is_unambiguous(_term_pairs(src_terms, var)):
         return None
 
-    # Cross-VARIABLE confusion (the observed c_y * p_z error) is prevented
-    # constructively: with all coefficients and all exponents globally
-    # distinct, c_i * p_j can never equal c_i * p_i for j != i. Asserted here
-    # so the guarantee cannot silently lapse if construction changes.
     coeffs = [t.get("coeff", 0) for t in src_terms]
     exponents = [p for t in src_terms for p in t.get("var", {}).values()]
     if len(set(coeffs)) != len(coeffs) or len(set(exponents)) != len(exponents):
         return None
 
-    # A partial-derivative example needs more than one variable present.
     if len({v for t in src_terms for v in t.get("var", {})}) < 2:
         return None
 
@@ -334,25 +318,20 @@ def generate_multivar_diff():
     return [src_expr], [ans_expr], var, RULE_ID_PARTIAL
 
 
-def generate_partial_constant_vanish(var=None):
-    """Generate partial derivative problems where non-target variables explicitly vanish.
-
-    Specifically targets the primary failure mode in multivariable benchmarks:
-    The target variable has degree 1 or 2 (yielding a constant or linear derivative),
-    while 1 to 2 other variables are present with zero derivative w.r.t var.
-    """
+def generate_partial_constant_vanish(var: Optional[str] = None):
     if var is None:
         var = random.choice(VARIABLES)
     others = [v for v in VARIABLES if v != var]
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
 
     for _ in range(60):
-        target_coeff = random.choice(SAFE_NONZERO_COEFFS)
+        target_coeff = random.choice(valid_coeffs)
         target_power = 1 if random.random() < 0.60 else 2
         if _output_in_vocab(target_coeff, target_power):
             break
     else:
-        target_coeff = 2
-        target_power = 1
+        target_coeff, target_power = 2, 1
 
     target_term = {"coeff": target_coeff, "var": {var: target_power}}
 
@@ -361,9 +340,10 @@ def generate_partial_constant_vanish(var=None):
     used_coeffs = {target_coeff}
     for i in range(num_others):
         other_var = others[i % len(others)]
-        c = random.choice([x for x in SAFE_NONZERO_COEFFS if x not in used_coeffs] or SAFE_NONZERO_COEFFS)
+        candidates = [x for x in valid_coeffs if x not in used_coeffs] or valid_coeffs
+        c = random.choice(candidates)
         used_coeffs.add(c)
-        p = random.choice(SAFE_POS_EXPONENTS)
+        p = random.choice(valid_exps)
         non_target_terms.append({"coeff": c, "var": {other_var: p}})
 
     src_terms = [target_term] + non_target_terms
@@ -380,8 +360,8 @@ def generate_partial_constant_vanish(var=None):
     return [src_expr], [ans_expr], var, RULE_ID_PARTIAL
 
 
-def generate_sin_diff(var="x"):
-    k = random.choice(SAFE_NONZERO_COEFFS)
+def generate_sin_diff(var: str = "x"):
+    k = random.choice(safe_nonzero_coeffs())
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "sin", "expr": inner}
     ans = {"op": "cos", "expr": inner}
@@ -390,16 +370,16 @@ def generate_sin_diff(var="x"):
     return src, ans, RULE_ID_TRIG
 
 
-def generate_cos_diff(var="x"):
-    k = random.choice(SAFE_SYMMETRIC_NONZERO_COEFFS)
+def generate_cos_diff(var: str = "x"):
+    k = random.choice([c for c in SAFE_SYMMETRIC_NONZERO_COEFFS if is_valid_num(c)])
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "cos", "expr": inner}
     ans = {"op": "sin", "expr": inner, "coeff": -k}
     return src, ans, RULE_ID_TRIG
 
 
-def generate_tan_diff(var="x"):
-    k = random.choice(SAFE_NONZERO_COEFFS)
+def generate_tan_diff(var: str = "x"):
+    k = random.choice(safe_nonzero_coeffs())
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "tan", "expr": inner}
     ans = {"op": "sec", "expr": inner, "power": 2}
@@ -408,8 +388,8 @@ def generate_tan_diff(var="x"):
     return src, ans, RULE_ID_TRIG
 
 
-def generate_exp_diff(var="x"):
-    k = random.choice(SAFE_NONZERO_COEFFS)
+def generate_exp_diff(var: str = "x"):
+    k = random.choice(safe_nonzero_coeffs())
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "exp", "expr": inner}
     ans = {"op": "exp", "expr": inner}
@@ -418,17 +398,21 @@ def generate_exp_diff(var="x"):
     return src, ans, RULE_ID_EXP
 
 
-def generate_ln_diff(var="x"):
-    k = random.choice(SAFE_NONZERO_COEFFS)
+def generate_ln_diff(var: str = "x"):
+    k = random.choice(safe_nonzero_coeffs())
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
     src = {"op": "ln", "expr": inner}
-    ans = {"numi": {"terms": [{"coeff": 1}]}, "deno": {"terms": [{"coeff": 1, "var": {var: 1}}]}}
+    ans = {
+        "numi": {"terms": [{"coeff": 1}]},
+        "deno": {"terms": [{"coeff": 1, "var": {var: 1}}]},
+    }
     return src, ans, RULE_ID_LOG
 
 
-def generate_integrate_diff(var="x"):
+def generate_integrate_diff(var: str = "x"):
+    valid_coeffs = safe_nonzero_coeffs()
     for _ in range(100):
-        coeff = random.choice(SAFE_NONZERO_COEFFS)
+        coeff = random.choice(valid_coeffs)
         power = random.choice(SAFE_EXPONENTS)
         if power == -1:
             continue
@@ -438,8 +422,14 @@ def generate_integrate_diff(var="x"):
             if power == 0:
                 src = {"numi": {"terms": [{"coeff": coeff}]}, "deno": 1}
             else:
-                src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
-            ans = {"numi": {"terms": [{"coeff": new_coeff, "var": {var: new_power}}]}, "deno": 1}
+                src = {
+                    "numi": {"terms": [{"coeff": coeff, "var": {var: power}}]},
+                    "deno": 1,
+                }
+            ans = {
+                "numi": {"terms": [{"coeff": new_coeff, "var": {var: new_power}}]},
+                "deno": 1,
+            }
             return src, ans, RULE_ID_INTEGRAL
     return (
         {"numi": {"terms": [{"coeff": 4, "var": {var: 3}}]}, "deno": 1},
@@ -448,12 +438,12 @@ def generate_integrate_diff(var="x"):
     )
 
 
-def generate_multi_term_integrate(var="x", num_terms=None):
+def generate_multi_term_integrate(var: str = "x", num_terms: Optional[int] = None):
     if num_terms is None:
         num_terms = random.randint(2, 3)
 
-    src_terms = []
-    ans_terms = []
+    src_terms: List[Dict] = []
+    ans_terms: List[Dict] = []
 
     for _ in range(num_terms):
         for _ in range(50):
@@ -480,22 +470,31 @@ def generate_multi_term_integrate(var="x", num_terms=None):
     return src_expr, ans_expr, RULE_ID_INTEGRAL
 
 
+def _choose_2var_pair() -> Tuple[str, str]:
+    """Bias pair choice toward {x, y} (60/20/20)."""
+    r = random.random()
+    if r < 0.6:
+        return ("x", "y")
+    elif r < 0.8:
+        return ("x", "z")
+    else:
+        return ("y", "z")
+
+
 def generate_gradient_diff():
-    vars_pool = random.sample(VARIABLES, 2)
-    vx, vy = vars_pool[0], vars_pool[1]
+    vx, vy = _choose_2var_pair()
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
 
-    cx = random.choice(SAFE_NONZERO_COEFFS)
-    px = random.choice(SAFE_POS_EXPONENTS)
-    cy = random.choice(SAFE_NONZERO_COEFFS)
-    py = random.choice(SAFE_POS_EXPONENTS)
-
-    for _ in range(100):
+    for _ in range(200):
+        cx = random.choice(valid_coeffs)
+        px = random.choice(valid_exps)
+        cy = random.choice(valid_coeffs)
+        py = random.choice(valid_exps)
         if _output_in_vocab(cx, px) and _output_in_vocab(cy, py):
             break
-        cx = random.choice(SAFE_NONZERO_COEFFS)
-        px = random.choice(SAFE_POS_EXPONENTS)
-        cy = random.choice(SAFE_NONZERO_COEFFS)
-        py = random.choice(SAFE_POS_EXPONENTS)
+    else:
+        cx, px, cy, py = 2, 2, 3, 1
 
     expr = {
         "numi": {
@@ -523,23 +522,24 @@ def generate_gradient_diff():
 
 def generate_gradient_diff_3var():
     vx, vy, vz = "x", "y", "z"
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
 
-    cx = random.choice(SAFE_NONZERO_COEFFS)
-    px = random.choice(SAFE_POS_EXPONENTS)
-    cy = random.choice(SAFE_NONZERO_COEFFS)
-    py = random.choice(SAFE_POS_EXPONENTS)
-    cz = random.choice(SAFE_NONZERO_COEFFS)
-    pz = random.choice(SAFE_POS_EXPONENTS)
-
-    for _ in range(100):
-        if _output_in_vocab(cx, px) and _output_in_vocab(cy, py) and _output_in_vocab(cz, pz):
+    for _ in range(200):
+        cx = random.choice(valid_coeffs)
+        px = random.choice(valid_exps)
+        cy = random.choice(valid_coeffs)
+        py = random.choice(valid_exps)
+        cz = random.choice(valid_coeffs)
+        pz = random.choice(valid_exps)
+        if (
+            _output_in_vocab(cx, px)
+            and _output_in_vocab(cy, py)
+            and _output_in_vocab(cz, pz)
+        ):
             break
-        cx = random.choice(SAFE_NONZERO_COEFFS)
-        px = random.choice(SAFE_POS_EXPONENTS)
-        cy = random.choice(SAFE_NONZERO_COEFFS)
-        py = random.choice(SAFE_POS_EXPONENTS)
-        cz = random.choice(SAFE_NONZERO_COEFFS)
-        pz = random.choice(SAFE_POS_EXPONENTS)
+    else:
+        cx, px, cy, py, cz, pz = 2, 2, 3, 1, 1, 3
 
     expr = {
         "numi": {
@@ -552,29 +552,53 @@ def generate_gradient_diff_3var():
         "deno": 1,
     }
 
-    dx_term = {"coeff": cx * px}
-    if px - 1 > 0:
-        dx_term["var"] = {vx: px - 1}
-    dx = {"numi": {"terms": [dx_term]}, "deno": 1}
+    def make_partial(c: int, p: int, v: str) -> Dict:
+        term = {"coeff": c * p}
+        if p - 1 > 0:
+            term["var"] = {v: p - 1}
+        return {"numi": {"terms": [term]}, "deno": 1}
 
-    dy_term = {"coeff": cy * py}
-    if py - 1 > 0:
-        dy_term["var"] = {vy: py - 1}
-    dy = {"numi": {"terms": [dy_term]}, "deno": 1}
-
-    dz_term = {"coeff": cz * pz}
-    if pz - 1 > 0:
-        dz_term["var"] = {vz: pz - 1}
-    dz = {"numi": {"terms": [dz_term]}, "deno": 1}
-
-    ans = {"gradient": {vx: dx, vy: dy, vz: dz}}
+    ans = {
+        "gradient": {
+            vx: make_partial(cx, px, vx),
+            vy: make_partial(cy, py, vy),
+            vz: make_partial(cz, pz, vz),
+        }
+    }
     return expr, ans, RULE_ID_GRADIENT
 
 
-def generate_tangent_line_diff(var="x"):
-    for _ in range(100):
-        coeff = random.choice(SAFE_NONZERO_COEFFS)
-        power = random.choice(SAFE_POS_EXPONENTS)
+def generate_gradient_diff_1var():
+    """Single-variable gradient (forces the model to handle 1-component output)."""
+    v = random.choice(VARIABLES)
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
+
+    for _ in range(500):
+        c = random.choice(valid_coeffs)
+        p = random.choice(valid_exps)
+        if is_valid_num(c * p) and is_valid_num(max(1, p - 1)):
+            break
+    else:
+        c, p = 2, 2
+
+    expr = {"numi": {"terms": [{"coeff": c, "var": {v: p}}]}, "deno": 1}
+
+    if p - 1 == 0:
+        d = {"numi": {"terms": [{"coeff": c * p}]}, "deno": 1}
+    else:
+        d = {"numi": {"terms": [{"coeff": c * p, "var": {v: p - 1}}]}, "deno": 1}
+
+    return expr, {"gradient": {v: d}}, RULE_ID_GRADIENT
+
+
+def generate_tangent_line_diff(var: str = "x"):
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
+
+    for _ in range(300):
+        coeff = random.choice(valid_coeffs)
+        power = random.choice(valid_exps)
         x0 = random.choice(range(-5, 6))
         if not _output_in_vocab(coeff, power):
             continue
@@ -583,7 +607,7 @@ def generate_tangent_line_diff(var="x"):
         y0 = coeff * (x0 ** power)
         intercept = y0 - slope * x0
 
-        if slope not in SAFE_COEFFS or intercept not in SAFE_COEFFS:
+        if not (is_valid_num(int(slope)) and is_valid_num(int(intercept))):
             continue
 
         src = {"numi": {"terms": [{"coeff": coeff, "var": {var: power}}]}, "deno": 1}
@@ -597,13 +621,21 @@ def generate_tangent_line_diff(var="x"):
         return src_op, ans, x0, RULE_ID_TANGENT_LINE
 
     fallback_src = {"numi": {"terms": [{"coeff": 1, "var": {var: 2}}]}, "deno": 1}
-    fallback_ans = {"numi": {"terms": [{"coeff": 2, "var": {var: 1}}, {"coeff": -1}]}, "deno": 1}
-    fallback_src_op = {"op": "tangent_line", "var": var, "expr": fallback_src, "point": {var: 1}}
+    fallback_ans = {
+        "numi": {"terms": [{"coeff": 2, "var": {var: 1}}, {"coeff": -1}]},
+        "deno": 1,
+    }
+    fallback_src_op = {
+        "op": "tangent_line",
+        "var": var,
+        "expr": fallback_src,
+        "point": {var: 1},
+    }
     return fallback_src_op, fallback_ans, 1, RULE_ID_TANGENT_LINE
 
 
-def generate_multi_term_tangent_line(var="x"):
-    for _ in range(100):
+def generate_multi_term_tangent_line(var: str = "x"):
+    for _ in range(300):
         p1 = random.choice([2, 3])
         p2 = random.choice([0, 1])
         c1 = random.choice([-2, -1, 1, 2])
@@ -617,7 +649,7 @@ def generate_multi_term_tangent_line(var="x"):
         y0 = c1 * (x0 ** p1) + (c2 * x0 if p2 == 1 else c2)
         intercept = y0 - slope * x0
 
-        if slope not in SAFE_COEFFS or intercept not in SAFE_COEFFS:
+        if not (is_valid_num(int(slope)) and is_valid_num(int(intercept))):
             continue
 
         t1 = {"coeff": c1, "var": {var: p1}}
@@ -636,7 +668,10 @@ def generate_multi_term_tangent_line(var="x"):
     return generate_tangent_line_diff(var)
 
 
-def generate_slang_dataset(target_total: int = 75000):  # Scaled total target row count
+# ---------------------------------------------------------------------------
+# Main dataset builder
+# ---------------------------------------------------------------------------
+def generate_slang_dataset(target_total: int = 75000):
     print("[Dataset Engine] Synthesizing clean, deduplicated, zero-leakage SLaNg dataset...")
     splits_dir = Path("data/splits")
     splits_dir.mkdir(parents=True, exist_ok=True)
@@ -649,7 +684,7 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
     def try_add(src_op: Dict, ans: Dict, rule_id: int) -> bool:
         try:
             src_toks = serialize_slang_math(src_op)
-            tgt_toks = serialize_slang_math(ans)
+            _ = serialize_slang_math(ans)
         except Exception:
             return False
 
@@ -658,23 +693,24 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
             return False
 
         seen_inputs.add(sig)
-        dataset.append({
-            "src_tokens": src_op,
-            "tgt_input_tokens": ans,
-            "tgt_output_tokens": ans,
-            "rule_ids": rule_id,
-            "verification_state": 1,
-        })
+        dataset.append(
+            {
+                "src_tokens": src_op,
+                "tgt_input_tokens": ans,
+                "tgt_output_tokens": ans,
+                "rule_ids": rule_id,
+                "verification_state": 1,
+            }
+        )
         return True
 
-    # Quotas for balanced training coverage across all 5 calculus categories
     categories = [
         ("single_term_diff", 1000),
         ("multi_term_diff", 12000),
         ("constant_term", 30),
         ("negative_exp_diff", 1500),
         ("multivar_diff", 15000),
-        ("partial_constant_vanish", 10000),  # Multivariable vanishing constant targets
+        ("partial_constant_vanish", 10000),
         ("sin_diff", 80),
         ("cos_diff", 80),
         ("tan_diff", 80),
@@ -682,8 +718,9 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
         ("ln_diff", 80),
         ("integrate_single", 1000),
         ("integrate_multi", 8000),
-        ("gradient_2var", 10000),          # 2-variable gradient generator
-        ("gradient_3var", 10000),          # Added: 3-variable gradient generator (Dev 1 task)
+        ("gradient_2var", 20000),
+        ("gradient_3var", 10000),
+        ("gradient_1var", 5000),
         ("tangent_line_single", 3000),
         ("tangent_line_multi", 4000),
     ]
@@ -704,10 +741,14 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
             elif cat_name == "multi_term_diff":
                 result = generate_multi_term_diff(var)
                 if result is None:
-                    continue  # binding-ambiguous sample, rejected
+                    continue
                 src_terms, ans_terms, rid = result
                 src_op = {"op": "diff", "var": var, "expr": src_terms[0]}
-                ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                ans = (
+                    ans_terms[0]
+                    if ans_terms
+                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                )
             elif cat_name == "constant_term":
                 src, ans, rid = generate_constant_term()
                 src_op = {"op": "diff", "var": var, "expr": src}
@@ -717,15 +758,23 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
             elif cat_name == "multivar_diff":
                 result = generate_multivar_diff()
                 if result is None:
-                    continue  # binding-ambiguous sample, rejected
+                    continue
                 src_terms, ans_terms, mvar, rid = result
                 src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
-                ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                ans = (
+                    ans_terms[0]
+                    if ans_terms
+                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                )
             elif cat_name == "partial_constant_vanish":
                 result = generate_partial_constant_vanish(var)
                 src_terms, ans_terms, mvar, rid = result
                 src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
-                ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                ans = (
+                    ans_terms[0]
+                    if ans_terms
+                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                )
             elif cat_name == "sin_diff":
                 src, ans, rid = generate_sin_diff(var)
                 src_op = {"op": "diff", "var": var, "expr": src}
@@ -749,10 +798,13 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
                 src_op = {"op": "integrate", "var": var, "expr": src}
             elif cat_name == "gradient_2var":
                 expr, ans, rid = generate_gradient_diff()
-                src_op = {"op": "gradient", "var": var, "expr": expr}  # Fixed hardcoded 'x' to dynamic var
+                src_op = {"op": "gradient", "var": var, "expr": expr}
             elif cat_name == "gradient_3var":
                 expr, ans, rid = generate_gradient_diff_3var()
-                src_op = {"op": "gradient", "var": var, "expr": expr}  # Added 3-variable caller
+                src_op = {"op": "gradient", "var": var, "expr": expr}
+            elif cat_name == "gradient_1var":
+                expr, ans, rid = generate_gradient_diff_1var()
+                src_op = {"op": "gradient", "var": var, "expr": expr}
             elif cat_name == "tangent_line_single":
                 src_op, ans, _, rid = generate_tangent_line_diff(var)
             elif cat_name == "tangent_line_multi":
@@ -763,33 +815,59 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
             if try_add(src_op, ans, rid):
                 added_for_cat += 1
 
-        print(f"  - {cat_name}: {added_for_cat}/{quota} unique examples generated (attempts: {attempts}).")
+        print(
+            f"  - {cat_name}: {added_for_cat}/{quota} unique examples "
+            f"generated (attempts: {attempts})."
+        )
 
-    supplement_types = ["multi_term_diff", "multivar_diff", "partial_constant_vanish", "integrate_multi", "gradient_2var", "gradient_3var", "tangent_line_multi"]
+    # Fill remaining quota
+    supplement_types = [
+        "multi_term_diff",
+        "multivar_diff",
+        "partial_constant_vanish",
+        "integrate_multi",
+        "gradient_2var",
+        "gradient_3var",
+        "gradient_1var",
+        "tangent_line_multi",
+    ]
     extra_attempts = 0
     while len(dataset) < target_total and extra_attempts < 100000:
         extra_attempts += 1
         st = random.choice(supplement_types)
         var = random.choice(VARIABLES)
+
         if st == "multi_term_diff":
             result = generate_multi_term_diff(var)
             if result is None:
-                continue  # binding-ambiguous sample, rejected
+                continue
             src_terms, ans_terms, rid = result
             src_op = {"op": "diff", "var": var, "expr": src_terms[0]}
-            ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            ans = (
+                ans_terms[0]
+                if ans_terms
+                else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            )
         elif st == "multivar_diff":
             result = generate_multivar_diff()
             if result is None:
-                continue  # binding-ambiguous sample, rejected
+                continue
             src_terms, ans_terms, mvar, rid = result
             src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
-            ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            ans = (
+                ans_terms[0]
+                if ans_terms
+                else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            )
         elif st == "partial_constant_vanish":
             result = generate_partial_constant_vanish(var)
             src_terms, ans_terms, mvar, rid = result
             src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
-            ans = ans_terms[0] if ans_terms else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            ans = (
+                ans_terms[0]
+                if ans_terms
+                else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            )
         elif st == "integrate_multi":
             src, ans, rid = generate_multi_term_integrate(var)
             src_op = {"op": "integrate", "var": var, "expr": src}
@@ -798,6 +876,9 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
             src_op = {"op": "gradient", "var": var, "expr": expr}
         elif st == "gradient_3var":
             expr, ans, rid = generate_gradient_diff_3var()
+            src_op = {"op": "gradient", "var": var, "expr": expr}
+        elif st == "gradient_1var":
+            expr, ans, rid = generate_gradient_diff_1var()
             src_op = {"op": "gradient", "var": var, "expr": expr}
         else:
             src_op, ans, _, rid = generate_multi_term_tangent_line(var)
@@ -832,7 +913,10 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
         rule_counts[rid] = rule_counts.get(rid, 0) + 1
 
     print(f"\n[Dataset Engine] Rule distribution: {rule_counts}")
-    print("[Dataset Engine] Dataset generation and split complete with 0% benchmark leakage and 0 duplicates.")
+    print(
+        "[Dataset Engine] Dataset generation and split complete "
+        "with 0% benchmark leakage and 0 duplicates."
+    )
 
     print("\n[Dataset Engine] Running anti-overfitting & clean-data verification...")
     try:
@@ -840,6 +924,7 @@ def generate_slang_dataset(target_total: int = 75000):  # Scaled total target ro
         validate_slang_data()
     except Exception as e:
         print(f"[Dataset Engine] Validation warning: {e}")
+
 
 if __name__ == "__main__":
     generate_slang_dataset()
