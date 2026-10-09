@@ -1167,3 +1167,4 @@ and partial derivative regression guards.
 ## Regression Fixture Audit
 
 - [x] `partial_multivar_nonfirst.json`: Verified non-first variable differentiation.
+- [x] `partial_multivar_distinct_binding.json`: Verified distinct variable binding across clauses.
