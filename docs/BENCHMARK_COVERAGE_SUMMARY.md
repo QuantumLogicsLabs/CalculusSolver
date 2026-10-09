@@ -50,3 +50,20 @@ Prior evaluation used a narrow 18-problem benchmark restricted entirely to the $
 ---
 
 ## 3. Partial Regression Protection & Hardening
+
+The prior defect where partial differentiation dropped to 35.0% was previously resolved by removing variable binding ambiguity and ensuring the differentiated variable does not exclusively sit in position 0.
+
+### Retained Training Data Invariants
+All established test guards in [tests/unit/test_generator_binding.py](file:///d:/QuantumLogics/CalculusSolver/tests/unit/test_generator_binding.py) were retained:
+1. **Unambiguous Binding Guard:**
+   - `test_shared_coefficient_is_ambiguous`
+   - `test_distinct_coefficients_are_unambiguous`
+   - `test_single_term_is_trivially_unambiguous`
+   - `test_multi_term_diff_never_emits_an_ambiguous_binding`
+   - `test_multivar_diff_never_emits_an_ambiguous_binding`
+   - `test_multivar_diff_coefficients_and_exponents_are_distinct`
+2. **Variable Position Invariance Guard:**
+   - `test_multivar_diff_does_not_always_put_the_target_variable_first` (ensures target variable is first in < 60% of cases and spans multiple slots)
+   - `test_partial_constant_vanish_emits_valid_vanishing_derivatives`
+
+### Strengthened Regression Coverage
