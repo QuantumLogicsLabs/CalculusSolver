@@ -15,3 +15,20 @@
 - **Model Retraining Note:**  
   Any downstream conclusions regarding model performance changes on the expanded variable sets require dataset regeneration and checkpoint retraining.
 
+---
+
+## 2. Gradient Benchmark Expansion
+
+### Prior State vs. Expanded State
+
+Prior evaluation used a narrow 18-problem benchmark restricted entirely to the $\{x, y\}$ variable pair. The expanded suite introduces full multi-variable coverage across $\{x, z\}$, $\{y, z\}$, and $\{x, y, z\}$.
+
+| Metric / Attribute | Prior Benchmark | Expanded Benchmark | Notes |
+|---|---:|---:|---|
+| **Total Gradient Problems** | 18 | **72** | 4x expansion with balanced distribution |
+| **$\{x, y\}$ Problem Count** | 18 (100%) | 18 (25.0%) | All 18 legacy cases preserved intact at indices 0–17 |
+| **$\{x, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 2-variable variant |
+| **$\{y, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 2-variable variant |
+| **$\{x, y, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 3-variable polynomial gradient |
+| **Vocabulary Compliance** | 100% | **100%** | Zero missing tokens; verified against `vocab.json` |
+| **Verifier Acceptance** | 100% | **100%** | All records verified via `inference.verifier` |
