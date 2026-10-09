@@ -84,3 +84,20 @@ To prevent the differentiated-variable binding from silently returning the wrong
 
 ## 4. Test Suite Verification
 
+All unit and regression test suites execute cleanly:
+
+```powershell
+python -m pytest tests/unit/test_generator_binding.py `
+                 tests/unit/test_generator_gradient.py `
+                 tests/unit/test_verifier_gradient_extra_components.py `
+                 tests/unit/test_eval_report_freshness.py `
+                 tests/regression/test_regression.py
+```
+
+**Results:**
+- `tests/unit/test_generator_binding.py`: **19/19 passed** (16 retained + 3 new binding regression guards)
+- `tests/unit/test_generator_gradient.py`: **2/2 passed** (distribution balance + benchmark coverage)
+- `tests/unit/test_verifier_gradient_extra_components.py`: **2/2 passed** (extra-component rejection)
+- `tests/unit/test_eval_report_freshness.py`: **2/2 passed** (evaluator & benchmark fresh checks)
+- `tests/regression/test_regression.py`: **19/19 passed** (13 legacy + 6 new fixtures)
+- **Total:** **44/44 passed (100%)**
