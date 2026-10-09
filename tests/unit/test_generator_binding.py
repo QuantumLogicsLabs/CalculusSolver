@@ -336,3 +336,29 @@ def test_mixed_term_differentiated_variable_exponent_binding():
                 )
 
 
+def test_multivar_diff_never_contaminates_with_non_target_variable_coefficients():
+    """Regression guard: non-target variables must vanish without their
+    coefficients or powers leaking into the differentiated variable's output."""
+    for _ in range(300):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        src, ans, var, _ = result
+        src_terms = src[0]["numi"]["terms"]
+        ans_terms = ans[0]["numi"]["terms"]
+
+        # All variables in answer terms must either be the target variable
+        # or have been co-present with the target variable in a mixed term
+        valid_mixed_vars = set()
+        for t in src_terms:
+            powers = t.get("var", {})
+            if var in powers and powers[var] > 0:
+                valid_mixed_vars.update(powers.keys())
+
+        for at in ans_terms:
+            ans_vars = at.get("var", {}).keys()
+            for av in ans_vars:
+                assert av in valid_mixed_vars, (
+                    f"Variable {av} in answer {ans_terms} was not present in target term"
+                )
+
