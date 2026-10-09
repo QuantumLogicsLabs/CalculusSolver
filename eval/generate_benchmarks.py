@@ -174,7 +174,7 @@ def generate_partial_benchmarks(n=60):
     return problems
 
 
-def generate_gradient_benchmarks(n=50):
+def generate_gradient_benchmarks(n=72):
     """Generate gradient benchmark problems across multiple variable sets:
     {x, y}, {x, z}, {y, z}, and {x, y, z} to match training distribution coverage."""
     problems = []
