@@ -2296,5 +2296,59 @@
     },
     "operation": "gradient",
     "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "y",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": -5,
+              "var": {
+                "y": 2
+              }
+            },
+            {
+              "coeff": -7,
+              "var": {
+                "z": 1
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -10,
+                "var": {
+                  "y": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "z": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -7
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
   }
 ]
