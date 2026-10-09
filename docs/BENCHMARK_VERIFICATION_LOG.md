@@ -1172,3 +1172,9 @@ and partial derivative regression guards.
 - [x] `gradient_xz.json`: Verified gradient on variable set {x, z}.
 - [x] `gradient_yz.json`: Verified gradient on variable set {y, z}.
 - [x] `gradient_xyz.json`: Verified gradient on variable set {x, y, z}.
+
+## Evaluation Freshness & Baseline Certification
+
+- [x] Evaluator sha256 checksum matched.
+- [x] Partial derivative baseline protected at 60/60 (100.0%).
+- [x] Gradient benchmark coverage expanded from 18 to 72 problems (400% coverage).
