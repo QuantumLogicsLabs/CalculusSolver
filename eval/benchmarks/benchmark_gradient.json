@@ -4030,5 +4030,75 @@
     },
     "operation": "gradient",
     "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "x",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 8,
+              "var": {
+                "x": 1
+              }
+            },
+            {
+              "coeff": 7,
+              "var": {
+                "y": 1
+              }
+            },
+            {
+              "coeff": 3,
+              "var": {
+                "z": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "x": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 8
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 7
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "z": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 6,
+                "var": {
+                  "z": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
   }
 ]
