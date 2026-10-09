@@ -67,3 +67,20 @@ All established test guards in [tests/unit/test_generator_binding.py](file:///d:
    - `test_partial_constant_vanish_emits_valid_vanishing_derivatives`
 
 ### Strengthened Regression Coverage
+To prevent the differentiated-variable binding from silently returning the wrong coefficient/exponent association, the following new guards were implemented:
+
+1. **Cross-Term Association Guard (`test_differentiated_variable_binding_rejects_cross_term_permutation`):**
+   - For every multi-term expression containing multiple target variable terms, checks that any cross-pairing of term $i$'s coefficient with term $j$'s exponent ($c_i \cdot p_j$ for $i \neq j$) produces an answer strictly distinct from the true derivative.
+2. **Mixed-Term Exponent Association Guard (`test_mixed_term_differentiated_variable_exponent_binding`):**
+   - Verifies that in mixed terms ($c \cdot x^a y^b$), taking $\frac{\partial}{\partial x}$ binds $c$ strictly to $a$ ($c \cdot a$), never to $b$ ($c \cdot b$).
+3. **Non-Target Variable Isolation Guard (`test_multivar_diff_never_contaminates_with_non_target_variable_coefficients`):**
+   - Verifies that terms not containing the target variable vanish completely without contaminating derivative coefficients or exponents.
+4. **New Automated Regression Fixtures:**
+   - [partial_multivar_nonfirst.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/partial_multivar_nonfirst.json): $\frac{\partial}{\partial y}(3x^2 + 5y^3) = 15y^2$ (tests non-first target variable position and vanishing of $x$).
+   - [partial_multivar_distinct_binding.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/partial_multivar_distinct_binding.json): $\frac{\partial}{\partial x}(4x^3 + 7x^2 + 5y^4) = 12x^2 + 14x$ (tests multi-term coefficient/power pairing integrity).
+   - [partial_mixed_term_binding.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/partial_mixed_term_binding.json): $\frac{\partial}{\partial x}(3x^2y + 2y^3) = 6xy$ (tests target exponent differentiation and co-occurring variable retention).
+
+---
+
+## 4. Test Suite Verification
+
