@@ -1169,3 +1169,4 @@ and partial derivative regression guards.
 - [x] `partial_multivar_nonfirst.json`: Verified non-first variable differentiation.
 - [x] `partial_multivar_distinct_binding.json`: Verified distinct variable binding across clauses.
 - [x] `partial_mixed_term_binding.json`: Verified mixed term binding isolation.
+- [x] `gradient_xz.json`: Verified gradient on variable set {x, z}.
