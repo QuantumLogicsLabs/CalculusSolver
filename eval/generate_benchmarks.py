@@ -182,9 +182,9 @@ def generate_gradient_benchmarks(n=50):
     var_sets = [("x", "y"), ("x", "z"), ("y", "z"), ("x", "y", "z")]
 
     for i in range(n):
-        # 2-variable polynomial
+        var_set = var_sets[i % len(var_sets)]
         terms = []
-        for var in ["x", "y"]:
+        for var in var_set:
             for _ in range(50):
                 t = _safe_diff_term(var)
                 terms.append(t)
