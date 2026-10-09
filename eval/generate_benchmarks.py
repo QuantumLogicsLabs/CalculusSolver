@@ -175,9 +175,11 @@ def generate_partial_benchmarks(n=60):
 
 
 def generate_gradient_benchmarks(n=50):
-    """Generate gradient benchmark problems."""
+    """Generate gradient benchmark problems across multiple variable sets:
+    {x, y}, {x, z}, {y, z}, and {x, y, z} to match training distribution coverage."""
     problems = []
     random.seed(400)
+    var_sets = [("x", "y"), ("x", "z"), ("y", "z"), ("x", "y", "z")]
 
     for i in range(n):
         # 2-variable polynomial
