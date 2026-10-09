@@ -10,75 +10,75 @@
   },
   "inputs": {
     "checkpoint": "checkpoints/final/best.pt",
-    "checkpoint_sha256": "f5166332750d6260007e8efe3e0018e01e9ce0cafbaa91456b5f8b1f16afcb81",
+    "checkpoint_sha256": "f36c3798ba1e8aba62fb662c50bcb8a2ac5b3572140de5a6800c831876c7ff3c",
     "evaluator": "eval/run_eval.py",
-    "evaluator_sha256": "4a4405e6cdd536c66eadc79f242e9eae39e719bb11110fa7ef0f47c575a05035",
+    "evaluator_sha256": "a3c3ed0cdb7a6e34a47270cf6608294acfe2eea18455ac52838722dc2c500ccd",
     "benchmarks": [
       {
         "file": "eval/benchmarks/benchmark_diff.json",
         "operation": "diff",
         "records_in_file": 80,
         "records_evaluated": 80,
-        "sha256": "d3de159d4f4d5e18568debf736039ab4a1679893829253016e4c68ba2ad6a09a"
+        "sha256": "83d553720fea733c72b0a6ae28edbc6ed1c129c262cd5dfadb67d6482e9372a1"
       },
       {
         "file": "eval/benchmarks/benchmark_gradient.json",
         "operation": "gradient",
-        "records_in_file": 18,
-        "records_evaluated": 18,
-        "sha256": "babafba316c4c5362bdbb0ae0d207f9c934a8b26c1a3bf3ea8c86c73dfc0e09b"
+        "records_in_file": 72,
+        "records_evaluated": 72,
+        "sha256": "2159d04e6c5ba874845e68bca23357e8a1fd3d425cd42497e710aa60d427c698"
       },
       {
         "file": "eval/benchmarks/benchmark_integrate.json",
         "operation": "integrate",
         "records_in_file": 60,
         "records_evaluated": 60,
-        "sha256": "21c659bc24dcb4b5827b10661407f26203fb1143e4cd4196385e46c106a845b4"
+        "sha256": "061f1e69bb289fd55cba5979c35179592963c82f7a7faf52fa61d01a18f275de"
       },
       {
         "file": "eval/benchmarks/benchmark_partial.json",
         "operation": "partial",
         "records_in_file": 60,
         "records_evaluated": 60,
-        "sha256": "1aadeb957ae3934ff4c87a3c00ebf83e0a7eb51c5b00e33fd396b62390a9fad9"
+        "sha256": "83588d1fbd90602515ca43e75d07a6db78b9791f9c52df15a61f2b240430f73d"
       },
       {
         "file": "eval/benchmarks/benchmark_tangent_line.json",
         "operation": "tangent_line",
         "records_in_file": 50,
         "records_evaluated": 50,
-        "sha256": "fe537963b53320f7c7b2bb8c2d47ccb3cc01ac8c61047d472ab3b6bb8cee4ef5"
+        "sha256": "5f06315bbde35e01f9baa87cccbcc57d5a7591c7ed72bc5216daae9964b6a3b0"
       }
     ]
   },
   "environment": {
-    "git_commit": "00e8d3eba8db6bad5572f646e16935f3e947b2eb",
+    "git_commit": "bd6ec5882eea04aaaac6d4bad43b3c84cb69dd38",
     "git_dirty": true,
-    "python": "3.12.14",
-    "torch": "2.3.1+cpu",
-    "numpy": "1.26.4",
-    "platform": "Windows-11-10.0.26200-SP0"
+    "python": "3.13.15",
+    "torch": "2.11.0+cu130",
+    "numpy": "2.1.3",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39"
   },
   "summary": {
     "diff": {
       "total": 80,
-      "exact_match": 77,
+      "exact_match": 80,
       "verified": 80,
-      "accuracy": 0.9625,
+      "accuracy": 1.0,
       "verification_rate": 1.0
     },
     "gradient": {
-      "total": 18,
-      "exact_match": 12,
-      "verified": 18,
-      "accuracy": 0.6666666666666666,
+      "total": 72,
+      "exact_match": 72,
+      "verified": 72,
+      "accuracy": 1.0,
       "verification_rate": 1.0
     },
     "integrate": {
       "total": 60,
-      "exact_match": 60,
+      "exact_match": 59,
       "verified": 60,
-      "accuracy": 1.0,
+      "accuracy": 0.9833333333333333,
       "verification_rate": 1.0
     },
     "partial": {
@@ -97,10 +97,10 @@
     }
   },
   "overall": {
-    "total": 268,
-    "exact_match": 259,
-    "verified": 268,
-    "accuracy": 0.9664179104477612,
+    "total": 322,
+    "exact_match": 321,
+    "verified": 322,
+    "accuracy": 0.9968944099378882,
     "verification_rate": 1.0,
     "exceptions": 0
   },
