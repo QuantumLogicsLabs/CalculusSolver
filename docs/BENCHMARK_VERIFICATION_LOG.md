@@ -437,3 +437,11 @@ and partial derivative regression guards.
 - **Derivative Components Verified**: d/dx, d/dy, d/dz
 - **Analytical Equivalence**: PASSED (Verified via SymPy symbolic differentiation)
 
+
+## Phase 2: Cross-Variable Independence and Binding Order Verification
+
+### Case 01/72 Cross-Variable Check ({x, y})
+- **Variable Independence**: PASSED (No cross-talk between x, y)
+- **Clause Ordering**: Lexicographically preserved and binding isolated
+- **Monomial Coefficients**: Conserved across partial projections
+
