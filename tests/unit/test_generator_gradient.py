@@ -73,3 +73,25 @@ def test_gradient_generator_balance():
 if __name__ == "__main__":
     test_gradient_generator_balance()
     print("Gradient generator balance unit test passed!")
+
+
+def test_gradient_benchmark_variable_set_coverage():
+    """Ensure benchmark_gradient.json covers multiple variable sets:
+    {x, y}, {x, z}, {y, z}, and {x, y, z}, preventing regression to narrow {x, y} coverage."""
+    import json
+    benchmark_path = os.path.join("eval", "benchmarks", "benchmark_gradient.json")
+    assert os.path.exists(benchmark_path), f"Benchmark file not found: {benchmark_path}"
+    with open(benchmark_path, encoding="utf-8") as f:
+        benchmarks = json.load(f)
+
+    var_sets_seen = set()
+    for item in benchmarks:
+        grad_target = item.get("target", {}).get("gradient", {})
+        assert grad_target, f"Empty gradient target in record: {item}"
+        var_sets_seen.add(tuple(sorted(grad_target.keys())))
+
+    assert ("x", "y") in var_sets_seen, "{x, y} cases missing from gradient benchmark"
+    assert ("x", "z") in var_sets_seen, "{x, z} cases missing from gradient benchmark"
+    assert ("y", "z") in var_sets_seen, "{y, z} cases missing from gradient benchmark"
+    assert ("x", "y", "z") in var_sets_seen, "{x, y, z} cases missing from gradient benchmark"
+    assert len(benchmarks) >= 72, f"Benchmark suite should have at least 72 records, got {len(benchmarks)}"
