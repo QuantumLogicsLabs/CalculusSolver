@@ -808,3 +808,8 @@ and partial derivative regression guards.
 - **Token Integrity**: Operator arities and variable leaf nodes verified
 - **Grammar Constraints**: Complies with strict grammar bounds and non-repetition rules
 
+### Case 02/72 SLANG AST Roundtrip ({x, y})
+- **Serialization Roundtrip**: PASSED (Expression to SLANG prefix tokens to AST)
+- **Token Integrity**: Operator arities and variable leaf nodes verified
+- **Grammar Constraints**: Complies with strict grammar bounds and non-repetition rules
+
