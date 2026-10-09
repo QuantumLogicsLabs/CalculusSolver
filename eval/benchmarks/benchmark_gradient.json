@@ -2506,5 +2506,59 @@
     },
     "operation": "gradient",
     "expected_rule": "gradient"
+  },
+  {
+    "expr": {
+      "op": "gradient",
+      "var": "y",
+      "expr": {
+        "numi": {
+          "terms": [
+            {
+              "coeff": 12,
+              "var": {
+                "y": 1
+              }
+            },
+            {
+              "coeff": -2,
+              "var": {
+                "z": 2
+              }
+            }
+          ]
+        },
+        "deno": 1
+      }
+    },
+    "target": {
+      "gradient": {
+        "y": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": 12
+              }
+            ]
+          },
+          "deno": 1
+        },
+        "z": {
+          "numi": {
+            "terms": [
+              {
+                "coeff": -4,
+                "var": {
+                  "z": 1
+                }
+              }
+            ]
+          },
+          "deno": 1
+        }
+      }
+    },
+    "operation": "gradient",
+    "expected_rule": "gradient"
   }
 ]
