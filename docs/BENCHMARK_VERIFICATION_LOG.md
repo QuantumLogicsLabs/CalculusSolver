@@ -1163,3 +1163,7 @@ and partial derivative regression guards.
 - **Token Integrity**: Operator arities and variable leaf nodes verified
 - **Grammar Constraints**: Complies with strict grammar bounds and non-repetition rules
 
+
+## Regression Fixture Audit
+
+- [x] `partial_multivar_nonfirst.json`: Verified non-first variable differentiation.
