@@ -540,3 +540,8 @@ and partial derivative regression guards.
 - **Clause Ordering**: Lexicographically preserved and binding isolated
 - **Monomial Coefficients**: Conserved across partial projections
 
+### Case 21/72 Cross-Variable Check ({x, z})
+- **Variable Independence**: PASSED (No cross-talk between x, z)
+- **Clause Ordering**: Lexicographically preserved and binding isolated
+- **Monomial Coefficients**: Conserved across partial projections
+
