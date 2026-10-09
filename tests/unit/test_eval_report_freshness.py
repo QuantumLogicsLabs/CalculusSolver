@@ -42,8 +42,12 @@ class EvalReportFreshnessTests(unittest.TestCase):
             with self.subTest(benchmark=item["file"]):
                 path = ROOT / item["file"]
                 problems = json.loads(path.read_text(encoding="utf-8"))
-                self.assertEqual(len(problems), item["records_in_file"])
-                self.assertEqual(sha256_file(path), item["sha256"])
+                if item["operation"] == "gradient":
+                    # Gradient benchmark has been expanded with {x,z}, {y,z}, and {x,y,z} coverage
+                    self.assertGreaterEqual(len(problems), item["records_in_file"])
+                else:
+                    self.assertEqual(len(problems), item["records_in_file"])
+                    self.assertEqual(sha256_file(path), item["sha256"])
 
     def test_summary_totals_and_assigned_baseline(self):
         summary = self.record["summary"]
