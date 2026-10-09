@@ -191,7 +191,7 @@ def generate_gradient_benchmarks(n=50):
                 break
 
         expr = _make_fraction(terms)
-        payload = {"op": "gradient", "var": "x", "expr": expr}
+        payload = {"op": "gradient", "var": var_set[0], "expr": expr}
         try:
             result = solver.solve(payload)
             problems.append({
