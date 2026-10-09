@@ -270,3 +270,40 @@ def test_rule_ids_match_vocab_classifier_indices():
         assert order[rule_id] == token, (
             f"rule_id {rule_id} should be {token}, vocab ordering gives {order[rule_id]}"
         )
+
+
+# -- regression protection: coefficient/exponent binding association ----------
+
+def test_differentiated_variable_binding_rejects_cross_term_permutation():
+    """Regression guard: when a multi-term expression has multiple terms
+    containing the differentiated variable, any cross-pairing of term i's
+    coefficient with term j's exponent (i != j) must NOT equal the true
+    derivative answer."""
+    checked = 0
+    for _ in range(600):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        src, ans, var, _ = result
+        terms = src[0]["numi"]["terms"]
+        pairs = G._term_pairs(terms, var)
+        pairs = [(c, p) for c, p in pairs if p]
+        if len(pairs) < 2:
+            continue
+        checked += 1
+        coeffs = [c for c, _ in pairs]
+        powers = [p for _, p in pairs]
+        correct = sorted((c * p, p - 1) for c, p in pairs)
+        for perm in itertools.permutations(range(len(pairs))):
+            if all(perm[i] == i for i in range(len(pairs))):
+                continue
+            alt = sorted(
+                (coeffs[i] * powers[perm[i]], powers[perm[i]] - 1)
+                for i in range(len(pairs))
+            )
+            assert alt != correct, (
+                f"Cross-pairing {perm} silently reproduced the correct answer for {pairs}"
+            )
+    assert checked > 50, f"Too few multi-term instances checked: {checked}"
+
+
