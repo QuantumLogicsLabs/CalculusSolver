@@ -32,3 +32,21 @@ Prior evaluation used a narrow 18-problem benchmark restricted entirely to the $
 | **$\{x, y, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 3-variable polynomial gradient |
 | **Vocabulary Compliance** | 100% | **100%** | Zero missing tokens; verified against `vocab.json` |
 | **Verifier Acceptance** | 100% | **100%** | All records verified via `inference.verifier` |
+
+### Key Files Updated
+1. [eval/benchmarks/benchmark_gradient.json](file:///d:/QuantumLogics/CalculusSolver/eval/benchmarks/benchmark_gradient.json):
+   - Expanded from 18 to 72 problems.
+   - Preserved original 18 records at indices 0–17.
+   - Added 18 records for $\{x, z\}$ (indices 18–35), 18 for $\{y, z\}$ (indices 36–53), and 18 for $\{x, y, z\}$ (indices 54–71).
+2. [eval/generate_benchmarks.py](file:///d:/QuantumLogics/CalculusSolver/eval/generate_benchmarks.py):
+   - Updated `generate_gradient_benchmarks(n=72)` to cycle across variable sets `[("x", "y"), ("x", "z"), ("y", "z"), ("x", "y", "z")]`.
+3. [tests/unit/test_generator_gradient.py](file:///d:/QuantumLogics/CalculusSolver/tests/unit/test_generator_gradient.py):
+   - Added `test_gradient_benchmark_variable_set_coverage()` to assert that `benchmark_gradient.json` covers $\{x, y\}$, $\{x, z\}$, $\{y, z\}$, and $\{x, y, z\}$ with at least 72 records.
+4. [tests/regression/fixtures/](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/):
+   - Added [gradient_xz.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/gradient_xz.json).
+   - Added [gradient_yz.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/gradient_yz.json).
+   - Added [gradient_xyz.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/gradient_xyz.json).
+
+---
+
+## 3. Partial Regression Protection & Hardening
