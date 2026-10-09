@@ -307,3 +307,32 @@ def test_differentiated_variable_binding_rejects_cross_term_permutation():
     assert checked > 50, f"Too few multi-term instances checked: {checked}"
 
 
+def test_mixed_term_differentiated_variable_exponent_binding():
+    """Regression guard: for mixed terms c * x^a * y^b, differentiating w.r.t
+    x must multiply by a (x's exponent), never by b (y's exponent)."""
+    # Test varying coefficients and asymmetric powers
+    test_cases = [
+        ({"coeff": 3, "var": {"x": 2, "y": 4}}, "x", {"coeff": 6, "var": {"x": 1, "y": 4}}),
+        ({"coeff": 3, "var": {"x": 2, "y": 4}}, "y", {"coeff": 12, "var": {"x": 2, "y": 3}}),
+        ({"coeff": -2, "var": {"x": 3, "z": 1}}, "x", {"coeff": -6, "var": {"x": 2, "z": 1}}),
+        ({"coeff": -2, "var": {"x": 3, "z": 1}}, "z", {"coeff": -2, "var": {"x": 3}}),
+        ({"coeff": 5, "var": {"y": 1, "z": 3}}, "y", {"coeff": 5, "var": {"z": 3}}),
+        ({"coeff": 5, "var": {"y": 1, "z": 3}}, "z", {"coeff": 15, "var": {"y": 1, "z": 2}}),
+    ]
+    for term, diff_var, expected in test_cases:
+        res = G._differentiate_term(term, diff_var)
+        assert res == expected, (
+            f"Failed binding for {term} w.r.t {diff_var}: got {res}, expected {expected}"
+        )
+        # Verify coefficient is NOT multiplied by the other variable's exponent
+        other_vars = [v for v in term["var"] if v != diff_var]
+        for ov in other_vars:
+            other_p = term["var"][ov]
+            if other_p != term["var"][diff_var]:
+                wrong_coeff = term["coeff"] * other_p
+                assert res["coeff"] != wrong_coeff, (
+                    f"Silent cross-variable exponent association: coeff {res['coeff']} "
+                    f"matched c * p_other ({wrong_coeff})"
+                )
+
+
