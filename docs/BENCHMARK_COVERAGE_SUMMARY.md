@@ -1,0 +1,103 @@
+# Benchmark Coverage & Partial Regression Protection Summary
+
+**Developer 4 Report**  
+**Project Scope:** Own benchmark quality and the already-resolved partial category. Ensure future evaluation covers the training distribution and partial does not regress.  
+**Source Basis:** `GRADIENT_PARTIAL_ANALYSIS.pdf` (Sections 2, 3.4, 3.5, and 4)
+
+---
+
+## 1. Executive Summary & Expected Outcome
+
+- **Benchmark Expansion Does Not Alter Model Quality:**  
+  Expanding benchmark coverage improves **measurement fidelity**, not the underlying model weights. It ensures evaluation reflects the true multi-variable training distribution rather than reporting performance on an artificially narrow slice.
+- **Partial Derivative Status:**  
+  Partial differentiation scored **60/60 (100.0%)** in the established baseline. It is classified as a **regression-risk area** requiring continuous automated protection, **not an active shortfall**.
+- **Model Retraining Note:**  
+  Any downstream conclusions regarding model performance changes on the expanded variable sets require dataset regeneration and checkpoint retraining.
+
+---
+
+## 2. Gradient Benchmark Expansion
+
+### Prior State vs. Expanded State
+
+Prior evaluation used a narrow 18-problem benchmark restricted entirely to the $\{x, y\}$ variable pair. The expanded suite introduces full multi-variable coverage across $\{x, z\}$, $\{y, z\}$, and $\{x, y, z\}$.
+
+| Metric / Attribute | Prior Benchmark | Expanded Benchmark | Notes |
+|---|---:|---:|---|
+| **Total Gradient Problems** | 18 | **72** | 4x expansion with balanced distribution |
+| **$\{x, y\}$ Problem Count** | 18 (100%) | 18 (25.0%) | All 18 legacy cases preserved intact at indices 0–17 |
+| **$\{x, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 2-variable variant |
+| **$\{y, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 2-variable variant |
+| **$\{x, y, z\}$ Problem Count** | 0 (0%) | **18 (25.0%)** | Added 3-variable polynomial gradient |
+| **Vocabulary Compliance** | 100% | **100%** | Zero missing tokens; verified against `vocab.json` |
+| **Verifier Acceptance** | 100% | **100%** | All records verified via `inference.verifier` |
+
+### Key Files Updated
+1. [eval/benchmarks/benchmark_gradient.json](file:///d:/QuantumLogics/CalculusSolver/eval/benchmarks/benchmark_gradient.json):
+   - Expanded from 18 to 72 problems.
+   - Preserved original 18 records at indices 0–17.
+   - Added 18 records for $\{x, z\}$ (indices 18–35), 18 for $\{y, z\}$ (indices 36–53), and 18 for $\{x, y, z\}$ (indices 54–71).
+2. [eval/generate_benchmarks.py](file:///d:/QuantumLogics/CalculusSolver/eval/generate_benchmarks.py):
+   - Updated `generate_gradient_benchmarks(n=72)` to cycle across variable sets `[("x", "y"), ("x", "z"), ("y", "z"), ("x", "y", "z")]`.
+3. [tests/unit/test_generator_gradient.py](file:///d:/QuantumLogics/CalculusSolver/tests/unit/test_generator_gradient.py):
+   - Added `test_gradient_benchmark_variable_set_coverage()` to assert that `benchmark_gradient.json` covers $\{x, y\}$, $\{x, z\}$, $\{y, z\}$, and $\{x, y, z\}$ with at least 72 records.
+4. [tests/regression/fixtures/](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/):
+   - Added [gradient_xz.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/gradient_xz.json).
+   - Added [gradient_yz.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/gradient_yz.json).
+   - Added [gradient_xyz.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/gradient_xyz.json).
+
+---
+
+## 3. Partial Regression Protection & Hardening
+
+The prior defect where partial differentiation dropped to 35.0% was previously resolved by removing variable binding ambiguity and ensuring the differentiated variable does not exclusively sit in position 0.
+
+### Retained Training Data Invariants
+All established test guards in [tests/unit/test_generator_binding.py](file:///d:/QuantumLogics/CalculusSolver/tests/unit/test_generator_binding.py) were retained:
+1. **Unambiguous Binding Guard:**
+   - `test_shared_coefficient_is_ambiguous`
+   - `test_distinct_coefficients_are_unambiguous`
+   - `test_single_term_is_trivially_unambiguous`
+   - `test_multi_term_diff_never_emits_an_ambiguous_binding`
+   - `test_multivar_diff_never_emits_an_ambiguous_binding`
+   - `test_multivar_diff_coefficients_and_exponents_are_distinct`
+2. **Variable Position Invariance Guard:**
+   - `test_multivar_diff_does_not_always_put_the_target_variable_first` (ensures target variable is first in < 60% of cases and spans multiple slots)
+   - `test_partial_constant_vanish_emits_valid_vanishing_derivatives`
+
+### Strengthened Regression Coverage
+To prevent the differentiated-variable binding from silently returning the wrong coefficient/exponent association, the following new guards were implemented:
+
+1. **Cross-Term Association Guard (`test_differentiated_variable_binding_rejects_cross_term_permutation`):**
+   - For every multi-term expression containing multiple target variable terms, checks that any cross-pairing of term $i$'s coefficient with term $j$'s exponent ($c_i \cdot p_j$ for $i \neq j$) produces an answer strictly distinct from the true derivative.
+2. **Mixed-Term Exponent Association Guard (`test_mixed_term_differentiated_variable_exponent_binding`):**
+   - Verifies that in mixed terms ($c \cdot x^a y^b$), taking $\frac{\partial}{\partial x}$ binds $c$ strictly to $a$ ($c \cdot a$), never to $b$ ($c \cdot b$).
+3. **Non-Target Variable Isolation Guard (`test_multivar_diff_never_contaminates_with_non_target_variable_coefficients`):**
+   - Verifies that terms not containing the target variable vanish completely without contaminating derivative coefficients or exponents.
+4. **New Automated Regression Fixtures:**
+   - [partial_multivar_nonfirst.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/partial_multivar_nonfirst.json): $\frac{\partial}{\partial y}(3x^2 + 5y^3) = 15y^2$ (tests non-first target variable position and vanishing of $x$).
+   - [partial_multivar_distinct_binding.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/partial_multivar_distinct_binding.json): $\frac{\partial}{\partial x}(4x^3 + 7x^2 + 5y^4) = 12x^2 + 14x$ (tests multi-term coefficient/power pairing integrity).
+   - [partial_mixed_term_binding.json](file:///d:/QuantumLogics/CalculusSolver/tests/regression/fixtures/partial_mixed_term_binding.json): $\frac{\partial}{\partial x}(3x^2y + 2y^3) = 6xy$ (tests target exponent differentiation and co-occurring variable retention).
+
+---
+
+## 4. Test Suite Verification
+
+All unit and regression test suites execute cleanly:
+
+```powershell
+python -m pytest tests/unit/test_generator_binding.py `
+                 tests/unit/test_generator_gradient.py `
+                 tests/unit/test_verifier_gradient_extra_components.py `
+                 tests/unit/test_eval_report_freshness.py `
+                 tests/regression/test_regression.py
+```
+
+**Results:**
+- `tests/unit/test_generator_binding.py`: **19/19 passed** (16 retained + 3 new binding regression guards)
+- `tests/unit/test_generator_gradient.py`: **2/2 passed** (distribution balance + benchmark coverage)
+- `tests/unit/test_verifier_gradient_extra_components.py`: **2/2 passed** (extra-component rejection)
+- `tests/unit/test_eval_report_freshness.py`: **2/2 passed** (evaluator & benchmark fresh checks)
+- `tests/regression/test_regression.py`: **19/19 passed** (13 legacy + 6 new fixtures)
+- **Total:** **44/44 passed (100%)**

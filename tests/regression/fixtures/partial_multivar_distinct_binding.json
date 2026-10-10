@@ -1,0 +1,30 @@
+{
+  "input": {
+    "op": "partial",
+    "var": "x",
+    "expr": {
+      "numi": {
+        "terms": [
+          {"coeff": 4, "var": {"x": 3}},
+          {"coeff": 7, "var": {"x": 2}},
+          {"coeff": 5, "var": {"y": 4}}
+        ]
+      },
+      "deno": 1
+    }
+  },
+  "expected": {
+    "status": "solved",
+    "verified": true,
+    "rule": "power_rule",
+    "expr": {
+      "numi": {
+        "terms": [
+          {"coeff": 12, "var": {"x": 2}},
+          {"coeff": 14, "var": {"x": 1}}
+        ]
+      },
+      "deno": 1
+    }
+  }
+}

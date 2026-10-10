@@ -270,3 +270,95 @@ def test_rule_ids_match_vocab_classifier_indices():
         assert order[rule_id] == token, (
             f"rule_id {rule_id} should be {token}, vocab ordering gives {order[rule_id]}"
         )
+
+
+# -- regression protection: coefficient/exponent binding association ----------
+
+def test_differentiated_variable_binding_rejects_cross_term_permutation():
+    """Regression guard: when a multi-term expression has multiple terms
+    containing the differentiated variable, any cross-pairing of term i's
+    coefficient with term j's exponent (i != j) must NOT equal the true
+    derivative answer."""
+    checked = 0
+    for _ in range(600):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        src, ans, var, _ = result
+        terms = src[0]["numi"]["terms"]
+        pairs = G._term_pairs(terms, var)
+        pairs = [(c, p) for c, p in pairs if p]
+        if len(pairs) < 2:
+            continue
+        checked += 1
+        coeffs = [c for c, _ in pairs]
+        powers = [p for _, p in pairs]
+        correct = sorted((c * p, p - 1) for c, p in pairs)
+        for perm in itertools.permutations(range(len(pairs))):
+            if all(perm[i] == i for i in range(len(pairs))):
+                continue
+            alt = sorted(
+                (coeffs[i] * powers[perm[i]], powers[perm[i]] - 1)
+                for i in range(len(pairs))
+            )
+            assert alt != correct, (
+                f"Cross-pairing {perm} silently reproduced the correct answer for {pairs}"
+            )
+    assert checked > 50, f"Too few multi-term instances checked: {checked}"
+
+
+def test_mixed_term_differentiated_variable_exponent_binding():
+    """Regression guard: for mixed terms c * x^a * y^b, differentiating w.r.t
+    x must multiply by a (x's exponent), never by b (y's exponent)."""
+    # Test varying coefficients and asymmetric powers
+    test_cases = [
+        ({"coeff": 3, "var": {"x": 2, "y": 4}}, "x", {"coeff": 6, "var": {"x": 1, "y": 4}}),
+        ({"coeff": 3, "var": {"x": 2, "y": 4}}, "y", {"coeff": 12, "var": {"x": 2, "y": 3}}),
+        ({"coeff": -2, "var": {"x": 3, "z": 1}}, "x", {"coeff": -6, "var": {"x": 2, "z": 1}}),
+        ({"coeff": -2, "var": {"x": 3, "z": 1}}, "z", {"coeff": -2, "var": {"x": 3}}),
+        ({"coeff": 5, "var": {"y": 1, "z": 3}}, "y", {"coeff": 5, "var": {"z": 3}}),
+        ({"coeff": 5, "var": {"y": 1, "z": 3}}, "z", {"coeff": 15, "var": {"y": 1, "z": 2}}),
+    ]
+    for term, diff_var, expected in test_cases:
+        res = G._differentiate_term(term, diff_var)
+        assert res == expected, (
+            f"Failed binding for {term} w.r.t {diff_var}: got {res}, expected {expected}"
+        )
+        # Verify coefficient is NOT multiplied by the other variable's exponent
+        other_vars = [v for v in term["var"] if v != diff_var]
+        for ov in other_vars:
+            other_p = term["var"][ov]
+            if other_p != term["var"][diff_var]:
+                wrong_coeff = term["coeff"] * other_p
+                assert res["coeff"] != wrong_coeff, (
+                    f"Silent cross-variable exponent association: coeff {res['coeff']} "
+                    f"matched c * p_other ({wrong_coeff})"
+                )
+
+
+def test_multivar_diff_never_contaminates_with_non_target_variable_coefficients():
+    """Regression guard: non-target variables must vanish without their
+    coefficients or powers leaking into the differentiated variable's output."""
+    for _ in range(300):
+        result = G.generate_multivar_diff()
+        if result is None:
+            continue
+        src, ans, var, _ = result
+        src_terms = src[0]["numi"]["terms"]
+        ans_terms = ans[0]["numi"]["terms"]
+
+        # All variables in answer terms must either be the target variable
+        # or have been co-present with the target variable in a mixed term
+        valid_mixed_vars = set()
+        for t in src_terms:
+            powers = t.get("var", {})
+            if var in powers and powers[var] > 0:
+                valid_mixed_vars.update(powers.keys())
+
+        for at in ans_terms:
+            ans_vars = at.get("var", {}).keys()
+            for av in ans_vars:
+                assert av in valid_mixed_vars, (
+                    f"Variable {av} in answer {ans_terms} was not present in target term"
+                )
+

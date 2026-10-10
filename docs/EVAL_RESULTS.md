@@ -3,21 +3,21 @@
 ## Current reproducible baseline
 
 - **Checkpoint:** `checkpoints/final/best.pt`
-- **Checkpoint SHA-256:** `f5166332750d6260007e8efe3e0018e01e9ce0cafbaa91456b5f8b1f16afcb81`
+- **Checkpoint SHA-256:** `f36c3798ba1e8aba62fb662c50bcb8a2ac5b3572140de5a6800c831876c7ff3c`
 - **Evaluation mode:** hybrid inference (neural beam search + verifier-gated fallback)
 - **Decoder:** beam size 3, max length 64
 - **Seed:** 0
 
 | Operation | Problems | Exact match | Verification rate |
 |---|---:|---:|---:|
-| diff | 80 | 77/80 (96.2%) | 80/80 (100.0%) |
-| gradient | 18 | 18/18 (100.0%) | 18/18 (100.0%) |
-| integrate | 60 | 60/60 (100.0%) | 60/60 (100.0%) |
+| diff | 80 | 80/80 (100.0%) | 80/80 (100.0%) |
+| gradient | 72 | 72/72 (100.0%) | 72/72 (100.0%) |
+| integrate | 60 | 59/60 (98.3%) | 60/60 (100.0%) |
 | partial | 60 | 60/60 (100.0%) | 60/60 (100.0%) |
 | tangent_line | 50 | 50/50 (100.0%) | 50/50 (100.0%) |
-| **Overall** | **268** | **265/268 (98.9%)** | **268/268 (100.0%)** |
+| **Overall** | **322** | **321/322 (99.7%)** | **322/322 (100.0%)** |
 
-> Partial is not an active accuracy shortfall in this baseline: it is 60/60 (100.0%). Gradient is 18/18 (100.0%), and the gradient benchmark contains 18 records.
+> Partial is not an active accuracy shortfall in this baseline: it is 60/60 (100.0%). Gradient is 72/72 (100.0%), and the gradient benchmark contains 72 records.
 
 > Exact match and verification rate are distinct measurements. In particular, the current gradient verifier accepts predictions with an extra component, so verification can exceed exact match. This report records both without treating verifier acceptance as exact correctness.
 
@@ -27,10 +27,10 @@ The previous table was generated for an older 300-record suite and older checkpo
 
 | Measurement | Before (stale document) | After (current inputs) |
 |---|---:|---:|
-| Benchmark total | 300 | 268 |
+| Benchmark total | 300 | 322 |
 | Partial exact match | 31/60 (51.7%) | 60/60 (100.0%) |
-| Gradient exact match | 20/50 (40.0%) | 18/18 (100.0%) |
-| Overall exact match | 219/300 (73.0%) | 265/268 (98.9%) |
+| Gradient exact match | 20/50 (40.0%) | 72/72 (100.0%) |
+| Overall exact match | 219/300 (73.0%) | 321/322 (99.7%) |
 
 ## Benchmark manifest
 
@@ -39,11 +39,11 @@ The hashes below define the exact benchmark inputs. Record counts are read from 
 | File | Records | SHA-256 |
 |---|---:|---|
 | `eval/benchmarks/benchmark_diff.json` | 80 | `83d553720fea733c72b0a6ae28edbc6ed1c129c262cd5dfadb67d6482e9372a1` |
-| `eval/benchmarks/benchmark_gradient.json` | 18 | `2b33d54b0da7c7948651179e86b80171d2385a07b37d5538eba037cb28822d2f` |
+| `eval/benchmarks/benchmark_gradient.json` | 72 | `2159d04e6c5ba874845e68bca23357e8a1fd3d425cd42497e710aa60d427c698` |
 | `eval/benchmarks/benchmark_integrate.json` | 60 | `061f1e69bb289fd55cba5979c35179592963c82f7a7faf52fa61d01a18f275de` |
 | `eval/benchmarks/benchmark_partial.json` | 60 | `83588d1fbd90602515ca43e75d07a6db78b9791f9c52df15a61f2b240430f73d` |
 | `eval/benchmarks/benchmark_tangent_line.json` | 50 | `5f06315bbde35e01f9baa87cccbcc57d5a7591c7ed72bc5216daae9964b6a3b0` |
-| **Total** | **268** | |
+| **Total** | **322** | |
 
 ## Reproduce this evaluation
 
@@ -59,7 +59,7 @@ The command regenerates this file and `docs/eval_results.json`. A matching run m
 
 ## Recorded environment
 
-- **Git commit:** `f7210f5c850a1a0360a04695b6a7e17a9a5e898a`
+- **Git commit:** `bd6ec5882eea04aaaac6d4bad43b3c84cb69dd38`
 - **Git working tree dirty:** `True`
 - **Evaluator SHA-256:** `a3c3ed0cdb7a6e34a47270cf6608294acfe2eea18455ac52838722dc2c500ccd`
 - **Python:** `3.13.15`

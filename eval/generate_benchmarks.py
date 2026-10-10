@@ -174,22 +174,24 @@ def generate_partial_benchmarks(n=60):
     return problems
 
 
-def generate_gradient_benchmarks(n=50):
-    """Generate gradient benchmark problems."""
+def generate_gradient_benchmarks(n=72):
+    """Generate gradient benchmark problems across multiple variable sets:
+    {x, y}, {x, z}, {y, z}, and {x, y, z} to match training distribution coverage."""
     problems = []
     random.seed(400)
+    var_sets = [("x", "y"), ("x", "z"), ("y", "z"), ("x", "y", "z")]
 
     for i in range(n):
-        # 2-variable polynomial
+        var_set = var_sets[i % len(var_sets)]
         terms = []
-        for var in ["x", "y"]:
+        for var in var_set:
             for _ in range(50):
                 t = _safe_diff_term(var)
                 terms.append(t)
                 break
 
         expr = _make_fraction(terms)
-        payload = {"op": "gradient", "var": "x", "expr": expr}
+        payload = {"op": "gradient", "var": var_set[0], "expr": expr}
         try:
             result = solver.solve(payload)
             problems.append({
