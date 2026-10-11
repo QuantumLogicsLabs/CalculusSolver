@@ -1,1 +1,4 @@
 ﻿data_backup*
+/.env
+.env
+__pycache__/
