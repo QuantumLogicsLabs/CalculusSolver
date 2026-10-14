@@ -12,7 +12,7 @@
     "checkpoint": "checkpoints/final/best.pt",
     "checkpoint_sha256": "f36c3798ba1e8aba62fb662c50bcb8a2ac5b3572140de5a6800c831876c7ff3c",
     "evaluator": "eval/run_eval.py",
-    "evaluator_sha256": "a3c3ed0cdb7a6e34a47270cf6608294acfe2eea18455ac52838722dc2c500ccd",
+    "evaluator_sha256": "40ffb1f234e23011353ba8b01f21e00379201f3a898cfea8dfdb8b5c19c34872",
     "benchmarks": [
       {
         "file": "eval/benchmarks/benchmark_diff.json",
