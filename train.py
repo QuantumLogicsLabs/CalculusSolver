@@ -321,6 +321,9 @@ def get_curriculum_weights(dataset, epoch, curriculum_cfg):
     progress = min(1.0, max(0.0, (epoch - 1) / max(ramp_ep - 1, 1)))
     if progress >= 1.0:
         return None
+    w_3var = start_w + (1.0 - start_w) * progress
+    weights = [
+        w_3var if n_vars >= 3 else 1.0
 
 
 def write_training_results(metrics_log, best_val_loss, git_commit_hash):
