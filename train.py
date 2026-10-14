@@ -294,7 +294,7 @@ def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
     schedule = ss_config.get("schedule", "linear")
     ramp_epochs = ss_config.get("ramp_epochs", min(11, total_epochs))
     
-    progress = (epoch - 1) / max(total_epochs - 1, 1)
+    progress = min(1.0, max(0.0, (epoch - 1) / max(ramp_epochs - 1, 1)))
     
     if schedule == "linear":
         return start + (end - start) * progress
