@@ -181,6 +181,10 @@ def compute_gradient_component_credit(prediction: Any, target: Any) -> tuple[int
         pred_components = prediction.get("gradient", prediction)
         if not isinstance(pred_components, dict):
             pred_components = {}
+    correct = 0
+    for var, tgt_expr in target_components.items():
+        if var in pred_components and is_equivalent(pred_components[var], tgt_expr):
+            correct += 1
 def evaluate(
     solver: CalculusSolverInference, benchmarks: list[dict[str, Any]]
 ) -> tuple[dict[str, dict[str, Any]], int]:
