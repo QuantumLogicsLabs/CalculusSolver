@@ -209,7 +209,8 @@ def evaluate(
                 prediction = result.get("output") or result.get("expr") or {}
                 exact_match_count += int(is_equivalent(prediction, problem["target"]))
                 verified_count += int(bool(result.get("verified", False)))
-            except Exception as exc:  # Keep the full-suite report usable while surfacing failures.
+                if operation == "gradient":
+                    p_correct, p_total = compute_gradient_component_credit(prediction, problem["target"])
                 exception_count += 1
                 print(f"  ERROR {operation}[{index}]: {exc}", file=sys.stderr, flush=True)
 
