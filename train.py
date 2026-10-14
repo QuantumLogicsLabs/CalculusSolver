@@ -501,6 +501,10 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
         epoch_loss = 0.0
         steps_run = 0
 
+        curr_weights = get_curriculum_weights(train_dataset, epoch, curriculum_cfg)
+        if curr_weights is not None:
+            sampler = torch.utils.data.WeightedRandomSampler(
+                weights=curr_weights,
         ss_config = config.get("scheduled_sampling", {})
         ss_prob = get_scheduled_sampling_prob(epoch, epochs, ss_config)
         if ss_config.get("enabled"):
