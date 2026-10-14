@@ -6,7 +6,7 @@
   "max_steps": 3500,
   "hidden_dim": 256,
   "max_len": 80,
-  "epochs": 15,
+  "epochs": 25,
   "grad_clip_max_norm": 1.0,
   "early_stopping": {
     "enabled": true,
