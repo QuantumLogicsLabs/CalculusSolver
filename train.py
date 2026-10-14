@@ -65,6 +65,9 @@ class SlangDatasetLoader(Dataset):
                 self.data.append(item)
                 op = (
                     item["src_tokens"].get("op", "unknown")
+                    if isinstance(item.get("src_tokens"), dict)
+                    else "unknown"
+                )
 
     def __len__(self):
         return len(self.data)
