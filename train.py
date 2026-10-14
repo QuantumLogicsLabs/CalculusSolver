@@ -61,7 +61,10 @@ class SlangDatasetLoader(Dataset):
         self.max_len = max_len
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
-                self.data.append(json.loads(line))
+                item = json.loads(line)
+                self.data.append(item)
+                op = (
+                    item["src_tokens"].get("op", "unknown")
 
     def __len__(self):
         return len(self.data)
