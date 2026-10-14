@@ -508,6 +508,10 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
                 num_samples=len(train_dataset),
                 replacement=True
             )
+            epoch_loader = DataLoader(train_dataset, batch_size=config["batch_size"], sampler=sampler)
+        else:
+            epoch_loader = train_loader
+
         ss_config = config.get("scheduled_sampling", {})
         ss_prob = get_scheduled_sampling_prob(epoch, epochs, ss_config)
         if ss_config.get("enabled"):
