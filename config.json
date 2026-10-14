@@ -21,6 +21,8 @@
     "ramp_epochs": 11,
     "schedule": "linear"
   },
+  "curriculum": {
+  },
   "proxy_eval_examples": 15,
   "lr_decay": {
     "type": "cosine",
