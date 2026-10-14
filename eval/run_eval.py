@@ -239,6 +239,9 @@ def evaluate(
         else:
             print(
                 f"  {operation}: exact={exact_match_count}/{total}, "
+                f"verified={verified_count}/{total}",
+                flush=True,
+            )
     return summary, exception_count
 
 
