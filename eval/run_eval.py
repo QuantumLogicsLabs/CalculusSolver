@@ -232,6 +232,9 @@ def evaluate(
             summary[operation]["component_accuracy"] = comp_rate
             print(
                 f"  {operation}: exact={exact_match_count}/{total}, "
+                f"verified={verified_count}/{total}, "
+                f"component_acc={grad_component_correct}/{grad_component_total} ({comp_rate:.1%})",
+                flush=True,
     return summary, exception_count
 
 
