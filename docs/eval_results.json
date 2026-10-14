@@ -40,7 +40,7 @@
         "operation": "partial",
         "records_in_file": 60,
         "records_evaluated": 60,
-        "sha256": "83588d1fbd90602515ca43e75d07a6db78b9791f9c52df15a61f2b240430f73d"
+        "sha256": "1aadeb957ae3934ff4c87a3c00ebf83e0a7eb51c5b00e33fd396b62390a9fad9"
       },
       {
         "file": "eval/benchmarks/benchmark_tangent_line.json",
