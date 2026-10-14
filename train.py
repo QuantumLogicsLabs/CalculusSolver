@@ -57,6 +57,7 @@ FINAL_CHECKPOINT_PATH = CHECKPOINT_DIR / "best.pt"
 class SlangDatasetLoader(Dataset):
     def __init__(self, file_path, max_len=MAX_LEN):
         self.data = []
+        self.gradient_var_counts = []
         self.max_len = max_len
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
