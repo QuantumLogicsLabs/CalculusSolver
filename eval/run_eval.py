@@ -167,6 +167,27 @@ def load_benchmarks(
     return loaded, manifest
 
 
+def compute_gradient_component_credit(prediction: Any, target: Any) -> tuple[int, int]:
+    if not isinstance(target, dict):
+        return 0, 0
+    target_components = target.get("gradient", target)
+    if not isinstance(target_components, dict):
+        return 0, 0
+    total_components = len(target_components)
+    if total_components == 0:
+        return 0, 0
+    pred_components = {}
+    if isinstance(prediction, dict):
+        pred_components = prediction.get("gradient", prediction)
+        if not isinstance(pred_components, dict):
+            pred_components = {}
+    correct = 0
+    for var, tgt_expr in target_components.items():
+        if var in pred_components and is_equivalent(pred_components[var], tgt_expr):
+            correct += 1
+    return correct, total_components
+
+
 def evaluate(
     solver: CalculusSolverInference, benchmarks: list[dict[str, Any]]
 ) -> tuple[dict[str, dict[str, Any]], int]:
@@ -178,6 +199,8 @@ def evaluate(
         problems = benchmark["problems"]
         exact_match_count = 0
         verified_count = 0
+        grad_component_correct = 0
+        grad_component_total = 0
         print(f"Evaluating {operation} ({len(problems)} problems)...", flush=True)
 
         for index, problem in enumerate(problems):
@@ -186,7 +209,11 @@ def evaluate(
                 prediction = result.get("output") or result.get("expr") or {}
                 exact_match_count += int(is_equivalent(prediction, problem["target"]))
                 verified_count += int(bool(result.get("verified", False)))
-            except Exception as exc:  # Keep the full-suite report usable while surfacing failures.
+                if operation == "gradient":
+                    p_correct, p_total = compute_gradient_component_credit(prediction, problem["target"])
+                    grad_component_correct += p_correct
+                    grad_component_total += p_total
+            except Exception as exc:
                 exception_count += 1
                 print(f"  ERROR {operation}[{index}]: {exc}", file=sys.stderr, flush=True)
 
@@ -198,11 +225,23 @@ def evaluate(
             "accuracy": exact_match_count / total if total else 0.0,
             "verification_rate": verified_count / total if total else 0.0,
         }
-        print(
-            f"  {operation}: exact={exact_match_count}/{total}, "
-            f"verified={verified_count}/{total}",
-            flush=True,
-        )
+        if operation == "gradient":
+            comp_rate = grad_component_correct / grad_component_total if grad_component_total else 0.0
+            summary[operation]["component_correct"] = grad_component_correct
+            summary[operation]["component_total"] = grad_component_total
+            summary[operation]["component_accuracy"] = comp_rate
+            print(
+                f"  {operation}: exact={exact_match_count}/{total}, "
+                f"verified={verified_count}/{total}, "
+                f"component_acc={grad_component_correct}/{grad_component_total} ({comp_rate:.1%})",
+                flush=True,
+            )
+        else:
+            print(
+                f"  {operation}: exact={exact_match_count}/{total}, "
+                f"verified={verified_count}/{total}",
+                flush=True,
+            )
     return summary, exception_count
 
 
@@ -313,10 +352,19 @@ def render_markdown(record: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            f"> Partial is not an active accuracy shortfall in this baseline: it is "
-            f"{fraction(summary['partial']['exact_match'], summary['partial']['total'])}. "
-            f"Gradient is {fraction(summary['gradient']['exact_match'], summary['gradient']['total'])}, "
-            f"and the gradient benchmark contains {summary['gradient']['total']} records.",
+            (
+                f"> Partial is not an active accuracy shortfall in this baseline: it is "
+                f"{fraction(summary['partial']['exact_match'], summary['partial']['total'])}. "
+                f"Gradient exact match is {fraction(summary['gradient']['exact_match'], summary['gradient']['total'])}, "
+                f"with per-component partial-credit accuracy at {fraction(summary['gradient']['component_correct'], summary['gradient']['component_total'])} "
+                f"across {summary['gradient']['total']} gradient records."
+                if "component_correct" in summary.get("gradient", {})
+                else
+                f"> Partial is not an active accuracy shortfall in this baseline: it is "
+                f"{fraction(summary['partial']['exact_match'], summary['partial']['total'])}. "
+                f"Gradient is {fraction(summary['gradient']['exact_match'], summary['gradient']['total'])}, "
+                f"and the gradient benchmark contains {summary['gradient']['total']} records."
+            ),
             "",
             "> Exact match and verification rate are distinct measurements. In particular, the current "
             "gradient verifier accepts predictions with an extra component, so verification can exceed exact match. "

@@ -12,42 +12,42 @@
     "checkpoint": "checkpoints/final/best.pt",
     "checkpoint_sha256": "f36c3798ba1e8aba62fb662c50bcb8a2ac5b3572140de5a6800c831876c7ff3c",
     "evaluator": "eval/run_eval.py",
-    "evaluator_sha256": "a3c3ed0cdb7a6e34a47270cf6608294acfe2eea18455ac52838722dc2c500ccd",
+    "evaluator_sha256": "40ffb1f234e23011353ba8b01f21e00379201f3a898cfea8dfdb8b5c19c34872",
     "benchmarks": [
       {
         "file": "eval/benchmarks/benchmark_diff.json",
         "operation": "diff",
         "records_in_file": 80,
         "records_evaluated": 80,
-        "sha256": "83d553720fea733c72b0a6ae28edbc6ed1c129c262cd5dfadb67d6482e9372a1"
+        "sha256": "d3de159d4f4d5e18568debf736039ab4a1679893829253016e4c68ba2ad6a09a"
       },
       {
         "file": "eval/benchmarks/benchmark_gradient.json",
         "operation": "gradient",
         "records_in_file": 72,
         "records_evaluated": 72,
-        "sha256": "2159d04e6c5ba874845e68bca23357e8a1fd3d425cd42497e710aa60d427c698"
+        "sha256": "cd4ea09457641d5b6b8cc97e66df74514ad8c8c62c568cf58fd8bca52edce89c"
       },
       {
         "file": "eval/benchmarks/benchmark_integrate.json",
         "operation": "integrate",
         "records_in_file": 60,
         "records_evaluated": 60,
-        "sha256": "061f1e69bb289fd55cba5979c35179592963c82f7a7faf52fa61d01a18f275de"
+        "sha256": "21c659bc24dcb4b5827b10661407f26203fb1143e4cd4196385e46c106a845b4"
       },
       {
         "file": "eval/benchmarks/benchmark_partial.json",
         "operation": "partial",
         "records_in_file": 60,
         "records_evaluated": 60,
-        "sha256": "83588d1fbd90602515ca43e75d07a6db78b9791f9c52df15a61f2b240430f73d"
+        "sha256": "1aadeb957ae3934ff4c87a3c00ebf83e0a7eb51c5b00e33fd396b62390a9fad9"
       },
       {
         "file": "eval/benchmarks/benchmark_tangent_line.json",
         "operation": "tangent_line",
         "records_in_file": 50,
         "records_evaluated": 50,
-        "sha256": "5f06315bbde35e01f9baa87cccbcc57d5a7591c7ed72bc5216daae9964b6a3b0"
+        "sha256": "fe537963b53320f7c7b2bb8c2d47ccb3cc01ac8c61047d472ab3b6bb8cee4ef5"
       }
     ]
   },

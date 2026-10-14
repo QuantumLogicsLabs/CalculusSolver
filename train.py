@@ -57,10 +57,24 @@ FINAL_CHECKPOINT_PATH = CHECKPOINT_DIR / "best.pt"
 class SlangDatasetLoader(Dataset):
     def __init__(self, file_path, max_len=MAX_LEN):
         self.data = []
+        self.gradient_var_counts = []
         self.max_len = max_len
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
-                self.data.append(json.loads(line))
+                item = json.loads(line)
+                self.data.append(item)
+                op = (
+                    item["src_tokens"].get("op", "unknown")
+                    if isinstance(item.get("src_tokens"), dict)
+                    else "unknown"
+                )
+                if op == "gradient":
+                    tgt = item.get("tgt_output_tokens", {})
+                    grad = tgt.get("gradient", {}) if isinstance(tgt, dict) else {}
+                    n_vars = len(grad.keys()) if isinstance(grad, dict) else 1
+                else:
+                    n_vars = 0
+                self.gradient_var_counts.append(n_vars)
 
     def __len__(self):
         return len(self.data)
@@ -272,15 +286,15 @@ def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=None,
 
 
 def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
-    """Return probability of using model's own prediction for this epoch."""
     if not ss_config.get("enabled", False):
         return 0.0
     
     start = ss_config.get("start_prob", 0.0)
-    end = ss_config.get("end_prob", 0.3)
+    end = ss_config.get("end_prob", 0.7)
     schedule = ss_config.get("schedule", "linear")
+    ramp_epochs = ss_config.get("ramp_epochs", min(11, total_epochs))
     
-    progress = (epoch - 1) / max(total_epochs - 1, 1)
+    progress = min(1.0, max(0.0, (epoch - 1) / max(ramp_epochs - 1, 1)))
     
     if schedule == "linear":
         return start + (end - start) * progress
@@ -297,6 +311,22 @@ def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
         return start + (end - start) * normalized
     else:
         return start + (end - start) * progress
+
+
+def get_curriculum_weights(dataset, epoch, curriculum_cfg):
+    if not curriculum_cfg.get("enabled", False):
+        return None
+    start_w = curriculum_cfg.get("gradient_3var_start_weight", 0.1)
+    ramp_ep = curriculum_cfg.get("gradient_3var_ramp_epochs", 5)
+    progress = min(1.0, max(0.0, (epoch - 1) / max(ramp_ep - 1, 1)))
+    if progress >= 1.0:
+        return None
+    w_3var = start_w + (1.0 - start_w) * progress
+    weights = [
+        w_3var if n_vars >= 3 else 1.0
+        for n_vars in dataset.gradient_var_counts
+    ]
+    return torch.tensor(weights, dtype=torch.double)
 
 
 def write_training_results(metrics_log, best_val_loss, git_commit_hash):
@@ -462,6 +492,8 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
 
     global_step = 0
 
+    curriculum_cfg = config.get("curriculum", {})
+
     print("[DEBUG] Entering training loop...", flush=True)
     for epoch in range(1, epochs + 1):
         print(f"[DEBUG] Starting epoch {epoch}, waiting for first batch from DataLoader...", flush=True)
@@ -469,12 +501,23 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
         epoch_loss = 0.0
         steps_run = 0
 
+        curr_weights = get_curriculum_weights(train_dataset, epoch, curriculum_cfg)
+        if curr_weights is not None:
+            sampler = torch.utils.data.WeightedRandomSampler(
+                weights=curr_weights,
+                num_samples=len(train_dataset),
+                replacement=True
+            )
+            epoch_loader = DataLoader(train_dataset, batch_size=config["batch_size"], sampler=sampler)
+        else:
+            epoch_loader = train_loader
+
         ss_config = config.get("scheduled_sampling", {})
         ss_prob = get_scheduled_sampling_prob(epoch, epochs, ss_config)
         if ss_config.get("enabled"):
             print(f"  [Scheduled Sampling] Epoch {epoch}: model-token prob = {ss_prob:.3f}")
 
-        for step, batch in enumerate(train_loader):
+        for step, batch in enumerate(epoch_loader):
             if step >= max_steps_cfg:
                 break
             if step < 3 or step % 10 == 0:
