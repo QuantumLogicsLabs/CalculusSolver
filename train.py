@@ -68,6 +68,9 @@ class SlangDatasetLoader(Dataset):
                     if isinstance(item.get("src_tokens"), dict)
                     else "unknown"
                 )
+                if op == "gradient":
+                    tgt = item.get("tgt_output_tokens", {})
+                    grad = tgt.get("gradient", {}) if isinstance(tgt, dict) else {}
 
     def __len__(self):
         return len(self.data)
