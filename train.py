@@ -286,7 +286,6 @@ def evaluate_free_running(model, val_dataset, num_examples=15, max_gen_len=None,
 
 
 def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
-    """Return probability of using model's own prediction for this epoch."""
     if not ss_config.get("enabled", False):
         return 0.0
     
