@@ -26,7 +26,7 @@
         "operation": "gradient",
         "records_in_file": 72,
         "records_evaluated": 72,
-        "sha256": "2159d04e6c5ba874845e68bca23357e8a1fd3d425cd42497e710aa60d427c698"
+        "sha256": "cd4ea09457641d5b6b8cc97e66df74514ad8c8c62c568cf58fd8bca52edce89c"
       },
       {
         "file": "eval/benchmarks/benchmark_integrate.json",
