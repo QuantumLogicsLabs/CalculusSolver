@@ -225,11 +225,9 @@ def evaluate(
             "accuracy": exact_match_count / total if total else 0.0,
             "verification_rate": verified_count / total if total else 0.0,
         }
-        print(
-            f"  {operation}: exact={exact_match_count}/{total}, "
-            f"verified={verified_count}/{total}",
-            flush=True,
-        )
+        if operation == "gradient":
+            comp_rate = grad_component_correct / grad_component_total if grad_component_total else 0.0
+            summary[operation]["component_correct"] = grad_component_correct
     return summary, exception_count
 
 
