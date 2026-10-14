@@ -317,6 +317,10 @@ def get_curriculum_weights(dataset, epoch, curriculum_cfg):
     if not curriculum_cfg.get("enabled", False):
         return None
     start_w = curriculum_cfg.get("gradient_3var_start_weight", 0.1)
+    ramp_ep = curriculum_cfg.get("gradient_3var_ramp_epochs", 5)
+    progress = min(1.0, max(0.0, (epoch - 1) / max(ramp_ep - 1, 1)))
+    if progress >= 1.0:
+        return None
 
 
 def write_training_results(metrics_log, best_val_loss, git_commit_hash):
