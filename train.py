@@ -517,7 +517,7 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
         if ss_config.get("enabled"):
             print(f"  [Scheduled Sampling] Epoch {epoch}: model-token prob = {ss_prob:.3f}")
 
-        for step, batch in enumerate(train_loader):
+        for step, batch in enumerate(epoch_loader):
             if step >= max_steps_cfg:
                 break
             if step < 3 or step % 10 == 0:
