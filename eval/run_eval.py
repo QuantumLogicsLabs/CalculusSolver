@@ -177,6 +177,10 @@ def compute_gradient_component_credit(prediction: Any, target: Any) -> tuple[int
     if total_components == 0:
         return 0, 0
     pred_components = {}
+    if isinstance(prediction, dict):
+        pred_components = prediction.get("gradient", prediction)
+        if not isinstance(pred_components, dict):
+            pred_components = {}
 def evaluate(
     solver: CalculusSolverInference, benchmarks: list[dict[str, Any]]
 ) -> tuple[dict[str, dict[str, Any]], int]:
