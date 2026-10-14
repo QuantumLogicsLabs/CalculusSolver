@@ -22,6 +22,9 @@
     "schedule": "linear"
   },
   "curriculum": {
+    "enabled": true,
+    "gradient_3var_start_weight": 0.1,
+    "gradient_3var_ramp_epochs": 5
   },
   "proxy_eval_examples": 15,
   "lr_decay": {
