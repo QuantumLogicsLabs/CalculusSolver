@@ -211,6 +211,9 @@ def evaluate(
                 verified_count += int(bool(result.get("verified", False)))
                 if operation == "gradient":
                     p_correct, p_total = compute_gradient_component_credit(prediction, problem["target"])
+                    grad_component_correct += p_correct
+                    grad_component_total += p_total
+            except Exception as exc:
                 exception_count += 1
                 print(f"  ERROR {operation}[{index}]: {exc}", file=sys.stderr, flush=True)
 
