@@ -362,6 +362,9 @@ def render_markdown(record: dict[str, Any]) -> str:
                 else
                 f"> Partial is not an active accuracy shortfall in this baseline: it is "
                 f"{fraction(summary['partial']['exact_match'], summary['partial']['total'])}. "
+                f"Gradient is {fraction(summary['gradient']['exact_match'], summary['gradient']['total'])}, "
+                f"and the gradient benchmark contains {summary['gradient']['total']} records."
+            ),
             "",
             "> Exact match and verification rate are distinct measurements. In particular, the current "
             "gradient verifier accepts predictions with an extra component, so verification can exceed exact match. "
