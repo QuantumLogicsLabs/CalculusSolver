@@ -228,6 +228,10 @@ def evaluate(
         if operation == "gradient":
             comp_rate = grad_component_correct / grad_component_total if grad_component_total else 0.0
             summary[operation]["component_correct"] = grad_component_correct
+            summary[operation]["component_total"] = grad_component_total
+            summary[operation]["component_accuracy"] = comp_rate
+            print(
+                f"  {operation}: exact={exact_match_count}/{total}, "
     return summary, exception_count
 
 
