@@ -290,7 +290,7 @@ def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
         return 0.0
     
     start = ss_config.get("start_prob", 0.0)
-    end = ss_config.get("end_prob", 0.3)
+    end = ss_config.get("end_prob", 0.7)
     schedule = ss_config.get("schedule", "linear")
     
     progress = (epoch - 1) / max(total_epochs - 1, 1)
