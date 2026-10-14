@@ -33,7 +33,7 @@
         "operation": "integrate",
         "records_in_file": 60,
         "records_evaluated": 60,
-        "sha256": "061f1e69bb289fd55cba5979c35179592963c82f7a7faf52fa61d01a18f275de"
+        "sha256": "21c659bc24dcb4b5827b10661407f26203fb1143e4cd4196385e46c106a845b4"
       },
       {
         "file": "eval/benchmarks/benchmark_partial.json",
