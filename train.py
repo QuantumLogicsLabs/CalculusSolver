@@ -313,6 +313,9 @@ def get_scheduled_sampling_prob(epoch, total_epochs, ss_config):
         return start + (end - start) * progress
 
 
+def get_curriculum_weights(dataset, epoch, curriculum_cfg):
+
+
 def write_training_results(metrics_log, best_val_loss, git_commit_hash):
     docs_dir = Path("docs")
     docs_dir.mkdir(exist_ok=True)
