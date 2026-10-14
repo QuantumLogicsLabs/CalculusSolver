@@ -199,6 +199,8 @@ def evaluate(
         problems = benchmark["problems"]
         exact_match_count = 0
         verified_count = 0
+        grad_component_correct = 0
+        grad_component_total = 0
         print(f"Evaluating {operation} ({len(problems)} problems)...", flush=True)
 
         for index, problem in enumerate(problems):
