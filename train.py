@@ -324,6 +324,9 @@ def get_curriculum_weights(dataset, epoch, curriculum_cfg):
     w_3var = start_w + (1.0 - start_w) * progress
     weights = [
         w_3var if n_vars >= 3 else 1.0
+        for n_vars in dataset.gradient_var_counts
+    ]
+    return torch.tensor(weights, dtype=torch.double)
 
 
 def write_training_results(metrics_log, best_val_loss, git_commit_hash):
