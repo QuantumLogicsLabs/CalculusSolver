@@ -66,7 +66,7 @@ class EvalReportFreshnessTests(unittest.TestCase):
         self.assertEqual(
             (summary["gradient"]["exact_match"], summary["gradient"]["total"]), (72, 72)
         )
-        self.assertEqual(overall["total"], 268)
+        self.assertEqual(overall["total"], 322)
 
 
 if __name__ == "__main__":
