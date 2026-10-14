@@ -71,6 +71,10 @@ class SlangDatasetLoader(Dataset):
                 if op == "gradient":
                     tgt = item.get("tgt_output_tokens", {})
                     grad = tgt.get("gradient", {}) if isinstance(tgt, dict) else {}
+                    n_vars = len(grad.keys()) if isinstance(grad, dict) else 1
+                else:
+                    n_vars = 0
+                self.gradient_var_counts.append(n_vars)
 
     def __len__(self):
         return len(self.data)
