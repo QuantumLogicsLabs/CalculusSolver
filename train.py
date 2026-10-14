@@ -492,6 +492,8 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
 
     global_step = 0
 
+    curriculum_cfg = config.get("curriculum", {})
+
     print("[DEBUG] Entering training loop...", flush=True)
     for epoch in range(1, epochs + 1):
         print(f"[DEBUG] Starting epoch {epoch}, waiting for first batch from DataLoader...", flush=True)
