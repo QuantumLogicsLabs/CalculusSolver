@@ -167,6 +167,10 @@ def load_benchmarks(
     return loaded, manifest
 
 
+def compute_gradient_component_credit(prediction: Any, target: Any) -> tuple[int, int]:
+    if not isinstance(target, dict):
+        return 0, 0
+    target_components = target.get("gradient", target)
 def evaluate(
     solver: CalculusSolverInference, benchmarks: list[dict[str, Any]]
 ) -> tuple[dict[str, dict[str, Any]], int]:
