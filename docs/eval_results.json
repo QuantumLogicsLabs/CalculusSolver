@@ -19,7 +19,7 @@
         "operation": "diff",
         "records_in_file": 80,
         "records_evaluated": 80,
-        "sha256": "83d553720fea733c72b0a6ae28edbc6ed1c129c262cd5dfadb67d6482e9372a1"
+        "sha256": "d3de159d4f4d5e18568debf736039ab4a1679893829253016e4c68ba2ad6a09a"
       },
       {
         "file": "eval/benchmarks/benchmark_gradient.json",
