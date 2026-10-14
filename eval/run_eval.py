@@ -235,6 +235,10 @@ def evaluate(
                 f"verified={verified_count}/{total}, "
                 f"component_acc={grad_component_correct}/{grad_component_total} ({comp_rate:.1%})",
                 flush=True,
+            )
+        else:
+            print(
+                f"  {operation}: exact={exact_match_count}/{total}, "
     return summary, exception_count
 
 
