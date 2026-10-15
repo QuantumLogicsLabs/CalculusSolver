@@ -319,45 +319,80 @@ def generate_multivar_diff():
 
 
 def generate_partial_constant_vanish(var: Optional[str] = None):
-    if var is None:
-        var = random.choice(VARIABLES)
-    others = [v for v in VARIABLES if v != var]
+    """
+    Generate two binding-contrast examples of partial differentiation where
+    terms that are constant w.r.t. the differentiation variable vanish.
+
+    Returns a list of two problems (same source terms, different bound vars)
+    so the caller can extend the dataset with both rows.
+    """
+    # Build a multi-variable expression whose terms each involve a distinct variable.
+    # This guarantees that differentiating w.r.t. any one of them makes the others vanish.
+    vars_pool = list(VARIABLES)
+    random.shuffle(vars_pool)
+
+    # Decide how many terms (2 or 3) so we always have at least two distinct variables.
+    num_terms = random.randint(2, 3)
+    chosen_vars = vars_pool[:num_terms]
+
     valid_coeffs = safe_nonzero_coeffs()
     valid_exps = safe_pos_exponents()
 
-    for _ in range(60):
-        target_coeff = random.choice(valid_coeffs)
-        target_power = 1 if random.random() < 0.60 else 2
-        if _output_in_vocab(target_coeff, target_power):
-            break
-    else:
-        target_coeff, target_power = 2, 1
+    terms = []
+    used_coeffs = set()
+    for v in chosen_vars:
+        candidates = [c for c in valid_coeffs if c not in used_coeffs] or valid_coeffs
+        coeff = random.choice(candidates)
+        used_coeffs.add(coeff)
 
-    target_term = {"coeff": target_coeff, "var": {var: target_power}}
+        # Prefer power 1 (most common vanishing-case) but allow higher powers
+        # only when the resulting coefficient stays inside the existing vocab.
+        power = 1 if random.random() < 0.60 else random.choice(valid_exps)
+        for _ in range(40):
+            # CRITICAL: pass (coeff, power) — the helper multiplies them itself
+            if _output_in_vocab(coeff, power):
+                break
+            power = 1 if random.random() < 0.60 else random.choice(valid_exps)
+        else:
+            # Absolute fallback that is guaranteed to be in vocab
+            coeff, power = 2, 1
 
-    non_target_terms = []
-    num_others = random.randint(1, 2)
-    used_coeffs = {target_coeff}
-    for i in range(num_others):
-        other_var = others[i % len(others)]
-        candidates = [x for x in valid_coeffs if x not in used_coeffs] or valid_coeffs
-        c = random.choice(candidates)
-        used_coeffs.add(c)
-        p = random.choice(valid_exps)
-        non_target_terms.append({"coeff": c, "var": {other_var: p}})
+        terms.append({"coeff": coeff, "var": {v: power}})
 
-    src_terms = [target_term] + non_target_terms
-    random.shuffle(src_terms)
+    # Step 4.1 – shuffle so the surviving term is not always first.
+    random.shuffle(terms)
 
-    ans_coeff = target_coeff * target_power
-    if target_power == 1:
-        ans_terms = [{"coeff": ans_coeff}]
-    else:
-        ans_terms = [{"coeff": ans_coeff, "var": {var: target_power - 1}}]
+    variables_in_expr = [list(t["var"].keys())[0] for t in terms]
 
-    src_expr = {"numi": {"terms": src_terms}, "deno": 1}
-    ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
-    return [src_expr], [ans_expr], var, RULE_ID_PARTIAL
+    def _build_partial_problem(src_terms, bind_var):
+        # Locate the (unique) term that depends on bind_var; all others vanish.
+        target = next(t for t in src_terms if bind_var in t["var"])
+        power = target["var"][bind_var]
+        ans_coeff = target["coeff"] * power
+
+        # Final safety net – never emit a coefficient absent from vocab.json
+        if not is_valid_num(ans_coeff):
+            # Should never happen after the loop above, but guard anyway
+            ans_coeff = target["coeff"]  # power == 1 case is always safe
+            power = 1
+
+        if power == 1:
+            ans_terms = [{"coeff": ans_coeff}]
+        else:
+            ans_terms = [{"coeff": ans_coeff, "var": {bind_var: power - 1}}]
+
+        src_expr = {"numi": {"terms": src_terms}, "deno": 1}
+        ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
+        return [src_expr], [ans_expr], bind_var, RULE_ID_PARTIAL
+
+    # Step 4.2 – binding-contrast twin: same terms, different bound variable.
+    bind_var = random.choice(variables_in_expr)
+    other_var = random.choice([v for v in variables_in_expr if v != bind_var])
+
+    problem_a = _build_partial_problem(terms, bind_var)
+    problem_b = _build_partial_problem(terms, other_var)
+
+    return [problem_a, problem_b]
 
 
 def generate_sin_diff(var: str = "x"):
@@ -470,15 +505,9 @@ def generate_multi_term_integrate(var: str = "x", num_terms: Optional[int] = Non
     return src_expr, ans_expr, RULE_ID_INTEGRAL
 
 
-def _choose_2var_pair() -> Tuple[str, str]:
-    """Bias pair choice toward {x, y} (60/20/20)."""
-    r = random.random()
-    if r < 0.6:
-        return ("x", "y")
-    elif r < 0.8:
-        return ("x", "z")
-    else:
-        return ("y", "z")
+def _choose_2var_pair():
+    # even split across all three pairs — matches benchmark distribution
+    return random.choice([("x", "y"), ("x", "z"), ("y", "z")])
 
 
 def generate_gradient_diff():
@@ -718,8 +747,8 @@ def generate_slang_dataset(target_total: int = 75000):
         ("ln_diff", 80),
         ("integrate_single", 1000),
         ("integrate_multi", 8000),
-        ("gradient_2var", 20000),
-        ("gradient_3var", 10000),
+        ("gradient_2var", 11000),
+        ("gradient_3var", 9000),
         ("gradient_1var", 5000),
         ("tangent_line_single", 3000),
         ("tangent_line_multi", 4000),
@@ -767,14 +796,21 @@ def generate_slang_dataset(target_total: int = 75000):
                     else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
                 )
             elif cat_name == "partial_constant_vanish":
-                result = generate_partial_constant_vanish(var)
-                src_terms, ans_terms, mvar, rid = result
-                src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
-                ans = (
-                    ans_terms[0]
-                    if ans_terms
-                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
-                )
+                # Function now returns a list of two (src_terms, ans_terms, mvar, rid) tuples
+                results = generate_partial_constant_vanish(var)
+                added_this_call = 0
+                for result in results:
+                    src_terms, ans_terms, mvar, rid = result
+                    src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+                    ans = (
+                        ans_terms[0]
+                        if ans_terms
+                        else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                    )
+                    if try_add(src_op, ans, rid):
+                        added_this_call += 1
+                added_for_cat += added_this_call
+                continue  # already counted via try_add; skip the common try_add below
             elif cat_name == "sin_diff":
                 src, ans, rid = generate_sin_diff(var)
                 src_op = {"op": "diff", "var": var, "expr": src}
@@ -848,6 +884,7 @@ def generate_slang_dataset(target_total: int = 75000):
                 if ans_terms
                 else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
             )
+            try_add(src_op, ans, rid)
         elif st == "multivar_diff":
             result = generate_multivar_diff()
             if result is None:
@@ -859,31 +896,38 @@ def generate_slang_dataset(target_total: int = 75000):
                 if ans_terms
                 else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
             )
+            try_add(src_op, ans, rid)
         elif st == "partial_constant_vanish":
-            result = generate_partial_constant_vanish(var)
-            src_terms, ans_terms, mvar, rid = result
-            src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
-            ans = (
-                ans_terms[0]
-                if ans_terms
-                else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
-            )
+            # Function now returns a list of two problems
+            results = generate_partial_constant_vanish(var)
+            for result in results:
+                src_terms, ans_terms, mvar, rid = result
+                src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+                ans = (
+                    ans_terms[0]
+                    if ans_terms
+                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                )
+                try_add(src_op, ans, rid)
         elif st == "integrate_multi":
             src, ans, rid = generate_multi_term_integrate(var)
             src_op = {"op": "integrate", "var": var, "expr": src}
+            try_add(src_op, ans, rid)
         elif st == "gradient_2var":
             expr, ans, rid = generate_gradient_diff()
             src_op = {"op": "gradient", "var": var, "expr": expr}
+            try_add(src_op, ans, rid)
         elif st == "gradient_3var":
             expr, ans, rid = generate_gradient_diff_3var()
             src_op = {"op": "gradient", "var": var, "expr": expr}
+            try_add(src_op, ans, rid)
         elif st == "gradient_1var":
             expr, ans, rid = generate_gradient_diff_1var()
             src_op = {"op": "gradient", "var": var, "expr": expr}
+            try_add(src_op, ans, rid)
         else:
             src_op, ans, _, rid = generate_multi_term_tangent_line(var)
-
-        try_add(src_op, ans, rid)
+            try_add(src_op, ans, rid)
 
     random.shuffle(dataset)
     total = len(dataset)
