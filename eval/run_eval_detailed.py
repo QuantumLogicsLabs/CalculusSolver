@@ -20,7 +20,7 @@ def main(checkpoint_rel, max_len, out_json, only_op=None):
         sys.exit(2)
 
     print(f"Loading model from {checkpoint_path} (max_len={max_len})...")
-    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=3, max_len=max_len)
+    solver = CalculusSolverInference(model_path=str(checkpoint_path), beam_size=5, max_len=max_len)
     print("Model loaded.")
 
     benchmark_dir = ROOT / "eval" / "benchmarks"
