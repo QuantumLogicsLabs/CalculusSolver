@@ -67,10 +67,10 @@ def parse_args() -> argparse.Namespace:
         "--sample", type=int, default=None, help="Evaluate only the first N records per category"
     )
     parser.add_argument(
-        "--beam-size", type=int, default=3, help="Beam size for decoding (canonical baseline: 3)"
+        "--beam-size", type=int, default=5, help="Beam size for decoding (default: 5)"
     )
     parser.add_argument(
-        "--max-len", type=int, default=64, help="Maximum decoded token count (canonical baseline: 64)"
+        "--max-len", type=int, default=80, help="Maximum decoded token count (default: 80)"
     )
     parser.add_argument(
         "--no-fallback",

@@ -106,6 +106,7 @@ def beam_search(
     repetition_penalty: float = 1.2,
     repetition_min_count: int = 7,
     seed_rule_token: Optional[str] = None,
+    allowed_opvars: Optional[set] = None,
 ) -> Dict[str, Any]:
     device = src_tokens.device
     vocab = vocab_map["token_to_id"]
@@ -189,6 +190,11 @@ def beam_search(
             )
 
             mask = node_pool.mask(validity_tokens, all_candidate_tokens)
+            if allowed_opvars is not None:
+                mask = [
+                    (is_val and (not cand.startswith("OPVAR:") or cand in allowed_opvars))
+                    for is_val, cand in zip(mask, all_candidate_tokens)
+                ]
             vocab_len = next_logits.size(0)
             padded_mask = mask + [True] * max(0, vocab_len - len(mask))
             invalid_mask = torch.tensor(
