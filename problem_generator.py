@@ -247,7 +247,7 @@ def generate_multivar_diff():
     var = random.choice(VARIABLES)
     others = [v for v in VARIABLES if v != var]
     shape = random.choices(
-        ["single", "two_target", "mixed"], weights=[50, 27, 23], k=1
+        ["single", "two_target", "mixed"], weights=[35, 35, 30], k=1
     )[0]
 
     used_coeffs: Set[int] = set()
@@ -735,11 +735,11 @@ def generate_slang_dataset(target_total: int = 75000):
 
     categories = [
         ("single_term_diff", 1000),
-        ("multi_term_diff", 12000),
+        ("multi_term_diff", 8000),
         ("constant_term", 30),
         ("negative_exp_diff", 1500),
-        ("multivar_diff", 15000),
-        ("partial_constant_vanish", 10000),
+        ("multivar_diff", 16000),
+        ("partial_constant_vanish", 14000),
         ("sin_diff", 80),
         ("cos_diff", 80),
         ("tan_diff", 80),
@@ -747,9 +747,9 @@ def generate_slang_dataset(target_total: int = 75000):
         ("ln_diff", 80),
         ("integrate_single", 1000),
         ("integrate_multi", 8000),
-        ("gradient_2var", 11000),
-        ("gradient_3var", 9000),
-        ("gradient_1var", 5000),
+        ("gradient_2var", 12000),
+        ("gradient_3var", 10000),
+        ("gradient_1var", 4000),
         ("tangent_line_single", 3000),
         ("tangent_line_multi", 4000),
     ]
@@ -834,13 +834,16 @@ def generate_slang_dataset(target_total: int = 75000):
                 src_op = {"op": "integrate", "var": var, "expr": src}
             elif cat_name == "gradient_2var":
                 expr, ans, rid = generate_gradient_diff()
-                src_op = {"op": "gradient", "var": var, "expr": expr}
+                var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+                src_op = {"op": "gradient", "var": var_primary, "expr": expr}
             elif cat_name == "gradient_3var":
                 expr, ans, rid = generate_gradient_diff_3var()
-                src_op = {"op": "gradient", "var": var, "expr": expr}
+                var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+                src_op = {"op": "gradient", "var": var_primary, "expr": expr}
             elif cat_name == "gradient_1var":
                 expr, ans, rid = generate_gradient_diff_1var()
-                src_op = {"op": "gradient", "var": var, "expr": expr}
+                var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+                src_op = {"op": "gradient", "var": var_primary, "expr": expr}
             elif cat_name == "tangent_line_single":
                 src_op, ans, _, rid = generate_tangent_line_diff(var)
             elif cat_name == "tangent_line_multi":
@@ -915,15 +918,18 @@ def generate_slang_dataset(target_total: int = 75000):
             try_add(src_op, ans, rid)
         elif st == "gradient_2var":
             expr, ans, rid = generate_gradient_diff()
-            src_op = {"op": "gradient", "var": var, "expr": expr}
+            var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+            src_op = {"op": "gradient", "var": var_primary, "expr": expr}
             try_add(src_op, ans, rid)
         elif st == "gradient_3var":
             expr, ans, rid = generate_gradient_diff_3var()
-            src_op = {"op": "gradient", "var": var, "expr": expr}
+            var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+            src_op = {"op": "gradient", "var": var_primary, "expr": expr}
             try_add(src_op, ans, rid)
         elif st == "gradient_1var":
             expr, ans, rid = generate_gradient_diff_1var()
-            src_op = {"op": "gradient", "var": var, "expr": expr}
+            var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+            src_op = {"op": "gradient", "var": var_primary, "expr": expr}
             try_add(src_op, ans, rid)
         else:
             src_op, ans, _, rid = generate_multi_term_tangent_line(var)

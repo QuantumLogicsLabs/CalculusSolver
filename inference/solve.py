@@ -236,6 +236,13 @@ class CalculusSolverInference:
         padded_tokens = token_ids + [self.pad_id] * (self.max_len - len(token_ids))
         src_tokens = torch.tensor([padded_tokens], dtype=torch.long, device=self.device)
 
+        allowed_opvars = None
+        if normalized_env.get("op") == "gradient":
+            from inference.verifier import get_variables
+            input_vars = get_variables(normalized_env)
+            if input_vars:
+                allowed_opvars = {f"OPVAR:{v}" for v in input_vars}
+
         result = beam_search(
             model=self.model,
             src_tokens=src_tokens,
@@ -244,6 +251,7 @@ class CalculusSolverInference:
             max_len=self.max_len,
             node_pool=self.node_pool,
             seed_rule_token=rule_token,
+            allowed_opvars=allowed_opvars,
         )
 
         output_token_strings = [

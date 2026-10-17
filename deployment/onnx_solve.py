@@ -69,6 +69,13 @@ class ONNXCalculusSolverInference:
         token_ids = token_ids[: self.max_len]
         padded_tokens = token_ids + [self.pad_id] * (self.max_len - len(token_ids))
 
+        allowed_opvars = None
+        if input_env.get("op") == "gradient":
+            from inference.verifier import get_variables
+            input_vars = get_variables(input_env)
+            if input_vars:
+                allowed_opvars = {f"OPVAR:{v}" for v in input_vars}
+
         result = onnx_beam_search(
             session=self.session,
             src_tokens=padded_tokens,
@@ -76,6 +83,7 @@ class ONNXCalculusSolverInference:
             beam_size=self.beam_size,
             max_len=self.max_len,
             node_pool=self.node_pool,
+            allowed_opvars=allowed_opvars,
         )
 
         output_token_strings = [

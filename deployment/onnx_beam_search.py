@@ -59,6 +59,7 @@ def onnx_beam_search(
     no_repeat_ngram_size: int = 2,
     repetition_penalty: float = 1.2,
     repetition_min_count: int = 4,
+    allowed_opvars: Optional[set] = None,
 ) -> Dict[str, Any]:
     """Mirrors inference/beam_search.py::beam_search(), but drives the
     exported ONNX graph via onnxruntime instead of a torch.nn.Module."""
@@ -109,6 +110,11 @@ def onnx_beam_search(
                         )
 
             mask = node_pool.mask(validity_tokens, all_candidate_tokens)
+            if allowed_opvars is not None:
+                mask = [
+                    (is_val and (not cand.startswith("OPVAR:") or cand in allowed_opvars))
+                    for is_val, cand in zip(mask, all_candidate_tokens)
+                ]
             safe_logits = next_logits.copy()
             safe_logits[[not v for v in mask]] = -np.inf
 
