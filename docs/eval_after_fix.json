@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "evaluation_mode": "pure_neural",
+  "settings": {
+    "beam_size": 5,
+    "max_len": 80,
+    "seed": 0,
+    "sample_per_category": null,
+    "fallback_enabled": false
+  },
+  "inputs": {
+    "checkpoint": "checkpoints/final/best.pt",
+    "checkpoint_sha256": "8bebf8a670f587eb39272d46010ebcf21f42abf6b1e1418134d80e1beb6e560d",
+    "evaluator": "eval/run_eval.py",
+    "evaluator_sha256": "4af4cafa895a6d75eb74e2ad522f9f28fc92a61cd0eb8b382601b233b1b2e791",
+    "benchmarks": [
+      {
+        "file": "eval/benchmarks/benchmark_diff.json",
+        "operation": "diff",
+        "records_in_file": 80,
+        "records_evaluated": 80,
+        "sha256": "83d553720fea733c72b0a6ae28edbc6ed1c129c262cd5dfadb67d6482e9372a1"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_gradient.json",
+        "operation": "gradient",
+        "records_in_file": 72,
+        "records_evaluated": 72,
+        "sha256": "2159d04e6c5ba874845e68bca23357e8a1fd3d425cd42497e710aa60d427c698"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_integrate.json",
+        "operation": "integrate",
+        "records_in_file": 60,
+        "records_evaluated": 60,
+        "sha256": "061f1e69bb289fd55cba5979c35179592963c82f7a7faf52fa61d01a18f275de"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_partial.json",
+        "operation": "partial",
+        "records_in_file": 60,
+        "records_evaluated": 60,
+        "sha256": "83588d1fbd90602515ca43e75d07a6db78b9791f9c52df15a61f2b240430f73d"
+      },
+      {
+        "file": "eval/benchmarks/benchmark_tangent_line.json",
+        "operation": "tangent_line",
+        "records_in_file": 50,
+        "records_evaluated": 50,
+        "sha256": "5f06315bbde35e01f9baa87cccbcc57d5a7591c7ed72bc5216daae9964b6a3b0"
+      }
+    ]
+  },
+  "environment": {
+    "git_commit": "17e1e1ad1a3682d45768505fa30fc32266151e04",
+    "git_dirty": true,
+    "python": "3.13.15",
+    "torch": "2.11.0+cu130",
+    "numpy": "2.1.3",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39"
+  },
+  "summary": {
+    "diff": {
+      "total": 80,
+      "exact_match": 69,
+      "verified": 69,
+      "accuracy": 0.8625,
+      "verification_rate": 0.8625
+    },
+    "gradient": {
+      "total": 72,
+      "exact_match": 21,
+      "verified": 21,
+      "accuracy": 0.2916666666666667,
+      "verification_rate": 0.2916666666666667,
+      "component_correct": 53,
+      "component_total": 162,
+      "component_accuracy": 0.3271604938271605
+    },
+    "integrate": {
+      "total": 60,
+      "exact_match": 56,
+      "verified": 56,
+      "accuracy": 0.9333333333333333,
+      "verification_rate": 0.9333333333333333
+    },
+    "partial": {
+      "total": 60,
+      "exact_match": 25,
+      "verified": 25,
+      "accuracy": 0.4166666666666667,
+      "verification_rate": 0.4166666666666667
+    },
+    "tangent_line": {
+      "total": 50,
+      "exact_match": 38,
+      "verified": 38,
+      "accuracy": 0.76,
+      "verification_rate": 0.76
+    }
+  },
+  "overall": {
+    "total": 322,
+    "exact_match": 209,
+    "verified": 209,
+    "accuracy": 0.6490683229813664,
+    "verification_rate": 0.6490683229813664,
+    "exceptions": 0
+  },
+  "comparison": {
+    "stale_document": {
+      "benchmark_total": 300,
+      "partial": {
+        "exact_match": 31,
+        "total": 60,
+        "accuracy": 0.5166666666666667
+      },
+      "gradient": {
+        "exact_match": 20,
+        "total": 50,
+        "accuracy": 0.4
+      },
+      "overall": {
+        "exact_match": 219,
+        "total": 300,
+        "accuracy": 0.73
+      }
+    },
+    "resolution": "Commit e9b7923 reduced benchmark_gradient.json from 50 records to 18. Regenerating from the five current files changes the suite total from 300 to 268."
+  }
+}

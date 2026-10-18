@@ -535,6 +535,7 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
                 with torch.no_grad():
                     pred_logits, _, _ = model(src_seq, tgt_in, true_rule_ids=rule_id)
                     pred_tokens = pred_logits.argmax(dim=-1)
+                    shifted_pred = torch.cat([tgt_in[:, :1], pred_tokens[:, :-1]], dim=1)
                 
                 ss_mask = torch.rand_like(tgt_in, dtype=torch.float) < ss_prob
                 bos_id = vocab_mapping["[BOS]"]
@@ -543,7 +544,7 @@ def run_training_pipeline(from_scratch=False, override_epochs=None, override_max
                 special_mask = (tgt_in == bos_id) | (tgt_in == eos_id) | (tgt_in == pad_id)
                 ss_mask = ss_mask & ~special_mask
                 
-                tgt_in = torch.where(ss_mask, pred_tokens, tgt_in)
+                tgt_in = torch.where(ss_mask, shifted_pred, tgt_in)
             decoder_logits, rule_logits, verifier_logits = model(src_seq, tgt_in, true_rule_ids=rule_id)
             loss = criterion(decoder_logits.reshape(-1, REAL_VOCAB_SIZE), tgt_out.reshape(-1))
             

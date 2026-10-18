@@ -6,7 +6,7 @@
   "max_steps": 3500,
   "hidden_dim": 256,
   "max_len": 80,
-  "epochs": 25,
+  "epochs": 8,
   "grad_clip_max_norm": 1.0,
   "early_stopping": {
     "enabled": true,
@@ -18,13 +18,13 @@
     "enabled": true,
     "start_prob": 0.0,
     "end_prob": 0.7,
-    "ramp_epochs": 11,
+    "ramp_epochs": 6,
     "schedule": "linear"
   },
   "curriculum": {
     "enabled": true,
     "gradient_3var_start_weight": 0.1,
-    "gradient_3var_ramp_epochs": 5
+    "gradient_3var_ramp_epochs": 4
   },
   "proxy_eval_examples": 15,
   "lr_decay": {
