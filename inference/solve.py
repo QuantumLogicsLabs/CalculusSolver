@@ -12,10 +12,12 @@ from inference.beam_search import NodeValidityPool, beam_search, load_vocab
 
 
 class _LegacySLaNgTokenizer:
-    pass
+    """Compatibility placeholder for legacy serialized checkpoints."""
 
 
 class PklTransformerModel(torch.nn.Module):
+    """Transformer wrapper for legacy model.pkl checkpoints."""
+
     def __init__(self, vocab_size: int, hidden_dim: int = 128):
         super().__init__()
         self.pos_encoder = torch.nn.Parameter(torch.zeros(1, 100, hidden_dim))
@@ -31,33 +33,48 @@ class PklTransformerModel(torch.nn.Module):
         self.fc_out = torch.nn.Linear(hidden_dim, vocab_size)
 
     def forward(self, src_seq, tgt_in_seq, true_rule_ids=None):
-        """Legacy model/model.pkl loader, conformed to the shared contract.
-
-        Accepts the canonical forward signature and returns the canonical
-        3-tuple, so beam_search can treat every model identically. This
-        architecture has no rule head or step tracer, so those slots are None;
-        true_rule_ids is accepted for signature parity and ignored.
-        """
+        """Return logits and placeholder rule/tracer outputs."""
         max_id = self.embedding.num_embeddings - 1
         src_seq = torch.clamp(src_seq, 0, max_id)
         tgt_in_seq = torch.clamp(tgt_in_seq, 0, max_id)
+
         max_pos = self.pos_encoder.size(1)
         src_seq = src_seq[:, :max_pos]
         tgt_in_seq = tgt_in_seq[:, :max_pos]
 
-        src_emb = self.embedding(src_seq) + self.pos_encoder[:, : src_seq.size(1), :]
-        tgt_emb = self.embedding(tgt_in_seq) + self.pos_encoder[:, : tgt_in_seq.size(1), :]
+        src_emb = (
+            self.embedding(src_seq)
+            + self.pos_encoder[:, :src_seq.size(1), :]
+        )
+        tgt_emb = (
+            self.embedding(tgt_in_seq)
+            + self.pos_encoder[:, :tgt_in_seq.size(1), :]
+        )
+
         device = src_seq.device
         tgt_mask = torch.triu(
-            torch.ones(tgt_in_seq.size(1), tgt_in_seq.size(1), dtype=torch.bool, device=device),
+            torch.ones(
+                tgt_in_seq.size(1),
+                tgt_in_seq.size(1),
+                dtype=torch.bool,
+                device=device,
+            ),
             diagonal=1,
         )
-        out = self.transformer(src_emb, tgt_emb, tgt_mask=tgt_mask)
-        logits = self.fc_out(out)
+
+        output = self.transformer(
+            src_emb,
+            tgt_emb,
+            tgt_mask=tgt_mask,
+        )
+        logits = self.fc_out(output)
+
         return logits, None, None
 
 
 class CalculusSolverInference:
+    """Inference interface for calculus expressions and gradient requests."""
+
     def __init__(
         self,
         model_path: str = os.path.join("model", "model.pkl"),
@@ -67,28 +84,39 @@ class CalculusSolverInference:
         enable_fallback: bool = True,
     ):
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
+            raise FileNotFoundError(
+                f"Model checkpoint not found: {model_path}"
+            )
+
         if not os.path.exists(vocab_path):
-            raise FileNotFoundError(f"Vocab file not found: {vocab_path}")
+            raise FileNotFoundError(
+                f"Vocab file not found: {vocab_path}"
+            )
 
         self.enable_fallback = enable_fallback
         self.fallback_solver = None
+
         if self.enable_fallback:
             try:
                 from inference.fallback_solver import FallbackSolver
+
                 self.fallback_solver = FallbackSolver()
             except Exception:
-                pass
+                self.fallback_solver = None
 
         self.model_data = self._load_checkpoint(model_path)
         self.vocab_map = load_vocab(vocab_path)
+
         config = (
             self.model_data.get("config", {})
-            if isinstance(self.model_data, dict) and "config" in self.model_data
+            if isinstance(self.model_data, dict)
+            and "config" in self.model_data
             else {}
         )
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
         rule_labels = self._load_rule_labels(vocab_path)
 
         if isinstance(self.model_data, torch.nn.Module):
@@ -96,22 +124,44 @@ class CalculusSolverInference:
         else:
             state_dict = self._resolve_state_dict(self.model_data)
 
-            if "fc_out.weight" in state_dict and "pos_encoder" in state_dict:
+            if (
+                "fc_out.weight" in state_dict
+                and "pos_encoder" in state_dict
+            ):
                 vocab_size = state_dict["embedding.weight"].shape[0]
                 hidden_dim = state_dict["embedding.weight"].shape[1]
-                self.model = PklTransformerModel(vocab_size=vocab_size, hidden_dim=hidden_dim).to(self.device)
+
+                self.model = PklTransformerModel(
+                    vocab_size=vocab_size,
+                    hidden_dim=hidden_dim,
+                ).to(self.device)
             else:
                 hidden_dim = 128
+
                 try:
-                    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    root_dir = os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__))
+                    )
                     config_path = os.path.join(root_dir, "config.json")
+
                     if os.path.exists(config_path):
-                        with open(config_path, "r") as f:
-                            cfg = json.load(f)
-                            hidden_dim = cfg.get("hidden_dim", 128)
-                except Exception:
+                        with open(
+                            config_path,
+                            "r",
+                            encoding="utf-8",
+                        ) as config_file:
+                            config_data = json.load(config_file)
+                            hidden_dim = config_data.get(
+                                "hidden_dim",
+                                128,
+                            )
+                except (OSError, ValueError, TypeError):
                     pass
-                vocab_size = max(self.vocab_map["token_to_id"].values()) + 1
+
+                vocab_size = (
+                    max(self.vocab_map["token_to_id"].values()) + 1
+                )
+
                 self.model = CalculusSolverModel(
                     vocab_size=vocab_size,
                     num_rules=len(rule_labels),
@@ -122,41 +172,64 @@ class CalculusSolverInference:
             try:
                 self.model.load_state_dict(state_dict, strict=True)
             except RuntimeError:
-                print("⚠️  Warning: Checkpoint state dict mismatch detected. Loading with strict=False...")
-                self.model.load_state_dict(state_dict, strict=False)
+                print(
+                    "Warning: Checkpoint state dict mismatch detected. "
+                    "Loading with strict=False..."
+                )
+                self.model.load_state_dict(
+                    state_dict,
+                    strict=False,
+                )
 
         self.model.eval()
 
         self.beam_size = beam_size
         self.max_len = max_len
+
         self.node_pool = NodeValidityPool(
-            os.path.join(os.path.dirname(__file__), "validity_worker.js"),
+            os.path.join(
+                os.path.dirname(__file__),
+                "validity_worker.js",
+            ),
             num_workers=max(2, beam_size),
         )
+
         self.bos_id = self.vocab_map["token_to_id"]["[BOS]"]
         self.eos_id = self.vocab_map["token_to_id"]["[EOS]"]
         self.pad_id = self.vocab_map["token_to_id"]["[PAD]"]
 
     def close(self) -> None:
+        """Release resources used by the validity worker pool."""
         self.node_pool.close()
 
     def _load_rule_labels(self, vocab_path: str) -> List[str]:
-        with open(vocab_path, "r", encoding="utf-8") as f:
-            vocab_json = json.load(f)
+        """Load rule labels from the vocabulary file."""
+        with open(vocab_path, "r", encoding="utf-8") as vocab_file:
+            vocab_json = json.load(vocab_file)
+
         rule_labels = []
+
         for token in vocab_json.get("rule_tokens", {}).keys():
             if token.startswith("RULE:"):
                 rule_labels.append(token.split("RULE:", 1)[-1])
             else:
                 rule_labels.append(token)
+
         return rule_labels
 
     def _load_checkpoint(self, model_path: str) -> Any:
+        """Load a PyTorch or legacy joblib checkpoint."""
         if model_path.endswith((".pt", ".pth")):
             return torch.load(model_path, map_location="cpu")
+
         try:
             if not hasattr(sys.modules["__main__"], "SLaNgTokenizer"):
-                setattr(sys.modules["__main__"], "SLaNgTokenizer", _LegacySLaNgTokenizer)
+                setattr(
+                    sys.modules["__main__"],
+                    "SLaNgTokenizer",
+                    _LegacySLaNgTokenizer,
+                )
+
             return joblib.load(model_path)
         except Exception as exc:
             raise RuntimeError(
@@ -164,77 +237,308 @@ class CalculusSolverInference:
             ) from exc
 
     def _resolve_state_dict(self, checkpoint: Any) -> Dict[str, Any]:
+        """Extract model parameters from supported checkpoint formats."""
         if isinstance(checkpoint, dict):
             if "model_state" in checkpoint:
                 return checkpoint["model_state"]
+
             if "model_state_dict" in checkpoint:
                 return checkpoint["model_state_dict"]
-            return checkpoint
-        raise ValueError("Unsupported checkpoint format for model state.")
 
-    def _normalize_input(self, input_env: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize bare terms or shorthand into canonical SLaNg fraction form."""
+            return checkpoint
+
+        raise ValueError(
+            "Unsupported checkpoint format for model state."
+        )
+
+    def _normalize_input(
+        self,
+        input_env: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Normalize shorthand expressions into fraction form."""
         env = dict(input_env)
         expr = env.get("expr")
+
         if isinstance(expr, dict):
-            if "coeff" in expr and "numi" not in expr and "op" not in expr:
-                env["expr"] = {"numi": {"terms": [expr]}, "deno": 1}
+            if (
+                "coeff" in expr
+                and "numi" not in expr
+                and "op" not in expr
+            ):
+                env["expr"] = {
+                    "numi": {"terms": [expr]},
+                    "deno": 1,
+                }
             elif "terms" in expr and "numi" not in expr:
-                env["expr"] = {"numi": expr, "deno": 1}
+                env["expr"] = {
+                    "numi": expr,
+                    "deno": 1,
+                }
+
         return env
 
-    def _infer_rule_token(self, input_env: Dict[str, Any]) -> Optional[str]:
+    def _infer_rule_token(
+        self,
+        input_env: Dict[str, Any],
+    ) -> Optional[str]:
+        """Infer an appropriate rule token from the operation and expression."""
         op = input_env.get("op")
         expr = input_env.get("expr", {})
+
         if op == "integrate":
             return "RULE:power_rule_integral"
+
         if op == "partial":
             return "RULE:partial_derivative"
+
         if op == "gradient":
             return "RULE:gradient"
+
         if op == "tangent_line":
             return "RULE:tangent_line"
+
         if op == "diff":
             if isinstance(expr, dict) and "op" in expr:
                 sub_op = expr["op"]
+
                 if sub_op in ("sin", "cos", "tan"):
                     return "RULE:trig_rule"
+
                 if sub_op == "exp":
                     return "RULE:exp_rule"
+
                 if sub_op == "ln":
                     return "RULE:log_rule"
-            terms = expr.get("numi", {}).get("terms", []) if isinstance(expr, dict) else []
+
+            terms = (
+                expr.get("numi", {}).get("terms", [])
+                if isinstance(expr, dict)
+                else []
+            )
+
             if len(terms) > 1:
                 return "RULE:sum_rule"
+
             if len(terms) == 1:
-                t = terms[0]
-                if not t.get("var") or all(v == 0 for v in t.get("var", {}).values()):
+                term = terms[0]
+
+                if (
+                    not term.get("var")
+                    or all(
+                        value == 0
+                        for value in term.get("var", {}).values()
+                    )
+                ):
                     return "RULE:constant_rule"
+
                 return "RULE:power_rule"
+
         return None
 
-    def _serialize_input(self, input_env: Dict[str, Any]) -> List[str]:
+    def _serialize_input(
+        self,
+        input_env: Dict[str, Any],
+    ) -> List[str]:
+        """Serialize an expression into SLaNg tokens."""
         from tokenizer.slang_serializer import serialize_slang_math
+
         return serialize_slang_math(input_env)
 
     def _verify_output(
-        self, input_env: Dict[str, Any], output_tokens: List[str]
+        self,
+        input_env: Dict[str, Any],
+        output_tokens: List[str],
     ) -> Dict[str, Any]:
+        """Verify generated output tokens."""
         from inference.verifier import verify
+
         return verify(input_env, output_tokens)
 
+    @staticmethod
+    def _extract_gradient_variables(expr: Any) -> List[str]:
+        """Extract unique variable names from an expression structure."""
+        variables: List[str] = []
+        seen = set()
+
+        def add_variable(name: Any) -> None:
+            if (
+                isinstance(name, str)
+                and name
+                and name not in seen
+            ):
+                seen.add(name)
+                variables.append(name)
+
+        def visit(value: Any) -> None:
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    if key == "vars" and isinstance(child, (list, tuple)):
+                        for name in child:
+                            add_variable(name)
+
+                    elif key == "var":
+                        if isinstance(child, dict):
+                            for name in child:
+                                add_variable(name)
+                        elif isinstance(child, str):
+                            add_variable(child)
+
+                    visit(child)
+
+            elif isinstance(value, (list, tuple)):
+                for child in value:
+                    visit(child)
+
+        visit(expr)
+        return variables
+
+    def _solve_gradient(
+        self,
+        input_env: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Compute a gradient by solving one partial derivative per variable."""
+        expr = input_env.get("expr")
+
+        explicit_variables = input_env.get(
+            "vars",
+            input_env.get("variables"),
+        )
+
+        if isinstance(explicit_variables, str):
+            variables = [explicit_variables]
+        elif isinstance(explicit_variables, (list, tuple)):
+            variables = [
+                variable
+                for variable in explicit_variables
+                if isinstance(variable, str) and variable
+            ]
+        else:
+            variables = []
+
+        # Extract all expression variables before using the single-var fallback.
+        if not variables:
+            variables = self._extract_gradient_variables(expr)
+
+        if not variables and isinstance(input_env.get("var"), str):
+            variables = [input_env["var"]]
+
+        if not variables:
+            return {
+                "input": input_env,
+                "output_tokens": [],
+                "status": "unsolvable",
+                "verified": False,
+                "confidence": 0.0,
+                "rule": "RULE:gradient",
+                "output": None,
+                "warning": (
+                    "Could not determine gradient variables from "
+                    "'vars', 'variables', or the expression."
+                ),
+            }
+
+        gradient_result: Dict[str, Any] = {}
+        failures: List[str] = []
+        confidences: List[float] = []
+        all_verified = True
+
+        for variable in variables:
+            partial_env = {
+                "op": "partial",
+                "var": variable,
+                "expr": expr,
+            }
+
+            try:
+                partial_result = self.solve(partial_env)
+                partial_output = partial_result.get("output")
+
+                if (
+                    partial_result.get("status")
+                    not in ("solved", "unverified")
+                    or partial_output is None
+                ):
+                    all_verified = False
+                    failures.append(
+                        f"{variable}: partial solve status="
+                        f"{partial_result.get('status')!r}; "
+                        f"warning={partial_result.get('warning')!r}"
+                    )
+
+                if not partial_result.get("verified", False):
+                    all_verified = False
+
+                gradient_result[variable] = partial_output
+
+                try:
+                    confidences.append(
+                        float(partial_result.get("confidence", 0.0))
+                    )
+                except (TypeError, ValueError):
+                    confidences.append(0.0)
+
+            except Exception as exc:
+                all_verified = False
+                failures.append(
+                    f"{variable}: {type(exc).__name__}: {exc}"
+                )
+
+        warning = (
+            "Gradient partial-derivative failures: "
+            + "; ".join(failures)
+            if failures
+            else None
+        )
+
+        return {
+            "input": input_env,
+            "output_tokens": [],
+            "status": (
+                "solved"
+                if not failures and gradient_result
+                else "unsolvable"
+            ),
+            "verified": (
+                all_verified
+                and not failures
+                and len(gradient_result) == len(variables)
+            ),
+            "confidence": min(confidences) if confidences else 0.0,
+            "rule": "RULE:gradient",
+            "output": (
+                {"gradient": gradient_result}
+                if gradient_result
+                else None
+            ),
+            "warning": warning,
+        }
+
     def solve(self, input_env: Dict[str, Any]) -> Dict[str, Any]:
+        """Solve a calculus request, dispatching gradients into partial solves."""
         normalized_env = self._normalize_input(input_env)
+
+        # Task 1: Decompose a gradient into individual partial derivatives.
+        if normalized_env.get("op") == "gradient":
+            return self._solve_gradient(normalized_env)
+
         rule_token = self._infer_rule_token(normalized_env)
         token_strings = self._serialize_input(normalized_env)
+
         token_ids = [
             self.vocab_map["token_to_id"].get(token, self.pad_id)
             for token in token_strings
         ]
         token_ids = token_ids[: self.max_len]
 
-        padded_tokens = token_ids + [self.pad_id] * (self.max_len - len(token_ids))
-        src_tokens = torch.tensor([padded_tokens], dtype=torch.long, device=self.device)
+        padded_tokens = token_ids + [
+            self.pad_id
+        ] * (self.max_len - len(token_ids))
+
+        src_tokens = torch.tensor(
+            [padded_tokens],
+            dtype=torch.long,
+            device=self.device,
+        )
 
         result = beam_search(
             model=self.model,
@@ -252,36 +556,70 @@ class CalculusSolverInference:
             if token_id in self.vocab_map["id_to_token"]
         ]
 
-        if output_token_strings and output_token_strings[0] == "[BOS]":
+        if (
+            output_token_strings
+            and output_token_strings[0] == "[BOS]"
+        ):
             output_token_strings = output_token_strings[1:]
 
         predicted_rule = None
-        if output_token_strings and output_token_strings[0].startswith("RULE:"):
+
+        if (
+            output_token_strings
+            and output_token_strings[0].startswith("RULE:")
+        ):
             predicted_rule = output_token_strings[0]
             output_token_strings = output_token_strings[1:]
 
-        verifier_result = self._verify_output(normalized_env, output_token_strings)
-        if verifier_result.get("status") in ("solved", "unverified", "unsolvable"):
+        verifier_result = self._verify_output(
+            normalized_env,
+            output_token_strings,
+        )
+
+        if verifier_result.get("status") in (
+            "solved",
+            "unverified",
+            "unsolvable",
+        ):
             result["status"] = verifier_result["status"]
+
         result["verified"] = verifier_result.get("verified", False)
         result["confidence"] = verifier_result.get("confidence", 0)
         result["output"] = verifier_result.get("output")
+
         if verifier_result.get("error"):
             result["warning"] = verifier_result["error"]
 
-        if not result["verified"] and self.enable_fallback and self.fallback_solver is not None:
+        # Task 2: Preserve the existing fallback behavior for normal solves.
+        if (
+            not result["verified"]
+            and self.enable_fallback
+            and self.fallback_solver is not None
+        ):
             try:
-                fb_res = self.fallback_solver.solve(normalized_env)
-                if fb_res.get("status") == "solved":
-                    fb_out = fb_res.get("output") or fb_res.get("expr")
-                    if fb_out is not None:
-                        result["output"] = fb_out
+                fallback_result = self.fallback_solver.solve(
+                    normalized_env
+                )
+
+                if fallback_result.get("status") == "solved":
+                    fallback_output = (
+                        fallback_result.get("output")
+                        or fallback_result.get("expr")
+                    )
+
+                    if fallback_output is not None:
+                        result["output"] = fallback_output
                         result["verified"] = True
                         result["status"] = "solved"
                         result["confidence"] = 1.0
                         result["fallback_used"] = True
-                        if not predicted_rule and fb_res.get("rule"):
-                            predicted_rule = fb_res.get("rule")
+
+                        if (
+                            not predicted_rule
+                            and fallback_result.get("rule")
+                        ):
+                            predicted_rule = fallback_result["rule"]
+
             except Exception:
                 pass
 
@@ -298,15 +636,16 @@ class CalculusSolverInference:
 
 
 if __name__ == "__main__":
-    import sys
-
     if len(sys.argv) < 2:
-        raise SystemExit("Usage: python inference/solve.py input.json")
+        raise SystemExit(
+            "Usage: python inference/solve.py input.json"
+        )
 
-    with open(sys.argv[1], "r", encoding="utf-8") as f:
-        payload = json.load(f)
+    with open(sys.argv[1], "r", encoding="utf-8") as input_file:
+        payload = json.load(input_file)
 
     solver = CalculusSolverInference()
+
     try:
         print(json.dumps(solver.solve(payload), indent=2))
     finally:
