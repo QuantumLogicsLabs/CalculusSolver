@@ -130,3 +130,17 @@ class TokenWeightedCrossEntropy(nn.Module):
         vocab_size: int,
         ignore_index: int,
         token_weights: Optional[torch.Tensor] = None,
+    ):
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.ignore_index = ignore_index
+        if token_weights is None:
+            token_weights = torch.ones(vocab_size, dtype=torch.float32)
+        if token_weights.shape != (vocab_size,):
+            raise ValueError(
+                f"token_weights must have shape ({vocab_size},), got {tuple(token_weights.shape)}"
+            )
+        self.register_buffer("token_weights", token_weights.float())
+
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        pass
