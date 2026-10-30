@@ -113,3 +113,20 @@ def per_token_nll(
     A position is valid when its label is neither ``ignore_index`` nor outside
     ``[0, vocab_size)`` (e.g. HuggingFace-style -100 labels).
     """
+    vocab_size = logits.size(-1)
+    flat_logits = logits.reshape(-1, vocab_size)
+    flat_targets = targets.reshape(-1)
+    valid = (flat_targets != ignore_index) & (flat_targets >= 0) & (flat_targets < vocab_size)
+    safe_targets = flat_targets.masked_fill(~valid, 0)
+    nll = F.cross_entropy(flat_logits, safe_targets, reduction="none")
+    return nll * valid.to(nll.dtype), valid
+
+
+class TokenWeightedCrossEntropy(nn.Module):
+    """Weight-normalised cross-entropy over valid target positions."""
+
+    def __init__(
+        self,
+        vocab_size: int,
+        ignore_index: int,
+        token_weights: Optional[torch.Tensor] = None,
