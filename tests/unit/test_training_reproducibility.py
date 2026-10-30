@@ -88,3 +88,94 @@ def test_describe_files_hashes_change_with_content(tmp_path):
 
 # -- exact match --------------------------------------------------------------
 
+PAD, BOS, EOS = 0, 1, 2
+
+
+class _ScriptedModel(torch.nn.Module):
+    """Emits a fixed token script per batch row, so decoding is predictable."""
+
+    def __init__(self, scripts, vocab=8):
+        super().__init__()
+        self.scripts = scripts
+        self.vocab = vocab
+        self.anchor = torch.nn.Parameter(torch.zeros(1))
+
+    def forward(self, src, tgt_in, true_rule_ids=None):
+        step = tgt_in.size(1) - 1
+        logits = torch.zeros(src.size(0), tgt_in.size(1), self.vocab)
+        for row, script in enumerate(self.scripts):
+            tok = script[step] if step < len(script) else EOS
+            logits[row, -1, tok] = 10.0
+        return logits, None, None
+
+
+class _ToyData:
+    def __init__(self, ops, targets, groups=None):
+        self.ops = ops
+        self.targets = targets
+        self.contrast_groups = groups or [None] * len(ops)
+
+    def __len__(self):
+        return len(self.ops)
+
+    def __getitem__(self, i):
+        tgt = [BOS] + self.targets[i] + [EOS]
+        tgt += [PAD] * (8 - len(tgt))
+        return {
+            "src_seq": torch.tensor([3, 4, 5]),
+            "tgt_out_seq": torch.tensor(tgt),
+            "op": self.ops[i],
+        }
+
+
+def test_exact_match_scores_whole_sequences_by_operation():
+    data = _ToyData(
+        ops=["diff", "diff", "partial"],
+        targets=[[3, 4], [3, 4], [5, 6, 7]],
+    )
+    model = _ScriptedModel(scripts=[[3, 4], [3, 5], [5, 6, 7]])
+    res = evaluate_exact_match(
+        model, data, bos_id=BOS, eos_id=EOS, pad_id=PAD, max_gen_len=6, batch_size=8
+    )
+    assert res["overall"] == {"correct": 2, "total": 3, "accuracy": pytest.approx(2 / 3)}
+    assert res["by_op"]["diff"]["correct"] == 1 and res["by_op"]["diff"]["total"] == 2
+    assert res["by_op"]["partial"]["accuracy"] == 1.0
+    assert res["correct_flags"] == {0: True, 1: False, 2: True}
+    # token accuracy is higher than exact match: the wrong diff row still got token 3 right
+    assert res["token_accuracy"] > res["overall"]["accuracy"]
+
+
+def test_over_long_generation_is_not_counted_correct():
+    data = _ToyData(ops=["diff"], targets=[[3, 4]])
+    model = _ScriptedModel(scripts=[[3, 4, 3, 4, 3, 4]])  # never reaches EOS early
+    res = evaluate_exact_match(model, data, bos_id=BOS, eos_id=EOS, pad_id=PAD, max_gen_len=4)
+    assert res["overall"]["correct"] == 0
+
+
+def test_contrast_pair_accuracy_needs_both_members():
+    data = _ToyData(
+        ops=["partial"] * 4,
+        targets=[[3], [4], [5], [6]],
+        groups=[0, 0, 1, 1],
+    )
+    model = _ScriptedModel(scripts=[[3], [4], [5], [7]])  # pair 1 second member wrong
+    res = evaluate_exact_match(model, data, bos_id=BOS, eos_id=EOS, pad_id=PAD, max_gen_len=4)
+    stats = contrast_pair_accuracy(res, data.contrast_groups)
+    assert stats["pairs"] == 2 and stats["pairs_both_correct"] == 1
+    assert stats["pair_accuracy"] == 0.5
+    assert stats["row_accuracy"] == 0.75
+
+
+def test_select_indices_is_stratified_and_deterministic():
+    ops = ["a"] * 50 + ["b"] * 50 + ["c"] * 5
+    chosen = select_indices(ops, 30)
+    assert chosen == select_indices(ops, 30)
+    assert {ops[i] for i in chosen} == {"a", "b", "c"}
+    assert select_indices(ops, None) == list(range(len(ops)))
+    assert select_indices(ops, 10_000) == list(range(len(ops)))
+
+
+def test_greedy_decode_stops_when_all_rows_finish():
+    model = _ScriptedModel(scripts=[[3], [4]])
+    out = greedy_decode_batch(model, torch.zeros(2, 3, dtype=torch.long), BOS, EOS, PAD, 10)
+    assert out.size(1) == 2  # one token then EOS, then the loop stops
