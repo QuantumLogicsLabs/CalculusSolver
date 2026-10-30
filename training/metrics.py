@@ -41,3 +41,23 @@ def greedy_decode_batch(model, src_seq, bos_id: int, eos_id: int, pad_id: int, m
     return generated[:, 1:]
 
 
+def select_indices(dataset_ops: Sequence[str], max_examples: Optional[int]) -> List[int]:
+    """Deterministic, operation-stratified subset (all rows when max is None)."""
+    n = len(dataset_ops)
+    if max_examples is None or max_examples >= n:
+        return list(range(n))
+    by_op: Dict[str, List[int]] = {}
+    for i, op in enumerate(dataset_ops):
+        by_op.setdefault(op, []).append(i)
+    per_op = max(1, max_examples // max(len(by_op), 1))
+    chosen: List[int] = []
+    for op in sorted(by_op):
+        rows = by_op[op]
+        if len(rows) <= per_op:
+            chosen.extend(rows)
+        else:
+            stride = len(rows) / per_op
+            chosen.extend(rows[int(k * stride)] for k in range(per_op))
+    return sorted(chosen)
+
+
