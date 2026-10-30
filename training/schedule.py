@@ -110,3 +110,24 @@ def verify_schedule(resolved: Dict, tol: float = 1e-9) -> Dict:
         )
         assert abs(lrs[total] - floor) <= tol * max(1.0, base), (
             f"Final LR is {lrs[total]}, expected base*min_lr_ratio = {floor}"
+        )
+
+    return {
+        "lr_step_0": lrs[0],
+        "lr_end_of_warmup": lrs[warmup] if warmup < len(lrs) else None,
+        "lr_midpoint": lrs[(warmup + total) // 2] if total else None,
+        "lr_final": lrs[total],
+        "expected_final_lr": floor if total > warmup else None,
+        "verified": True,
+    }
+
+
+def scheduler_matches_expected(
+    scheduler: LambdaLR, resolved: Dict, steps_taken: int, rel_tol: float = 1e-6
+) -> Optional[bool]:
+    """After real training: does the live scheduler sit where the formula says?"""
+    if steps_taken <= 0:
+        return None
+    live = scheduler.get_last_lr()[0]
+    expected = lr_at(resolved, steps_taken)
+    return abs(live - expected) <= rel_tol * max(abs(expected), 1e-12)
