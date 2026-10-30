@@ -133,3 +133,40 @@ def test_weighted_loss_matches_manual_computation():
 
 
 def test_heavy_class_dominates_the_mean():
+    """An error on a variable token costs more than the same error on a structural one."""
+    vocab = {"[PAD]": 0, "STRUCT:OPEN": 1, "VAR:x": 2}
+    weights, _ = build_token_weight_vector(vocab, 3)
+    crit = TokenWeightedCrossEntropy(3, ignore_index=0, token_weights=weights)
+
+    good = torch.tensor([[0.0, 8.0, 0.0], [0.0, 0.0, 8.0]])
+    wrong_struct = good.clone()
+    wrong_struct[0] = torch.tensor([0.0, 0.0, 8.0])
+    wrong_var = good.clone()
+    wrong_var[1] = torch.tensor([0.0, 8.0, 0.0])
+    targets = torch.tensor([1, 2])
+    assert crit(wrong_var, targets) > crit(wrong_struct, targets)
+
+
+def test_all_labels_ignored_is_zero_not_nan():
+    logits = torch.randn(2, 3, 5, requires_grad=True)
+    targets = torch.zeros(2, 3, dtype=torch.long)
+    loss = TokenWeightedCrossEntropy(5, ignore_index=0)(logits, targets)
+    assert torch.isfinite(loss) and loss.item() == 0.0
+    loss.backward()
+    assert torch.isfinite(logits.grad).all() and logits.grad.abs().sum().item() == 0.0
+
+
+def test_negative_and_out_of_range_labels_are_ignored():
+    logits = torch.randn(1, 4, 5)
+    targets = torch.tensor([[2, -100, 7, 0]])
+    loss = TokenWeightedCrossEntropy(5, ignore_index=0)(logits, targets)
+    ref = nn.functional.cross_entropy(logits[0, :1], torch.tensor([2]))
+    assert loss.item() == pytest.approx(ref.item(), rel=1e-6)
+
+
+def test_padding_positions_get_no_gradient():
+    logits = torch.randn(1, 3, 4, requires_grad=True)
+    targets = torch.tensor([[1, 2, 0]])
+    TokenWeightedCrossEntropy(4, ignore_index=0)(logits, targets).backward()
+    assert logits.grad[0, 2].abs().sum().item() == 0.0
+    assert logits.grad[0, 0].abs().sum().item() > 0.0
