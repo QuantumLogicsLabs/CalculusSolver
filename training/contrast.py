@@ -58,3 +58,27 @@ class ContrastBatchSource:
         if pairs_per_batch <= 0:
             raise ValueError("pairs_per_batch must be positive")
         self.dataset = dataset
+        self.pairs = build_pair_index(getattr(dataset, "contrast_groups"))
+        if not self.pairs:
+            raise ValueError("contrast dataset contains no pairs")
+        self.pairs_per_batch = pairs_per_batch
+        self.seed = seed
+        self._order: List[int] = []
+        self._cursor = 0
+        self.start_epoch(1)
+
+    def start_epoch(self, epoch: int) -> None:
+        rng = random.Random(self.seed * 1_000_003 + epoch)
+        self._order = list(range(len(self.pairs)))
+        rng.shuffle(self._order)
+        self._cursor = 0
+
+    def next_batch(self) -> Dict:
+        rows: List[int] = []
+        for _ in range(self.pairs_per_batch):
+            if self._cursor >= len(self._order):
+                self._cursor = 0  # wrap: pool is smaller than one epoch of draws
+            a, b = self.pairs[self._order[self._cursor]]
+            self._cursor += 1
+            rows.extend((a, b))
+        return default_collate([self.dataset[i] for i in rows])
