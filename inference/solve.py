@@ -443,12 +443,96 @@ class CalculusSolverInference:
                 "gradient": {},
                 "warning": (
                     "Could not determine gradient variables from "
-        gradient_result = {}
-        return {"input": input_env, "output": gradient_result}
+                    "'vars', 'variables', or the expression."
+                ),
+            }
+
+        # Validate that variables are supported in vocab
+        for variable in variables:
+            opvar_token = f"OPVAR:{variable}"
+            var_token = f"VAR:{variable}"
+            if (
+                opvar_token not in self.vocab_map.get("token_to_id", {})
+                and var_token not in self.vocab_map.get("token_to_id", {})
+            ):
+                raise ValueError(
+                    f"Unknown or unsupported gradient variable: {variable!r}"
+                )
+
+        gradient_result: Dict[str, Any] = {}
+        failures: List[str] = []
+        confidences: List[float] = []
+        all_verified = True
+
+        for variable in variables:
+            partial_env = {
+                "op": "partial",
+                "var": variable,
+                "expr": expr,
+            }
+
+            try:
+                partial_result = self.solve(partial_env)
+                partial_output = partial_result.get("output")
+
+                if (
+                    partial_result.get("status")
+                    not in ("solved", "unverified")
+                    or partial_output is None
+                ):
+                    all_verified = False
+                    failures.append(
+                        f"{variable}: partial solve status="
+                        f"{partial_result.get('status')!r}; "
+                        f"warning={partial_result.get('warning')!r}"
+                    )
+
+                if not partial_result.get("verified", False):
+                    all_verified = False
+
+                gradient_result[variable] = partial_output
+
+                try:
+                    confidences.append(
+                        float(partial_result.get("confidence", 0.0))
+                    )
+                except (TypeError, ValueError):
+                    confidences.append(0.0)
+
+            except Exception as exc:
+                all_verified = False
+                failures.append(
+                    f"{variable}: {type(exc).__name__}: {exc}"
+                )
+
+        warning = (
+            "Gradient partial-derivative failures: "
+            + "; ".join(failures)
+            if failures
+            else None
+        )
+
+        return {
+            "input": input_env,
+            "output_tokens": [],
+            "status": (
+                "solved"
+                if not failures and gradient_result
+                else "unsolvable"
+            ),
+            "verified": (
+                all_verified
+                and not failures
+                and len(gradient_result) == len(variables)
+            ),
+            "confidence": min(confidences) if confidences else 0.0,
+            "rule": "RULE:gradient",
+            "output": (
                 {"gradient": gradient_result}
                 if gradient_result
                 else None
             ),
+            "gradient": gradient_result,
             "warning": warning,
         }
 
