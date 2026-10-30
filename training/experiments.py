@@ -118,3 +118,131 @@ def rank_arms(rows: List[Dict]) -> List[Dict]:
         eligible,
         key=lambda r: (-selection_score(r), r["val"]["loss"] if r["val"]["loss"] is not None else 1e9),
     )
+
+
+def verify_checkpoint_binding(row: Dict) -> List[str]:
+    """Problems that would make the benchmark numbers not belong to best.pt."""
+    problems = []
+    ckpt = Path(row["run_dir"]) / "best.pt"
+    actual = sha256_file(ckpt)
+    if actual is None:
+        return [f"{ckpt.as_posix()} is missing"]
+    if row.get("checkpoint_sha256") and row["checkpoint_sha256"] != actual:
+        problems.append("run_manifest.json checkpoint hash does not match best.pt")
+    bench_hash = (row.get("benchmark") or {}).get("checkpoint_sha256")
+    if bench_hash and bench_hash != actual:
+        problems.append("benchmark was measured on a different checkpoint than best.pt")
+    return problems
+
+
+def _pct(x: Optional[float]) -> str:
+    return "N/A" if x is None else f"{x:.1%}"
+
+
+def _delta(x: Optional[float], base: Optional[float]) -> str:
+    if x is None or base is None:
+        return "N/A"
+    return f"{(x - base) * 100:+.1f} pp"
+
+
+def render_comparison_markdown(rows: List[Dict], title: str = "Controlled Experiment Comparison") -> str:
+    order = list(ARM_FACTORS)
+    rows = sorted(rows, key=lambda r: order.index(r["arm"]) if r["arm"] in order else len(order))
+    base = next((r for r in rows if r["arm"] == "baseline"), None)
+
+    val_ops = sorted({op for r in rows for op in r["val"]["exact_match_by_op"]})
+    bench_ops = sorted({op for r in rows if r["benchmark"] for op in r["benchmark"]["by_op"]})
+
+    lines = [
+        f"# {title}",
+        "",
+        "Every arm shares the seed, dataset, tokenizer, model, optimizer and LR schedule; only the listed "
+        "factors differ from the baseline. Validation loss is the *unweighted* token cross-entropy so it is "
+        "comparable across arms. Exact match is whole-sequence greedy decoding. The benchmark column is the "
+        "**pure-neural, no-fallback** measurement (`eval/run_eval.py --no-fallback`).",
+        "",
+        "## Overview",
+        "",
+        "| Arm | Weighted loss | Contrast batches | Epochs run | Best epoch | Val loss | Val exact match | "
+        "Contrast pair acc | Benchmark (no fallback) |",
+        "|---|:-:|:-:|--:|--:|--:|--:|--:|--:|",
+    ]
+    for r in rows:
+        lines.append(
+            f"| {r['arm']} | {'yes' if r['factors']['token_weighted_loss'] else 'no'} | "
+            f"{'yes' if r['factors']['contrast'] else 'no'} | {r['epochs_run']} | {r['best_epoch']} | "
+            f"{r['val']['loss']:.4f} | {_pct(r['val']['exact_match'])} | "
+            f"{_pct(r['contrast_pair_accuracy'])} | "
+            f"{_pct(r['benchmark']['overall']) if r['benchmark'] else 'not run'} |"
+        )
+
+    lines += [
+        "",
+        "## Validation exact match by operation",
+        "",
+        "| Arm | Overall | " + " | ".join(val_ops) + " |",
+        "|---|--:|" + "|".join(["--:"] * len(val_ops)) + "|",
+    ]
+    for r in rows:
+        cells = " | ".join(_pct(r["val"]["exact_match_by_op"].get(op)) for op in val_ops)
+        lines.append(f"| {r['arm']} | {_pct(r['val']['exact_match'])} | {cells} |")
+
+    lines += [
+        "",
+        "## Validation loss by operation (token-mean, unweighted)",
+        "",
+        "| Arm | Overall | " + " | ".join(val_ops) + " |",
+        "|---|--:|" + "|".join(["--:"] * len(val_ops)) + "|",
+    ]
+    for r in rows:
+        cells = " | ".join(
+            f"{r['val']['loss_by_op'][op]:.4f}" if op in r["val"]["loss_by_op"] else "N/A" for op in val_ops
+        )
+        lines.append(f"| {r['arm']} | {r['val']['loss']:.4f} | {cells} |")
+
+    if bench_ops:
+        lines += [
+            "",
+            "## Benchmark accuracy by operation (pure neural, no fallback)",
+            "",
+            "| Arm | Overall | " + " | ".join(bench_ops) + " |",
+            "|---|--:|" + "|".join(["--:"] * len(bench_ops)) + "|",
+        ]
+        for r in rows:
+            b = r["benchmark"]
+            if not b:
+                lines.append(f"| {r['arm']} | not run |" + " |" * len(bench_ops))
+                continue
+            cells = " | ".join(_pct(b["by_op"].get(op)) for op in bench_ops)
+            lines.append(f"| {r['arm']} | {_pct(b['overall'])} ({b['exact_match']}/{b['total']}) | {cells} |")
+
+    if base:
+        lines += [
+            "",
+            "## Effect of each change versus the baseline",
+            "",
+            "| Arm | Δ val exact match | Δ contrast pair acc | Δ benchmark | Δ val loss |",
+            "|---|--:|--:|--:|--:|",
+        ]
+        for r in rows:
+            if r is base:
+                continue
+            d_loss = (
+                f"{r['val']['loss'] - base['val']['loss']:+.4f}"
+                if r["val"]["loss"] is not None and base["val"]["loss"] is not None
+                else "N/A"
+            )
+            lines.append(
+                f"| {r['arm']} | {_delta(r['val']['exact_match'], base['val']['exact_match'])} | "
+                f"{_delta(r['contrast_pair_accuracy'], base['contrast_pair_accuracy'])} | "
+                f"{_delta(r['benchmark']['overall'] if r['benchmark'] else None, base['benchmark']['overall'] if base['benchmark'] else None)} | "
+                f"{d_loss} |"
+            )
+
+    lines += ["", "## Provenance", "", "| Arm | Checkpoint SHA-256 | Seed | Non-finite loss steps |", "|---|---|--:|--:|"]
+    for r in rows:
+        lines.append(
+            f"| {r['arm']} | `{r['checkpoint_sha256'] or 'N/A'}` | {r['seed']} | {r['nonfinite_loss_steps']} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
