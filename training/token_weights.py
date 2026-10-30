@@ -63,3 +63,53 @@ def build_token_weight_vector(
     """Build a ``(vocab_size,)`` weight vector from a flat token->id mapping.
 
     Returns ``(weights, report)``. ``report`` lists how many tokens landed in
+    each class and which ids have no vocab token (those get the ``other``
+    weight, since they can never be a valid label anyway).
+    """
+    resolved = dict(DEFAULT_CLASS_WEIGHTS)
+    if class_weights:
+        unknown = set(class_weights) - set(resolved)
+        if unknown:
+            raise ValueError(f"Unknown token classes in weights: {sorted(unknown)}")
+        resolved.update({k: float(v) for k, v in class_weights.items()})
+    for cls, w in resolved.items():
+        if not w > 0:
+            raise ValueError(f"Class weight for '{cls}' must be > 0, got {w}")
+
+    weights = torch.full((vocab_size,), resolved[OTHER], dtype=torch.float32)
+    assigned: Dict[int, str] = {}
+    counts = {STRUCTURAL: 0, NUMERICAL: 0, VARIABLE: 0, OTHER: 0, PADDING: 0}
+
+    for token, idx in vocab_mapping.items():
+        if not 0 <= idx < vocab_size:
+            raise ValueError(f"Token '{token}' has id {idx} outside vocab_size {vocab_size}")
+        cls = classify_token(token, pad_token)
+        if idx in assigned and assigned[idx] != cls:
+            raise ValueError(
+                f"Token id {idx} is shared by tokens of different classes "
+                f"('{assigned[idx]}' and '{cls}' via '{token}'); fix vocab.json"
+            )
+        if idx in assigned:
+            continue
+        assigned[idx] = cls
+        counts[cls] += 1
+        weights[idx] = 0.0 if cls == PADDING else resolved[cls]
+
+    report = {
+        "class_weights": resolved,
+        "token_counts": counts,
+        "mapped_ids": len(assigned),
+        "vocab_size": vocab_size,
+        "unmapped_ids": sorted(set(range(vocab_size)) - set(assigned)),
+    }
+    return weights, report
+
+
+def per_token_nll(
+    logits: torch.Tensor, targets: torch.Tensor, ignore_index: int
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Unreduced NLL per position plus a validity mask, both ``(N,)``.
+
+    A position is valid when its label is neither ``ignore_index`` nor outside
+    ``[0, vocab_size)`` (e.g. HuggingFace-style -100 labels).
+    """
