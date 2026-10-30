@@ -36,3 +36,25 @@ def build_pair_index(groups: Sequence) -> List[Tuple[int, int]]:
         if len(rows) != 2:
             raise ValueError(f"contrast_group {group!r} has {len(rows)} rows, expected exactly 2")
         pairs.append((rows[0], rows[1]))
+    return pairs
+
+
+def merge_batches(main: Dict, extra: Dict) -> Dict:
+    """Concatenate two collated batches along the batch dimension."""
+    merged = {}
+    for key, value in main.items():
+        other = extra[key]
+        if isinstance(value, torch.Tensor):
+            merged[key] = torch.cat([value, other], dim=0)
+        else:
+            merged[key] = list(value) + list(other)
+    return merged
+
+
+class ContrastBatchSource:
+    """Deterministic supply of complete contrast pairs, cycling each epoch."""
+
+    def __init__(self, dataset, pairs_per_batch: int, seed: int):
+        if pairs_per_batch <= 0:
+            raise ValueError("pairs_per_batch must be positive")
+        self.dataset = dataset
