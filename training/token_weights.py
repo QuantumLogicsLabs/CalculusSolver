@@ -143,4 +143,12 @@ class TokenWeightedCrossEntropy(nn.Module):
         self.register_buffer("token_weights", token_weights.float())
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        pass
+        nll, valid = per_token_nll(logits, targets, self.ignore_index)
+        safe_targets = targets.reshape(-1).masked_fill(~valid, 0)
+        w = self.token_weights[safe_targets].to(nll.dtype) * valid.to(nll.dtype)
+        denom = w.sum()
+        if denom.item() <= 0:
+            # Every label ignored: return a zero that still carries a graph so
+            # backward() is a harmless no-op instead of NaN / an error.
+            return logits.sum() * 0.0
+        return (nll * w).sum() / denom
