@@ -86,3 +86,50 @@ def describe_files(paths: Iterable) -> Dict[str, Dict]:
     return out
 
 
+def _git(*args: str) -> Optional[str]:
+    try:
+        return subprocess.check_output(
+            ["git", *args], stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except Exception:
+        return None
+
+
+def collect_environment() -> Dict:
+    packages = {}
+    for name in ("torch", "numpy", "sympy"):
+        try:
+            module = __import__(name)
+            packages[name] = getattr(module, "__version__", "unknown")
+        except ImportError:
+            packages[name] = None
+    cuda_available = torch.cuda.is_available()
+    status = _git("status", "--porcelain")
+    return {
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "executable": sys.executable,
+        "packages": packages,
+        "cuda_available": cuda_available,
+        "cuda_version": torch.version.cuda,
+        "cudnn_version": torch.backends.cudnn.version() if cuda_available else None,
+        "device_name": torch.cuda.get_device_name(0) if cuda_available else "CPU",
+        "git_commit": _git("rev-parse", "HEAD"),
+        "git_dirty": bool(status) if status is not None else None,
+    }
+
+
+def build_run_manifest(
+    *,
+    run_name: str,
+    cfg: Dict,
+    seed_info: Dict,
+    dataset_files: Iterable,
+    vocab_path: str,
+    serializer_path: str,
+    vocab_size: int,
+    checkpoint_path: str,
+    optimizer_info: Dict,
+    scheduler_info: Dict,
+    loss_info: Dict,
+    extra: Optional[Dict] = None,
