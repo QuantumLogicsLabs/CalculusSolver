@@ -1028,6 +1028,76 @@ def generate_slang_dataset(target_total: int = 75000):
                 src_op, ans, _, rid = generate_tangent_line_diff(var)
             elif cat_name == "tangent_line_multi":
                 src_op, ans, _, rid = generate_multi_term_tangent_line(var)
+            else:
+                continue
+
+            if try_add(src_op, ans, rid):
+                added_for_cat += 1
+
+        print(
+            f"  - {cat_name}: {added_for_cat}/{quota} unique examples "
+            f"generated (attempts: {attempts})."
+        )
+
+    # Fill remaining quota
+    supplement_types = [
+        "multi_term_diff",
+        "multivar_diff",
+        "partial_constant_vanish",
+        "integrate_multi",
+        "gradient_2var",
+        "gradient_3var",
+        "gradient_1var",
+        "tangent_line_multi",
+    ]
+    extra_attempts = 0
+    while len(dataset) < target_total and extra_attempts < 100000:
+        extra_attempts += 1
+        st = random.choice(supplement_types)
+        var = random.choice(VARIABLES)
+
+        if st == "multi_term_diff":
+            result = generate_multi_term_diff(var)
+            if result is None:
+                continue
+            src_terms, ans_terms, rid = result
+            src_op = {"op": "diff", "var": var, "expr": src_terms[0]}
+            ans = (
+                ans_terms[0]
+                if ans_terms
+                else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            )
+            try_add(src_op, ans, rid)
+        elif st == "multivar_diff":
+            result = generate_multivar_diff()
+            if result is None:
+                continue
+            src_terms, ans_terms, mvar, rid = result
+            src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+            ans = (
+                ans_terms[0]
+                if ans_terms
+                else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+            )
+            try_add(src_op, ans, rid)
+        elif st == "partial_constant_vanish":
+            # Function now returns a list of two problems
+            results = generate_partial_constant_vanish(var)
+            for result in results:
+                src_terms, ans_terms, mvar, rid = result
+                src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+                ans = (
+                    ans_terms[0]
+                    if ans_terms
+                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                )
+                try_add(src_op, ans, rid)
+        elif st == "integrate_multi":
+            src, ans, rid = generate_multi_term_integrate(var)
+            src_op = {"op": "integrate", "var": var, "expr": src}
+            try_add(src_op, ans, rid)
+        elif st == "gradient_2var":
+            expr, ans, rid = generate_gradient_diff()
     for item in dataset:
         rid = item["rule_ids"]
         rule_counts[rid] = rule_counts.get(rid, 0) + 1
