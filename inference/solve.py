@@ -433,6 +433,16 @@ class CalculusSolverInference:
 
         if not variables:
             return {
+                "input": input_env,
+                "output_tokens": [],
+                "status": "unsolvable",
+                "verified": False,
+                "confidence": 0.0,
+                "rule": "RULE:gradient",
+                "output": None,
+                "gradient": {},
+                "warning": (
+                    "Could not determine gradient variables from "
         gradient_result = {}
         return {"input": input_env, "output": gradient_result}
                 {"gradient": gradient_result}
