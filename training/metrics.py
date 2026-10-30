@@ -137,3 +137,23 @@ def evaluate_exact_match(
         "correct_flags": correct_flags,
     }
 
+
+def contrast_pair_accuracy(result: Dict, groups: Sequence) -> Dict:
+    """Share of contrast pairs where BOTH members were decoded exactly."""
+    flags = result["correct_flags"]
+    members: Dict = {}
+    for idx, ok in flags.items():
+        group = groups[idx]
+        if group is None:
+            continue
+        members.setdefault(group, []).append(ok)
+    complete = [v for v in members.values() if len(v) == 2]
+    both = sum(1 for v in complete if all(v))
+    rows = sum(len(v) for v in complete)
+    row_ok = sum(sum(v) for v in complete)
+    return {
+        "pairs": len(complete),
+        "pairs_both_correct": both,
+        "pair_accuracy": both / len(complete) if complete else 0.0,
+        "row_accuracy": row_ok / rows if rows else 0.0,
+    }
