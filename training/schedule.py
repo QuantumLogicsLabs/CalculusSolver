@@ -40,3 +40,39 @@ def resolve_schedule(cfg: Dict, steps_per_epoch: int, epochs: int) -> Dict:
         )
     warmup_steps = int(cfg.get("warmup_steps", 1000))
     min_lr_ratio = float(lr_decay.get("min_lr_ratio", 0.1))
+    base_lr = float(cfg["learning_rate"])
+    if warmup_steps < 0:
+        raise ValueError(f"warmup_steps must be >= 0, got {warmup_steps}")
+    if not 0.0 <= min_lr_ratio <= 1.0:
+        raise ValueError(f"lr_decay.min_lr_ratio must be in [0, 1], got {min_lr_ratio}")
+    if base_lr <= 0:
+        raise ValueError(f"learning_rate must be > 0, got {base_lr}")
+
+    total_steps = int(epochs) * int(steps_per_epoch)
+    resolved = {
+        "type": decay_type,
+        "base_lr": base_lr,
+        "warmup_steps": warmup_steps,
+        "min_lr_ratio": min_lr_ratio,
+        "epochs": int(epochs),
+        "steps_per_epoch": int(steps_per_epoch),
+        "total_steps": total_steps,
+        "warmup_fraction": warmup_steps / total_steps if total_steps else None,
+        "warnings": [],
+    }
+    if total_steps <= warmup_steps:
+        resolved["warnings"].append(
+            f"total_steps ({total_steps}) <= warmup_steps ({warmup_steps}): "
+            "the LR never leaves warmup and the cosine decay is never reached"
+        )
+    return resolved
+
+
+def lr_at(resolved: Dict, step: int) -> float:
+    fn = build_lr_lambda(resolved["warmup_steps"], resolved["total_steps"], resolved["min_lr_ratio"])
+    return resolved["base_lr"] * fn(step)
+
+
+def verify_schedule(resolved: Dict, tol: float = 1e-9) -> Dict:
+    """Replay the scheduler on a dummy optimizer and assert the intended shape.
+
