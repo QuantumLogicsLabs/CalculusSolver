@@ -76,3 +76,37 @@ def lr_at(resolved: Dict, step: int) -> float:
 def verify_schedule(resolved: Dict, tol: float = 1e-9) -> Dict:
     """Replay the scheduler on a dummy optimizer and assert the intended shape.
 
+    Checks: LR is 0 at step 0 and rises linearly; equals ``base_lr`` exactly at
+    the end of warmup; never increases afterwards; and ends at
+    ``base_lr * min_lr_ratio``. Raises AssertionError on any mismatch.
+    """
+    warmup = resolved["warmup_steps"]
+    total = resolved["total_steps"]
+    base = resolved["base_lr"]
+    floor = base * resolved["min_lr_ratio"]
+
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.AdamW([param], lr=base)
+    scheduler = LambdaLR(
+        optimizer,
+        lr_lambda=build_lr_lambda(warmup, total, resolved["min_lr_ratio"]),
+    )
+
+    lrs = [scheduler.get_last_lr()[0]]
+    for _ in range(total):
+        optimizer.step()
+        scheduler.step()
+        lrs.append(scheduler.get_last_lr()[0])
+
+    if warmup > 0:
+        assert abs(lrs[0]) <= tol, f"LR at step 0 should be 0, got {lrs[0]}"
+    if total > warmup:
+        assert abs(lrs[warmup] - base) <= tol * max(1.0, base), (
+            f"LR at end of warmup (step {warmup}) is {lrs[warmup]}, expected {base}"
+        )
+        post = lrs[warmup:]
+        assert all(post[i + 1] <= post[i] + tol for i in range(len(post) - 1)), (
+            "LR increases after warmup; cosine decay must be monotonic"
+        )
+        assert abs(lrs[total] - floor) <= tol * max(1.0, base), (
+            f"Final LR is {lrs[total]}, expected base*min_lr_ratio = {floor}"
