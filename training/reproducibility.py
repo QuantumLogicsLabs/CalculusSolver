@@ -50,3 +50,39 @@ def set_global_seed(seed: int, deterministic: bool = True) -> Dict:
         "python_random": True,
         "numpy": numpy_seeded,
         "torch": True,
+        "cuda": torch.cuda.is_available(),
+        "deterministic_algorithms": deterministic,
+    }
+
+
+def sha256_file(path) -> Optional[str]:
+    p = Path(path)
+    if not p.is_file():
+        return None
+    digest = hashlib.sha256()
+    with p.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def count_lines(path) -> Optional[int]:
+    p = Path(path)
+    if not p.is_file():
+        return None
+    with p.open("rb") as stream:
+        return sum(1 for _ in stream)
+
+
+def describe_files(paths: Iterable) -> Dict[str, Dict]:
+    out = {}
+    for path in paths:
+        p = Path(path)
+        out[p.as_posix()] = {
+            "exists": p.is_file(),
+            "sha256": sha256_file(p),
+            "rows": count_lines(p) if p.suffix == ".jsonl" else None,
+        }
+    return out
+
+
