@@ -349,7 +349,7 @@ def generate_partial_constant_vanish(var: Optional[str] = None):
         # only when the resulting coefficient stays inside the existing vocab.
         power = 1 if random.random() < 0.60 else random.choice(valid_exps)
         for _ in range(40):
-            # CRITICAL: pass (coeff, power) — the helper multiplies them itself
+            # CRITICAL: pass (coeff, power) â€” the helper multiplies them itself
             if _output_in_vocab(coeff, power):
                 break
             power = 1 if random.random() < 0.60 else random.choice(valid_exps)
@@ -359,7 +359,7 @@ def generate_partial_constant_vanish(var: Optional[str] = None):
 
         terms.append({"coeff": coeff, "var": {v: power}})
 
-    # Step 4.1 – shuffle so the surviving term is not always first.
+    # Step 4.1 â€“ shuffle so the surviving term is not always first.
     random.shuffle(terms)
 
     variables_in_expr = [list(t["var"].keys())[0] for t in terms]
@@ -370,7 +370,7 @@ def generate_partial_constant_vanish(var: Optional[str] = None):
         power = target["var"][bind_var]
         ans_coeff = target["coeff"] * power
 
-        # Final safety net – never emit a coefficient absent from vocab.json
+        # Final safety net â€“ never emit a coefficient absent from vocab.json
         if not is_valid_num(ans_coeff):
             # Should never happen after the loop above, but guard anyway
             ans_coeff = target["coeff"]  # power == 1 case is always safe
@@ -385,7 +385,7 @@ def generate_partial_constant_vanish(var: Optional[str] = None):
         ans_expr = {"numi": {"terms": ans_terms}, "deno": 1}
         return [src_expr], [ans_expr], bind_var, RULE_ID_PARTIAL
 
-    # Step 4.2 – binding-contrast twin: same terms, different bound variable.
+    # Step 4.2 â€“ binding-contrast twin: same terms, different bound variable.
     bind_var = random.choice(variables_in_expr)
     other_var = random.choice([v for v in variables_in_expr if v != bind_var])
 
@@ -506,7 +506,7 @@ def generate_multi_term_integrate(var: str = "x", num_terms: Optional[int] = Non
 
 
 def _choose_2var_pair():
-    # even split across all three pairs — matches benchmark distribution
+    # even split across all three pairs â€” matches benchmark distribution
     return random.choice([("x", "y"), ("x", "z"), ("y", "z")])
 
 
@@ -958,6 +958,76 @@ def generate_slang_dataset(target_total: int = 75000):
         print(f"  -> {name}.jsonl: {len(split_data)} rows")
 
     rule_counts: Dict[int, int] = {}
+            elif cat_name == "constant_term":
+                src, ans, rid = generate_constant_term()
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "negative_exp_diff":
+                src, ans, rid = generate_negative_exp_diff(var)
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "multivar_diff":
+                result = generate_multivar_diff()
+                if result is None:
+                    continue
+                src_terms, ans_terms, mvar, rid = result
+                src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+                ans = (
+                    ans_terms[0]
+                    if ans_terms
+                    else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                )
+            elif cat_name == "partial_constant_vanish":
+                # Function now returns a list of two (src_terms, ans_terms, mvar, rid) tuples
+                results = generate_partial_constant_vanish(var)
+                added_this_call = 0
+                for result in results:
+                    src_terms, ans_terms, mvar, rid = result
+                    src_op = {"op": "partial", "var": mvar, "expr": src_terms[0]}
+                    ans = (
+                        ans_terms[0]
+                        if ans_terms
+                        else {"numi": {"terms": [{"coeff": 0}]}, "deno": 1}
+                    )
+                    if try_add(src_op, ans, rid):
+                        added_this_call += 1
+                added_for_cat += added_this_call
+                continue  # already counted via try_add; skip the common try_add below
+            elif cat_name == "sin_diff":
+                src, ans, rid = generate_sin_diff(var)
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "cos_diff":
+                src, ans, rid = generate_cos_diff(var)
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "tan_diff":
+                src, ans, rid = generate_tan_diff(var)
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "exp_diff":
+                src, ans, rid = generate_exp_diff(var)
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "ln_diff":
+                src, ans, rid = generate_ln_diff(var)
+                src_op = {"op": "diff", "var": var, "expr": src}
+            elif cat_name == "integrate_single":
+                src, ans, rid = generate_integrate_diff(var)
+                src_op = {"op": "integrate", "var": var, "expr": src}
+            elif cat_name == "integrate_multi":
+                src, ans, rid = generate_multi_term_integrate(var)
+                src_op = {"op": "integrate", "var": var, "expr": src}
+            elif cat_name == "gradient_2var":
+                expr, ans, rid = generate_gradient_diff()
+                var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+                src_op = {"op": "gradient", "var": var_primary, "expr": expr}
+            elif cat_name == "gradient_3var":
+                expr, ans, rid = generate_gradient_diff_3var()
+                var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+                src_op = {"op": "gradient", "var": var_primary, "expr": expr}
+            elif cat_name == "gradient_1var":
+                expr, ans, rid = generate_gradient_diff_1var()
+                var_primary = list(ans["gradient"].keys())[0] if "gradient" in ans else var
+                src_op = {"op": "gradient", "var": var_primary, "expr": expr}
+            elif cat_name == "tangent_line_single":
+                src_op, ans, _, rid = generate_tangent_line_diff(var)
+            elif cat_name == "tangent_line_multi":
+                src_op, ans, _, rid = generate_multi_term_tangent_line(var)
     for item in dataset:
         rid = item["rule_ids"]
         rule_counts[rid] = rule_counts.get(rid, 0) + 1
