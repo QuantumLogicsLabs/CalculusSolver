@@ -1,16 +1,19 @@
 {
   "learning_rate": 0.0001,
   "weight_decay": 0.0001,
-  "warmup_steps": 1000,
+  "warmup_steps": 1500,
   "batch_size": 32,
   "max_steps": 3500,
   "hidden_dim": 256,
   "max_len": 80,
-  "epochs": 8,
+  "epochs": 15,
+  "seed": 42,
+  "deterministic": true,
   "grad_clip_max_norm": 1.0,
+  "max_nonfinite_loss_steps": 5,
   "early_stopping": {
-    "enabled": true,
-    "patience": 6,
+    "enabled": false,
+    "patience": 15,
     "min_delta": 0.0001
   },
   "validation_logging": true,
@@ -18,17 +21,36 @@
     "enabled": true,
     "start_prob": 0.0,
     "end_prob": 0.7,
-    "ramp_epochs": 6,
+    "ramp_epochs": 11,
     "schedule": "linear"
   },
   "curriculum": {
     "enabled": true,
     "gradient_3var_start_weight": 0.1,
-    "gradient_3var_ramp_epochs": 4
+    "gradient_3var_ramp_epochs": 7
+  },
+  "token_weighted_loss": {
+    "enabled": true,
+    "weights": {
+      "structural": 1.0,
+      "numerical": 3.5,
+      "variable": 4.0,
+      "other": 1.0
+    }
+  },
+  "contrast": {
+    "enabled": true,
+    "pairs_per_batch": 6
+  },
+  "exact_match_eval": {
+    "per_epoch_examples": 600,
+    "batch_size": 128,
+    "final_full_eval": true,
+    "final_max_examples": null
   },
   "proxy_eval_examples": 15,
   "lr_decay": {
     "type": "cosine",
-    "min_lr_ratio": 0.1
+    "min_lr_ratio": 0.05
   }
 }

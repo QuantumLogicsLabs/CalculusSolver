@@ -395,32 +395,41 @@ class CalculusSolverInference:
     def _solve_gradient(
         self,
         input_env: Dict[str, Any],
+        variables: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Compute a gradient by solving one partial derivative per variable."""
-        expr = input_env.get("expr")
+        if not isinstance(input_env, dict):
+            raise TypeError("input_env must be a dict")
 
-        explicit_variables = input_env.get(
-            "vars",
-            input_env.get("variables"),
-        )
-
-        if isinstance(explicit_variables, str):
-            variables = [explicit_variables]
-        elif isinstance(explicit_variables, (list, tuple)):
-            variables = [
-                variable
-                for variable in explicit_variables
-                if isinstance(variable, str) and variable
-            ]
+        if "expr" in input_env:
+            expr = input_env["expr"]
         else:
-            variables = []
+            expr = input_env
+            input_env = {"op": "gradient", "expr": expr}
 
-        # Extract all expression variables before using the single-var fallback.
-        if not variables:
-            variables = self._extract_gradient_variables(expr)
+        if variables is None:
+            explicit_variables = input_env.get(
+                "vars",
+                input_env.get("variables"),
+            )
 
-        if not variables and isinstance(input_env.get("var"), str):
-            variables = [input_env["var"]]
+            if isinstance(explicit_variables, str):
+                variables = [explicit_variables]
+            elif isinstance(explicit_variables, (list, tuple)):
+                variables = [
+                    variable
+                    for variable in explicit_variables
+                    if isinstance(variable, str) and variable
+                ]
+            else:
+                variables = []
+
+            # Extract all expression variables before using the single-var fallback.
+            if not variables:
+                variables = self._extract_gradient_variables(expr)
+
+            if not variables and isinstance(input_env.get("var"), str):
+                variables = [input_env["var"]]
 
         if not variables:
             return {
@@ -431,11 +440,24 @@ class CalculusSolverInference:
                 "confidence": 0.0,
                 "rule": "RULE:gradient",
                 "output": None,
+                "gradient": {},
                 "warning": (
                     "Could not determine gradient variables from "
                     "'vars', 'variables', or the expression."
                 ),
             }
+
+        # Validate that variables are supported in vocab
+        for variable in variables:
+            opvar_token = f"OPVAR:{variable}"
+            var_token = f"VAR:{variable}"
+            if (
+                opvar_token not in self.vocab_map.get("token_to_id", {})
+                and var_token not in self.vocab_map.get("token_to_id", {})
+            ):
+                raise ValueError(
+                    f"Unknown or unsupported gradient variable: {variable!r}"
+                )
 
         gradient_result: Dict[str, Any] = {}
         failures: List[str] = []
@@ -510,6 +532,7 @@ class CalculusSolverInference:
                 if gradient_result
                 else None
             ),
+            "gradient": gradient_result,
             "warning": warning,
         }
 
