@@ -133,3 +133,39 @@ def build_run_manifest(
     scheduler_info: Dict,
     loss_info: Dict,
     extra: Optional[Dict] = None,
+) -> Dict:
+    try:
+        vocab_version = json.loads(Path(vocab_path).read_text(encoding="utf-8")).get("_version")
+    except Exception:
+        vocab_version = None
+
+    manifest = {
+        "schema_version": 1,
+        "run_name": run_name,
+        "started_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "seeds": seed_info,
+        "config": cfg,
+        "dataset": describe_files(dataset_files),
+        "tokenizer": {
+            "vocab_path": Path(vocab_path).as_posix(),
+            "vocab_version": vocab_version,
+            "vocab_sha256": sha256_file(vocab_path),
+            "vocab_size": vocab_size,
+            "serializer_path": Path(serializer_path).as_posix(),
+            "serializer_sha256": sha256_file(serializer_path),
+        },
+        "checkpoint": {"path": Path(checkpoint_path).as_posix(), "sha256": None},
+        "optimizer": optimizer_info,
+        "scheduler": scheduler_info,
+        "loss": loss_info,
+        "environment": collect_environment(),
+    }
+    if extra:
+        manifest.update(extra)
+    return manifest
+
+
+def write_json(path, payload: Dict) -> None:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(payload, indent=2, default=str) + "\n", encoding="utf-8")
