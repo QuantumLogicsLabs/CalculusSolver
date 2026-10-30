@@ -4,8 +4,9 @@ from inference.solve import CalculusSolverInference  # adjust import path to mat
 
 @pytest.fixture(scope="module")
 def solver():
-    # Adjust to however you actually construct/load the solver in your project
-    return CalculusSolverInference(model_path="checkpoints/latest.pt")
+    import os
+    model_path = "checkpoints/latest.pt" if os.path.exists("checkpoints/latest.pt") else "checkpoints/final/best.pt"
+    return CalculusSolverInference(model_path=model_path)
 
 
 def _slang_expr(terms):
