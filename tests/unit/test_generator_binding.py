@@ -234,14 +234,16 @@ def test_generated_outputs_stay_in_vocabulary():
 
 def test_partial_constant_vanish_emits_valid_vanishing_derivatives():
     for _ in range(200):
-        src, ans, var, rule = G.generate_partial_constant_vanish()
-        assert rule == G.RULE_ID_PARTIAL
-        src_terms = src[0]["numi"]["terms"]
-        ans_terms = ans[0]["numi"]["terms"]
-        assert len(src_terms) >= 2
-        for t in ans_terms:
-            for v in t.get("var", {}).keys():
-                assert v == var, f"Non-target variable {v} did not vanish in {ans_terms}"
+        result = G.generate_partial_constant_vanish()
+        items = result if isinstance(result, list) else [result]
+        for src, ans, var, rule in items:
+            assert rule == G.RULE_ID_PARTIAL
+            src_terms = src[0]["numi"]["terms"]
+            ans_terms = ans[0]["numi"]["terms"]
+            assert len(src_terms) >= 2
+            for t in ans_terms:
+                for v in t.get("var", {}).keys():
+                    assert v == var, f"Non-target variable {v} did not vanish in {ans_terms}"
 
 
 # -- rule labelling (task 3) --------------------------------------------------

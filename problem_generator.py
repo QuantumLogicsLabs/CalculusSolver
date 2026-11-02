@@ -395,6 +395,255 @@ def generate_partial_constant_vanish(var: Optional[str] = None):
     return [problem_a, problem_b]
 
 
+# ---------------------------------------------------------------------------
+# Variable-binding contrast pairs
+# ---------------------------------------------------------------------------
+# One multivariable expression, differentiated with respect to two different
+# variables. Everything about the input is identical except ``var``; the
+# target changes only as dictated by that variable. Training minibatches carry
+# both members together (see training/contrast.py).
+CONTRAST_SHAPES = ["split", "split_plus", "bystander", "mixed"]
+CONTRAST_SHAPE_WEIGHTS = [25, 25, 20, 30]
+# Longest serialized expression/answer we allow: max_len (80) minus BOS, EOS
+# and the rule prefix token that train.py adds to decoder sequences.
+CONTRAST_MAX_TOKENS = 77
+
+
+def _derivative_expr(terms: List[Dict], var: str) -> Dict:
+    ans_terms = [d for d in (_differentiate_term(t, var) for t in terms) if d]
+    return {"numi": {"terms": ans_terms or [{"coeff": 0}]}, "deno": 1}
+
+
+def _expr_signature(expr: Dict) -> str:
+    return " ".join(serialize_slang_math(expr))
+
+
+def generate_binding_contrast_pair(rng=None) -> Optional[Dict]:
+    """Return one contrast pair, or None when the random draw is rejected.
+
+    Result: ``{"expr", "shape", "pair": [(var_a, ans_a), (var_b, ans_b)]}``.
+    The two answers are derivatives of the SAME ``expr`` with respect to two
+    different variables, so they differ only through the bound variable.
+    """
+    rng = rng or random
+    va, vb = rng.sample(VARIABLES, 2)
+    vc = next(v for v in VARIABLES if v not in (va, vb))
+    valid_coeffs = safe_nonzero_coeffs()
+    valid_exps = safe_pos_exponents()
+    used_coeffs: Set[int] = set()
+    used_exps: Set[int] = set()
+
+    def pick_pair():
+        for _ in range(60):
+            c = rng.choice(valid_coeffs)
+            p = rng.choice(valid_exps)
+            if c in used_coeffs or p in used_exps or not _output_in_vocab(c, p):
+                continue
+            used_coeffs.add(c)
+            used_exps.add(p)
+            return c, p
+        return None
+
+    shape = rng.choices(CONTRAST_SHAPES, weights=CONTRAST_SHAPE_WEIGHTS, k=1)[0]
+    if shape == "split":
+        layout = [(va,), (vb,)]
+    elif shape == "split_plus":
+        layout = rng.choice([[(va,), (va,), (vb,)], [(va,), (vb,), (vb,)]])
+    elif shape == "bystander":
+        layout = [(va,), (vb,), (vc,)]  # the vc term vanishes under either binding
+    else:
+        layout = rng.choice(
+            [[(va, vb), (va,)], [(va, vb), (vb,)], [(va, vb), (va,), (vb,)]]
+        )
+
+    terms: List[Dict] = []
+    for term_vars in layout:
+        pair = pick_pair()
+        if pair is None:
+            return None
+        c, p = pair
+        if len(term_vars) == 1:
+            powers = {term_vars[0]: p}
+        else:
+            spare = [e for e in valid_exps if e not in used_exps and is_valid_num(c * e)]
+            if not spare:
+                return None
+            q = rng.choice(spare)
+            used_exps.add(q)
+            powers = {term_vars[0]: p, term_vars[1]: q}
+        terms.append({"coeff": c, "var": dict(sorted(powers.items()))})
+
+    rng.shuffle(terms)
+
+    for v in (va, vb):
+        if not _binding_is_unambiguous(_term_pairs(terms, v)):
+            return None
+
+    ans_a = _derivative_expr(terms, va)
+    ans_b = _derivative_expr(terms, vb)
+    for ans in (ans_a, ans_b):
+        if not all(_term_in_vocab(t) for t in ans["numi"]["terms"]):
+            return None
+    if ans_a == ans_b:
+        return None
+
+    expr = {"numi": {"terms": terms}, "deno": 1}
+    try:
+        lengths = [len(serialize_slang_math(x)) for x in (expr, ans_a, ans_b)]
+    except Exception:
+        return None
+    if max(lengths) > CONTRAST_MAX_TOKENS:
+        return None
+
+    pair = [(va, ans_a), (vb, ans_b)]
+    rng.shuffle(pair)
+    return {"expr": expr, "shape": shape, "pair": pair}
+
+
+def _heldout_signatures(paths) -> Tuple[Set[str], Set[str]]:
+    """(full-input signatures, partial-expression signatures) of existing splits."""
+    inputs: Set[str] = set()
+    exprs: Set[str] = set()
+    for path in paths:
+        path = Path(path)
+        if not path.exists():
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    src = json.loads(line)["src_tokens"]
+                    inputs.add(" ".join(serialize_slang_math(src)))
+                    if isinstance(src, dict) and src.get("op") == "partial":
+                        exprs.add(_expr_signature(src["expr"]))
+                except Exception:
+                    continue
+    return inputs, exprs
+
+
+def _build_contrast_split(
+    n_pairs: int,
+    rng: random.Random,
+    blocked_inputs: Set[str],
+    blocked_exprs: Set[str],
+    label: str,
+) -> Tuple[List[Dict], Dict]:
+    rows: List[Dict] = []
+    seen_exprs: Set[str] = set()
+    stats = {"shapes": {}, "var_pairs": {}, "attempts": 0, "target_first": 0, "target_slots": 0}
+    max_attempts = max(n_pairs * 200, 1000)
+
+    group = 0
+    while group < n_pairs and stats["attempts"] < max_attempts:
+        stats["attempts"] += 1
+        made = generate_binding_contrast_pair(rng)
+        if made is None:
+            continue
+        expr = made["expr"]
+        expr_sig = _expr_signature(expr)
+        if expr_sig in seen_exprs or expr_sig in blocked_exprs:
+            continue
+
+        candidate = []
+        clash = False
+        for var, ans in made["pair"]:
+            src_op = {"op": "partial", "var": var, "expr": expr}
+            try:
+                sig = " ".join(serialize_slang_math(src_op))
+                serialize_slang_math(ans)
+            except Exception:
+                clash = True
+                break
+            if sig in blocked_inputs:
+                clash = True
+                break
+            candidate.append((var, src_op, ans))
+        if clash:
+            continue
+
+        seen_exprs.add(expr_sig)
+        for var, src_op, ans in candidate:
+            rows.append(
+                {
+                    "src_tokens": src_op,
+                    "tgt_input_tokens": ans,
+                    "tgt_output_tokens": ans,
+                    "rule_ids": RULE_ID_PARTIAL,
+                    "verification_state": 1,
+                    "contrast_group": group,
+                    "contrast_var": var,
+                }
+            )
+            idx = next(
+                (i for i, t in enumerate(expr["numi"]["terms"]) if var in t.get("var", {})), None
+            )
+            stats["target_slots"] += 1
+            stats["target_first"] += int(idx == 0)
+        stats["shapes"][made["shape"]] = stats["shapes"].get(made["shape"], 0) + 1
+        key = "".join(sorted(v for v, _, _ in candidate))
+        stats["var_pairs"][key] = stats["var_pairs"].get(key, 0) + 1
+        group += 1
+
+    blocked_exprs |= seen_exprs
+    print(
+        f"  - contrast_{label}: {group}/{n_pairs} pairs ({len(rows)} rows), "
+        f"attempts={stats['attempts']}, shapes={stats['shapes']}, "
+        f"var_pairs={stats['var_pairs']}, "
+        f"target_term_first={stats['target_first'] / max(stats['target_slots'], 1):.0%}"
+    )
+    return rows, stats
+
+
+def generate_contrast_dataset(
+    train_pairs: int = 8000,
+    val_pairs: int = 400,
+    seed: int = 1234,
+    splits_dir: str = "data/splits",
+    exclude_main_splits: bool = True,
+    write: bool = True,
+) -> Dict[str, List[Dict]]:
+    """Build ``contrast_train.jsonl`` / ``contrast_val.jsonl``.
+
+    Uses its own seeded ``random.Random`` so it never disturbs (or depends on)
+    the global RNG stream that produces the main dataset. Validation pairs are
+    drawn first and blocked from every other split by expression, so no
+    validation expression is ever seen in training; benchmark inputs are
+    quarantined exactly as in the main builder.
+    """
+    print("[Contrast Engine] Building variable-binding contrast pairs...")
+    rng = random.Random(seed)
+    splits_path = Path(splits_dir)
+    main_dir = Path("data/splits")
+
+    quarantined = load_quarantined_benchmarks()
+    blocked_inputs: Set[str] = set(quarantined)
+    train_exprs: Set[str] = set()
+    val_exprs: Set[str] = set()
+    if exclude_main_splits:
+        held_in, held_ex = _heldout_signatures(
+            [main_dir / "val.jsonl", main_dir / "test.jsonl"]
+        )
+        blocked_inputs |= held_in
+        train_exprs |= held_ex
+        val_exprs |= held_ex
+        _, main_train_ex = _heldout_signatures([main_dir / "train.jsonl"])
+        val_exprs |= main_train_ex
+
+    val_rows, _ = _build_contrast_split(val_pairs, rng, blocked_inputs, val_exprs, "val")
+    # Contrast-val expressions stay out of contrast-train.
+    train_exprs |= {_expr_signature(r["src_tokens"]["expr"]) for r in val_rows}
+    train_rows, _ = _build_contrast_split(train_pairs, rng, blocked_inputs, train_exprs, "train")
+
+    result = {"train": train_rows, "val": val_rows}
+    if write:
+        splits_path.mkdir(parents=True, exist_ok=True)
+        for name, rows in result.items():
+            with open(splits_path / f"contrast_{name}.jsonl", "w", encoding="utf-8") as f:
+                for row in rows:
+                    f.write(json.dumps(row) + "\n")
+            print(f"  -> contrast_{name}.jsonl: {len(rows)} rows")
+    return result
+
+
 def generate_sin_diff(var: str = "x"):
     k = random.choice(safe_nonzero_coeffs())
     inner = {"numi": {"terms": [{"coeff": k, "var": {var: 1}}]}, "deno": 1}
@@ -977,4 +1226,24 @@ def generate_slang_dataset(target_total: int = 75000):
 
 
 if __name__ == "__main__":
-    generate_slang_dataset()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="SLaNg dataset generator")
+    parser.add_argument(
+        "--contrast-only",
+        action="store_true",
+        help="Only (re)build data/splits/contrast_{train,val}.jsonl; leaves the main splits untouched",
+    )
+    parser.add_argument("--contrast-train-pairs", type=int, default=8000)
+    parser.add_argument("--contrast-val-pairs", type=int, default=400)
+    parser.add_argument("--contrast-seed", type=int, default=1234)
+    cli_args = parser.parse_args()
+
+    if cli_args.contrast_only:
+        generate_contrast_dataset(
+            train_pairs=cli_args.contrast_train_pairs,
+            val_pairs=cli_args.contrast_val_pairs,
+            seed=cli_args.contrast_seed,
+        )
+    else:
+        generate_slang_dataset()
